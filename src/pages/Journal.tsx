@@ -125,11 +125,11 @@ export default function Journal() {
         <div className="flex items-center gap-2">
           <Search className="h-4 w-4 text-muted-foreground" />
           <span className="text-xs text-muted-foreground min-w-[60px]">
-            Search:
+            {t('journal.search')}:
           </span>
           <Input
             type="text"
-            placeholder="Search by pair (e.g. BTC, ETH, BTCUSDT...)"
+            placeholder={t('journal.searchPairPlaceholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="max-w-md h-8"
@@ -141,7 +141,7 @@ export default function Journal() {
               onClick={() => setSearchQuery('')}
               className="h-7 text-xs"
             >
-              Clear
+              {t('common.clear') || 'Clear'}
             </Button>
           )}
         </div>
@@ -197,9 +197,11 @@ export default function Journal() {
           <Card>
             <CardContent className="pt-6 text-center">
               <p className="text-muted-foreground">
-                {trades.length === 0
-                  ? 'No trades yet. Create your first trade to get started!'
-                  : 'No trades match your search.'}
+                {searchQuery
+                  ? t('journal.noTradesFound')
+                  : trades.length === 0
+                  ? t('journal.noTradesMessage')
+                  : t('journal.noTradesInFilter')}
               </p>
             </CardContent>
           </Card>

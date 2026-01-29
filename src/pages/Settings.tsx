@@ -47,7 +47,7 @@ export default function Settings() {
       setCredentials(data);
     } catch (error) {
       console.error('Failed to load API credentials:', error);
-      alert('Failed to load credentials: ' + error);
+      alert(t('settings.failedToLoadCredentials') + ': ' + error);
     }
   };
 
@@ -56,13 +56,13 @@ export default function Settings() {
     try {
       const isValid = await api.testApiCredentials(id);
       if (isValid) {
-        alert('Connection successful!');
+        alert(t('settings.connectionSuccessful'));
       } else {
-        alert('Connection failed. Please check your credentials.');
+        alert(t('settings.connectionFailed'));
       }
     } catch (error) {
       console.error('Failed to test credentials:', error);
-      alert('Failed to test credentials: ' + error);
+      alert(t('settings.failedToTestCredentials') + ': ' + error);
     } finally {
       setTestingCredentialId(null);
     }
@@ -86,7 +86,7 @@ export default function Settings() {
       await loadCredentials();
     } catch (error) {
       console.error('Failed to delete credentials:', error);
-      alert('Failed to delete credentials: ' + error);
+      alert(t('settings.failedToDeleteCredentials') + ': ' + error);
     }
   };
 
@@ -96,7 +96,7 @@ export default function Settings() {
       await loadCredentials();
     } catch (error) {
       console.error('Failed to update credentials:', error);
-      alert('Failed to update credentials: ' + error);
+      alert(t('settings.failedToUpdateCredentials') + ': ' + error);
     }
   };
 
@@ -113,10 +113,10 @@ export default function Settings() {
         currency: settings.currency,
       });
       setSettings(updated);
-      alert('Settings saved successfully!');
+      alert(t('settings.settingsSaved'));
     } catch (error) {
       console.error('Failed to save settings:', error);
-      alert('Failed to save settings');
+      alert(t('settings.saveFailed'));
     } finally {
       setSaving(false);
     }
@@ -137,18 +137,18 @@ export default function Settings() {
 
       if (filePath) {
         await writeTextFile(filePath, jsonData);
-        alert('Data exported successfully!');
+        alert(t('settings.exportSuccess'));
       }
     } catch (error) {
       console.error('Failed to export data:', error);
-      alert('Failed to export data: ' + error);
+      alert(t('settings.exportFailed') + ': ' + error);
     } finally {
       setSaving(false);
     }
   };
 
   const handleImport = async () => {
-    if (!confirm('Import backup? This will add trades from the backup. Existing trades will not be affected.')) {
+    if (!confirm(t('settings.importConfirm'))) {
       return;
     }
 
@@ -166,79 +166,79 @@ export default function Settings() {
         const jsonData = await readTextFile(filePath);
         const [settingsUpdated, tradesImported] = await api.importAllData(jsonData);
 
-        alert(`Import complete!\nSettings updated: ${settingsUpdated}\nTrades imported: ${tradesImported}`);
+        alert(t('settings.importedDetails', { settings: settingsUpdated, trades: tradesImported }));
 
         // Reload settings
         await loadSettings();
       }
     } catch (error) {
       console.error('Failed to import data:', error);
-      alert('Failed to import data: ' + error);
+      alert(t('settings.importFailed') + ': ' + error);
     } finally {
       setSaving(false);
     }
   };
 
   const handleDeleteImported = async () => {
-    if (!confirm('Delete ALL BitGet imported trades? This cannot be undone.')) {
+    if (!confirm(t('settings.deleteImportedConfirm'))) {
       return;
     }
 
     setSaving(true);
     try {
       const count = await api.deleteBitgetTrades();
-      alert(`Deleted ${count} imported trades`);
+      alert(t('settings.deletedImported', { count }));
     } catch (error) {
       console.error('Failed to delete trades:', error);
-      alert('Failed to delete trades: ' + error);
+      alert(t('settings.deleteFailed') + ': ' + error);
     } finally {
       setSaving(false);
     }
   };
 
   const handleDeleteAllTrades = async () => {
-    if (!confirm('⚠️ DELETE ALL TRADES?\n\nThis will permanently delete ALL trades from your journal.\n\nThis action CANNOT be undone!\n\nType "DELETE" to confirm.')) {
+    if (!confirm(t('settings.deleteAllConfirm'))) {
       return;
     }
 
     // Additional confirmation
-    const confirmation = prompt('Type DELETE (in capitals) to confirm:');
+    const confirmation = prompt(t('settings.typeDeleteToConfirm'));
     if (confirmation !== 'DELETE') {
-      alert('Deletion cancelled');
+      alert(t('settings.deletionCancelled'));
       return;
     }
 
     setSaving(true);
     try {
       const count = await api.deleteAllTrades();
-      alert(`Successfully deleted ${count} trade(s)`);
+      alert(t('settings.deleteSuccess', { count }));
     } catch (error) {
       console.error('Failed to delete all trades:', error);
-      alert('Failed to delete trades: ' + error);
+      alert(t('settings.deleteFailed') + ': ' + error);
     } finally {
       setSaving(false);
     }
   };
 
   if (loading || !settings) {
-    return <div className="text-muted-foreground">Loading...</div>;
+    return <div className="text-muted-foreground">{t('common.loading')}</div>;
   }
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">
-          {t('settings.title') || 'Settings'}
+          {t('settings.title')}
         </h1>
         <p className="text-muted-foreground">
-          Configure your trading preferences
+          {t('settings.configureTradingPreferences')}
         </p>
       </div>
 
       {/* Language Preference */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">Language</CardTitle>
+          <CardTitle className="text-base">{t('settings.language')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex gap-2">
@@ -268,14 +268,14 @@ export default function Settings() {
 
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">Portfolio Settings</CardTitle>
+          <CardTitle className="text-base">{t('settings.portfolioSettings')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="grid grid-cols-2 gap-x-4 gap-y-3">
             {/* Row 1 */}
             <div className="space-y-1.5">
               <Label htmlFor="initial_capital" className="text-xs font-medium">
-                Initial Capital
+                {t('settings.initialCapital')}
               </Label>
               <Input
                 id="initial_capital"
@@ -284,12 +284,12 @@ export default function Settings() {
                 onChange={(e) => setSettings({ ...settings, initial_capital: parseFloat(e.target.value) })}
                 className="h-8 text-sm"
               />
-              <p className="text-[10px] text-muted-foreground">Starting portfolio value</p>
+              <p className="text-[10px] text-muted-foreground">{t('settings.startingPortfolioValue')}</p>
             </div>
 
             <div className="space-y-1.5">
               <Label htmlFor="currency" className="text-xs font-medium">
-                Currency
+                {t('settings.currency')}
               </Label>
               <Input
                 id="currency"
@@ -299,13 +299,13 @@ export default function Settings() {
                 className="h-8 text-sm"
                 placeholder="USD"
               />
-              <p className="text-[10px] text-muted-foreground">Display currency</p>
+              <p className="text-[10px] text-muted-foreground">{t('settings.displayCurrency')}</p>
             </div>
 
             {/* Row 2 */}
             <div className="space-y-1.5">
               <Label htmlFor="current_r_percent" className="text-xs font-medium">
-                Risk % (R)
+                {t('settings.riskPercent')}
               </Label>
               <Input
                 id="current_r_percent"
@@ -315,12 +315,12 @@ export default function Settings() {
                 onChange={(e) => setSettings({ ...settings, current_r_percent: parseFloat(e.target.value) })}
                 className="h-8 text-sm"
               />
-              <p className="text-[10px] text-muted-foreground">Default risk per trade</p>
+              <p className="text-[10px] text-muted-foreground">{t('settings.defaultRiskPerTrade')}</p>
             </div>
 
             <div className="space-y-1.5">
               <Label htmlFor="default_min_rr" className="text-xs font-medium">
-                Minimum R:R
+                {t('settings.minimumRR')}
               </Label>
               <Input
                 id="default_min_rr"
@@ -330,13 +330,13 @@ export default function Settings() {
                 onChange={(e) => setSettings({ ...settings, default_min_rr: parseFloat(e.target.value) })}
                 className="h-8 text-sm"
               />
-              <p className="text-[10px] text-muted-foreground">Min risk:reward ratio</p>
+              <p className="text-[10px] text-muted-foreground">{t('settings.minRiskRewardRatio')}</p>
             </div>
 
             {/* Row 3 */}
             <div className="space-y-1.5">
               <Label htmlFor="default_leverage" className="text-xs font-medium">
-                Default Leverage
+                {t('settings.defaultLeverage')}
               </Label>
               <Input
                 id="default_leverage"
@@ -345,13 +345,13 @@ export default function Settings() {
                 onChange={(e) => setSettings({ ...settings, default_leverage: parseInt(e.target.value) })}
                 className="h-8 text-sm"
               />
-              <p className="text-[10px] text-muted-foreground">Leverage multiplier (1-125x)</p>
+              <p className="text-[10px] text-muted-foreground">{t('settings.leverageMultiplier')}</p>
             </div>
           </div>
 
           <div className="pt-2 flex justify-end">
             <Button onClick={handleSave} disabled={saving} size="sm" className="h-8">
-              {saving ? 'Saving...' : 'Save Settings'}
+              {saving ? t('settings.saving') : t('settings.saveSettings')}
             </Button>
           </div>
         </CardContent>
@@ -360,18 +360,18 @@ export default function Settings() {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>Exchange Connections</CardTitle>
+            <CardTitle>{t('settings.exchangeConnections')}</CardTitle>
             <Button onClick={() => setShowExchangeDialog(true)} size="sm">
               <Plus className="h-4 w-4 mr-2" />
-              Add Exchange
+              {t('settings.addExchange')}
             </Button>
           </div>
         </CardHeader>
         <CardContent>
           {credentials.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              <p>No exchanges connected yet.</p>
-              <p className="text-sm mt-2">Add an exchange to automatically sync your trades.</p>
+              <p>{t('api.noSyncHistory')}</p>
+              <p className="text-sm mt-2">{t('api.addExchangeDescription')}</p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -410,24 +410,24 @@ export default function Settings() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Backup & Restore</CardTitle>
+          <CardTitle>{t('settings.backupRestore')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-start gap-2 p-3 rounded-lg bg-muted">
             <AlertCircle className="h-5 w-5 text-muted-foreground shrink-0" />
             <div className="text-sm text-muted-foreground">
-              Export your data as JSON backup. You can restore from backup later or migrate to another device.
+              {t('settings.backupDescription')}
             </div>
           </div>
 
           <div className="flex gap-4">
             <Button onClick={handleExport} disabled={saving}>
               <Download className="h-4 w-4 mr-2" />
-              Export Backup
+              {t('settings.exportBackup')}
             </Button>
             <Button variant="outline" onClick={handleImport} disabled={saving}>
               <Upload className="h-4 w-4 mr-2" />
-              Import Backup
+              {t('settings.importBackup')}
             </Button>
           </div>
         </CardContent>
@@ -436,22 +436,22 @@ export default function Settings() {
       {/* Danger Zone */}
       <Card className="border-destructive/50">
         <CardHeader>
-          <CardTitle className="text-destructive">Danger Zone</CardTitle>
+          <CardTitle className="text-destructive">{t('settings.dangerZone')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-start gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/20">
             <AlertCircle className="h-5 w-5 text-destructive shrink-0" />
             <div className="text-sm text-destructive">
-              <strong>Warning:</strong> These actions are irreversible and will permanently delete data from your journal.
+              {t('settings.dangerZoneWarning')}
             </div>
           </div>
 
           {/* Delete Imported Trades */}
           <div className="flex items-center justify-between p-4 border border-border rounded-lg">
             <div className="flex-1">
-              <div className="font-medium">Delete All Imported Trades</div>
+              <div className="font-medium">{t('settings.deleteImportedTrades')}</div>
               <div className="text-sm text-muted-foreground">
-                Remove all BitGet imported trades from your journal
+                {t('settings.deleteImportedTradesDesc')}
               </div>
             </div>
             <Button
@@ -461,16 +461,16 @@ export default function Settings() {
               disabled={saving}
             >
               <XCircle className="h-4 w-4 mr-2" />
-              Delete Imported
+              {t('settings.deleteImported')}
             </Button>
           </div>
 
           {/* Delete All Trades */}
           <div className="flex items-center justify-between p-4 border border-destructive rounded-lg bg-destructive/5">
             <div className="flex-1">
-              <div className="font-medium text-destructive">Delete All Trades</div>
+              <div className="font-medium text-destructive">{t('settings.deleteAllTrades')}</div>
               <div className="text-sm text-muted-foreground">
-                Permanently delete ALL trades from your journal. This cannot be undone!
+                {t('settings.deleteAllTradesDescription')}
               </div>
             </div>
             <Button
@@ -480,7 +480,7 @@ export default function Settings() {
               disabled={saving}
             >
               <Trash2 className="h-4 w-4 mr-2" />
-              Delete All
+              {t('settings.deleteAll')}
             </Button>
           </div>
         </CardContent>

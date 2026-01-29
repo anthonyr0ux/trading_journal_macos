@@ -131,7 +131,7 @@ export default function TradeNew() {
     if (!planValidation.valid || !planMetrics) return;
 
     if (planMetrics.type === 'UNDEFINED') {
-      alert('Invalid trade setup: Take profit price cannot equal entry price');
+      alert(t('tradeNew.invalidSetup'));
       return;
     }
 
@@ -167,8 +167,8 @@ export default function TradeNew() {
         position_size: planMetrics.positionSize,
         quantity: planMetrics.quantity,
         planned_weighted_rr: planMetrics.plannedWeightedRR,
-        effective_pe: effectivePe || null,
-        close_date: closeDate ? Math.floor(new Date(closeDate).getTime() / 1000) : null,
+        effectivePe: effectivePe || undefined,
+        closeDate: closeDate ? Math.floor(new Date(closeDate).getTime() / 1000) : undefined,
         exits: exitsJson,
         notes,
       });
@@ -176,7 +176,7 @@ export default function TradeNew() {
       navigate('/journal');
     } catch (error) {
       console.error('Failed to create trade:', error);
-      alert('Failed to create trade: ' + error);
+      alert(t('tradeNew.failedToCreate') + ': ' + error);
     } finally {
       setSaving(false);
     }
@@ -191,10 +191,10 @@ export default function TradeNew() {
         </Button>
         <div>
           <h1 className="text-3xl font-bold tracking-tight">
-            {calculatorData ? 'New Trade from Calculator' : 'New Trade'}
+            {calculatorData ? t('tradeNew.titleFromCalculator') : t('tradeNew.title')}
           </h1>
           <p className="text-muted-foreground">
-            Plan your trade and optionally add execution data
+            {t('tradeNew.subtitle')}
           </p>
         </div>
       </div>
@@ -203,7 +203,7 @@ export default function TradeNew() {
         <div className="flex items-start gap-2 p-3 rounded-lg bg-blue-50 dark:bg-blue-950/20 border border-blue-500/50">
           <AlertCircle className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
           <div className="text-sm text-blue-600 dark:text-blue-400">
-            <strong>Calculator data imported!</strong> Review the trade plan below, add pair/exchange info, then save.
+            <strong>{t('calculator.copied')}</strong> {t('tradeNew.subtitle')}
           </div>
         </div>
       )}
@@ -215,31 +215,31 @@ export default function TradeNew() {
             <CardHeader className="bg-muted/50">
               <CardTitle className="flex items-center gap-2">
                 <Calendar className="h-5 w-5" />
-                Trade Plan
+                {t('tradeNew.tradePlan')}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4 pt-6">
               {/* Basic Info */}
               <div className="space-y-3">
-                <div className="text-sm font-semibold">Basic Information</div>
+                <div className="text-sm font-semibold">{t('tradeNew.basicInformation')}</div>
                 <div className="grid gap-3 grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="pair" className="text-xs font-semibold">Pair *</Label>
+                    <Label htmlFor="pair" className="text-xs font-semibold">{t('tradeNew.tradingPairRequired')}</Label>
                     <Input
                       id="pair"
                       value={pair}
                       onChange={(e) => setPair(e.target.value)}
-                      placeholder="e.g., BTCUSDT"
+                      placeholder={t('tradeNew.pairPlaceholder')}
                       required
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="exchange" className="text-xs font-semibold">Exchange *</Label>
+                    <Label htmlFor="exchange" className="text-xs font-semibold">{t('tradeNew.exchangeRequired')}</Label>
                     <Input
                       id="exchange"
                       value={exchange}
                       onChange={(e) => setExchange(e.target.value)}
-                      placeholder="e.g., BitGet"
+                      placeholder={t('tradeNew.exchangePlaceholder')}
                       required
                     />
                   </div>
@@ -247,7 +247,7 @@ export default function TradeNew() {
 
                 <div className="grid gap-3 grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="analysisDate" className="text-xs font-semibold">Analysis Date</Label>
+                    <Label htmlFor="analysisDate" className="text-xs font-semibold">{t('tradeNew.analysisDate')}</Label>
                     <Input
                       id="analysisDate"
                       type="date"
@@ -256,7 +256,7 @@ export default function TradeNew() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="tradeDate" className="text-xs font-semibold">Trade Date</Label>
+                    <Label htmlFor="tradeDate" className="text-xs font-semibold">{t('tradeNew.tradeDate')}</Label>
                     <Input
                       id="tradeDate"
                       type="date"
@@ -269,10 +269,10 @@ export default function TradeNew() {
 
               {/* Portfolio Settings */}
               <div className="space-y-3 pt-3 border-t">
-                <div className="text-sm font-semibold">Portfolio Settings</div>
+                <div className="text-sm font-semibold">{t('tradeNew.portfolioSettings')}</div>
                 <div className="grid gap-3 grid-cols-3">
                   <div className="space-y-2">
-                    <Label htmlFor="portfolio" className="text-xs">Portfolio</Label>
+                    <Label htmlFor="portfolio" className="text-xs">{t('tradeNew.portfolio')}</Label>
                     <Input
                       id="portfolio"
                       type="number"
@@ -282,7 +282,7 @@ export default function TradeNew() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="rPercent" className="text-xs">R %</Label>
+                    <Label htmlFor="rPercent" className="text-xs">{t('tradeNew.riskPercent')}</Label>
                     <Input
                       id="rPercent"
                       type="number"
@@ -293,7 +293,7 @@ export default function TradeNew() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="minRR" className="text-xs">Min RR</Label>
+                    <Label htmlFor="minRR" className="text-xs">{t('tradeNew.minRR')}</Label>
                     <Input
                       id="minRR"
                       type="number"
@@ -308,10 +308,10 @@ export default function TradeNew() {
 
               {/* Planned Setup */}
               <div className="space-y-3 pt-3 border-t">
-                <div className="text-sm font-semibold">Planned Setup</div>
+                <div className="text-sm font-semibold">{t('tradeNew.plannedSetup')}</div>
                 <div className="grid gap-3 grid-cols-3">
                   <div className="space-y-2">
-                    <Label htmlFor="plannedPe" className="text-xs">Entry (PE) *</Label>
+                    <Label htmlFor="plannedPe" className="text-xs">{t('tradeNew.entryRequired')}</Label>
                     <Input
                       id="plannedPe"
                       type="number"
@@ -319,11 +319,12 @@ export default function TradeNew() {
                       value={plannedPe || ''}
                       onChange={(e) => setPlannedPe(Number(e.target.value))}
                       className="font-mono text-sm"
+                      placeholder={t('tradeNew.pricePlaceholder')}
                       required
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="plannedSl" className="text-xs">Stop Loss (SL) *</Label>
+                    <Label htmlFor="plannedSl" className="text-xs">{t('tradeNew.stopLossRequired')}</Label>
                     <Input
                       id="plannedSl"
                       type="number"
@@ -331,11 +332,12 @@ export default function TradeNew() {
                       value={plannedSl || ''}
                       onChange={(e) => setPlannedSl(Number(e.target.value))}
                       className="font-mono text-sm"
+                      placeholder={t('tradeNew.pricePlaceholder')}
                       required
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="leverage" className="text-xs">Leverage</Label>
+                    <Label htmlFor="leverage" className="text-xs">{t('tradeNew.leverage')}</Label>
                     <Input
                       id="leverage"
                       type="number"
@@ -346,12 +348,12 @@ export default function TradeNew() {
                     {planMetrics && (
                       <div className="text-xs space-y-1">
                         <div className="text-muted-foreground">
-                          Max safe: {planMetrics.maxLeverage}x
+                          {t('tradeNew.maxSafe')}: {planMetrics.maxLeverage}x
                         </div>
                         {leverage > planMetrics.maxLeverage && (
                           <div className="text-destructive font-medium flex items-center gap-1">
                             <AlertCircle className="h-3 w-3" />
-                            Leverage exceeds safe limit!
+                            {t('tradeNew.leverageExceedsSafe')}
                           </div>
                         )}
                       </div>
@@ -378,12 +380,12 @@ export default function TradeNew() {
 
               {/* Planned Take Profits */}
               <div className="space-y-3 pt-3 border-t">
-                <div className="text-sm font-semibold">Planned Take Profits</div>
+                <div className="text-sm font-semibold">{t('tradeNew.plannedTakeProfits')}</div>
                 {plannedTps.map((tp, index) => (
                   <div key={index} className="grid gap-3 grid-cols-2">
                     <div className="space-y-1">
                       <Label htmlFor={`tp${index}-price`} className="text-xs">
-                        TP{index + 1} Price {index === 0 && '*'}
+                        TP{index + 1} {t('calculator.entryShort')} {index === 0 && '*'}
                       </Label>
                       <Input
                         id={`tp${index}-price`}
@@ -395,13 +397,13 @@ export default function TradeNew() {
                           newTps[index].price = Number(e.target.value);
                           setPlannedTps(newTps);
                         }}
-                        placeholder="0.00000000"
+                        placeholder={t('tradeNew.pricePlaceholder')}
                         className="font-mono text-sm"
                         required={index === 0}
                       />
                     </div>
                     <div className="space-y-1">
-                      <Label htmlFor={`tp${index}-percent`} className="text-xs">% Allocation</Label>
+                      <Label htmlFor={`tp${index}-percent`} className="text-xs">{t('tradeNew.allocationPercent')}</Label>
                       <Input
                         id={`tp${index}-percent`}
                         type="number"
@@ -414,6 +416,7 @@ export default function TradeNew() {
                           setPlannedTps(newTps);
                         }}
                         disabled={!tp.price}
+                        placeholder={t('tradeNew.percentPlaceholder')}
                         className="text-sm"
                       />
                     </div>
@@ -426,7 +429,7 @@ export default function TradeNew() {
                 <div className="flex items-start gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/20">
                   <AlertCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
                   <div className="text-sm">
-                    <div className="font-semibold text-destructive mb-1">Validation Errors:</div>
+                    <div className="font-semibold text-destructive mb-1">{t('calculator.validationErrors')}:</div>
                     <ul className="space-y-1">
                       {planValidation.errors.map((error, i) => (
                         <li key={i} className="text-destructive">• {error}</li>
@@ -439,18 +442,18 @@ export default function TradeNew() {
               {/* Plan Metrics Preview */}
               {planMetrics && planValidation.valid && (
                 <div className="p-4 bg-muted/50 rounded-lg space-y-2">
-                  <div className="text-sm font-semibold mb-2">Plan Summary</div>
+                  <div className="text-sm font-semibold mb-2">{t('tradeNew.calculatedResults')}</div>
                   <div className="grid grid-cols-3 gap-3 text-sm">
                     <div>
-                      <div className="text-xs text-muted-foreground">Position</div>
+                      <div className="text-xs text-muted-foreground">{t('tradeNew.position')}</div>
                       <div className="font-semibold">{formatCurrency(planMetrics.positionSize)}</div>
                     </div>
                     <div>
-                      <div className="text-xs text-muted-foreground">Quantity</div>
+                      <div className="text-xs text-muted-foreground">{t('tradeNew.quantity')}</div>
                       <div className="font-semibold">{planMetrics.quantity.toFixed(4)}</div>
                     </div>
                     <div>
-                      <div className="text-xs text-muted-foreground">RR Ratio</div>
+                      <div className="text-xs text-muted-foreground">{t('tradeNew.rrRatio')}</div>
                       <div className="font-semibold">{formatRR(planMetrics.plannedWeightedRR)}</div>
                     </div>
                   </div>
@@ -467,7 +470,7 @@ export default function TradeNew() {
               <div className="flex items-center justify-between">
                 <CardTitle className="flex items-center gap-2">
                   <TrendingUp className="h-5 w-5" />
-                  Trade Execution
+                  {t('tradeNew.tradeExecution')}
                 </CardTitle>
                 <Button
                   type="button"
@@ -477,7 +480,7 @@ export default function TradeNew() {
                   disabled={!plannedPe}
                 >
                   <Copy className="h-4 w-4 mr-2" />
-                  Copy Plan
+                  {t('tradeNew.copyPlan')}
                 </Button>
               </div>
             </CardHeader>
@@ -485,14 +488,14 @@ export default function TradeNew() {
               <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/50 border">
                 <AlertCircle className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
                 <div className="text-sm text-muted-foreground">
-                  <strong>Optional:</strong> Fill this section when you execute the trade. You can also save just the plan and update execution details later.
+                  <strong>{t('tradeNew.optional')}:</strong> {t('tradeNew.copyPlanToExecution')}
                 </div>
               </div>
 
               {/* Actual Entry & Close Date */}
               <div className="grid gap-3 grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="effectivePe" className="text-xs font-semibold">Actual Entry Price</Label>
+                  <Label htmlFor="effectivePe" className="text-xs font-semibold">{t('tradeNew.actualEntry')}</Label>
                   <Input
                     id="effectivePe"
                     type="number"
@@ -500,45 +503,45 @@ export default function TradeNew() {
                     value={effectivePe || ''}
                     onChange={(e) => setEffectivePe(Number(e.target.value))}
                     className="font-mono"
-                    placeholder="Leave empty if not executed yet"
+                    placeholder={t('tradeNew.leaveEmptyNotExecuted')}
                   />
                   {plannedPe > 0 && (
                     <p className="text-xs text-muted-foreground">
-                      Planned: ${plannedPe.toFixed(8)}
+                      {t('tradeNew.plannedSetup')}: ${plannedPe.toFixed(8)}
                     </p>
                   )}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="closeDate" className="text-xs font-semibold">Close Date</Label>
+                  <Label htmlFor="closeDate" className="text-xs font-semibold">{t('tradeDetail.closeDate')}</Label>
                   <Input
                     id="closeDate"
                     type="date"
                     value={closeDate}
                     onChange={(e) => setCloseDate(e.target.value)}
                   />
-                  <p className="text-xs text-muted-foreground">When trade closed</p>
+                  <p className="text-xs text-muted-foreground">{t('tradeDetail.closeDateOptional')}</p>
                 </div>
               </div>
 
               {/* Actual Exits */}
               <div className="space-y-3">
-                <Label className="text-sm font-semibold">Actual Exits</Label>
+                <Label className="text-sm font-semibold">{t('tradeNew.actualExits')}</Label>
                 <p className="text-xs text-muted-foreground">
-                  Enter actual exit prices and % of position closed
+                  {t('tradeDetail.exits')}
                 </p>
                 {exits.map((exit, index) => (
                   <div key={index} className="p-3 border rounded-lg space-y-2 bg-muted/30">
                     <div className="flex items-center justify-between">
-                      <Badge variant="outline">Exit {index + 1}</Badge>
+                      <Badge variant="outline">{t('import.exit')} {index + 1}</Badge>
                       {plannedTps[index]?.price > 0 && (
                         <span className="text-xs text-muted-foreground">
-                          Planned: {plannedTps[index].percent}% @ ${plannedTps[index].price.toFixed(8)}
+                          {t('tradeNew.plannedSetup')}: {plannedTps[index].percent}% @ ${plannedTps[index].price.toFixed(8)}
                         </span>
                       )}
                     </div>
                     <div className="grid gap-3 grid-cols-2">
                       <div className="space-y-1">
-                        <Label htmlFor={`exit${index}-price`} className="text-xs">Exit Price</Label>
+                        <Label htmlFor={`exit${index}-price`} className="text-xs">{t('tradeDetail.exitPrice', { number: '' })}</Label>
                         <Input
                           id={`exit${index}-price`}
                           type="number"
@@ -549,12 +552,12 @@ export default function TradeNew() {
                             newExits[index].price = Number(e.target.value);
                             setExits(newExits);
                           }}
-                          placeholder="0.00000000"
+                          placeholder={t('tradeNew.pricePlaceholder')}
                           className="font-mono text-sm"
                         />
                       </div>
                       <div className="space-y-1">
-                        <Label htmlFor={`exit${index}-percent`} className="text-xs">% Closed</Label>
+                        <Label htmlFor={`exit${index}-percent`} className="text-xs">{t('tradeDetail.positionClosed')}</Label>
                         <Input
                           id={`exit${index}-percent`}
                           type="number"
@@ -567,7 +570,7 @@ export default function TradeNew() {
                             setExits(newExits);
                           }}
                           disabled={!exit.price}
-                          placeholder="0"
+                          placeholder={t('tradeNew.percentPlaceholder')}
                           className="text-sm"
                         />
                       </div>
@@ -583,14 +586,14 @@ export default function TradeNew() {
       {/* Trade Notes */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Trade Notes</CardTitle>
+          <CardTitle className="text-base">{t('tradeNew.tradeNotes')}</CardTitle>
         </CardHeader>
         <CardContent>
           <Textarea
             id="notes"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            placeholder="Why this trade? What's the setup? Entry conditions? How did it play out? What did you learn?"
+            placeholder={t('tradeNew.tradeNotesPlaceholder')}
             rows={6}
             className="resize-none"
           />
@@ -603,8 +606,8 @@ export default function TradeNew() {
           <div className="flex items-center justify-between">
             <p className="text-sm text-muted-foreground">
               {planValidation.valid
-                ? 'Trade plan is valid. Click Save to create the trade entry.'
-                : 'Complete the required fields (*) to enable saving.'}
+                ? t('tradeNew.validPlan')
+                : t('tradeNew.completeRequired')}
             </p>
             <div className="flex gap-3">
               <Button
@@ -613,14 +616,14 @@ export default function TradeNew() {
                 onClick={() => navigate('/journal')}
                 disabled={saving}
               >
-                Cancel
+                {t('common.cancel')}
               </Button>
               <Button
                 type="submit"
                 disabled={saving || !planValidation.valid}
                 size="lg"
               >
-                {saving ? 'Saving...' : 'Save Trade'}
+                {saving ? t('tradeNew.saving') : t('tradeNew.saveTrade')}
               </Button>
             </div>
           </div>

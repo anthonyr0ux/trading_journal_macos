@@ -167,7 +167,7 @@ export default function Calculator() {
           {t('calculator.title') || 'Position Calculator'}
         </h1>
         <p className="text-muted-foreground">
-          Calculate your position size and risk-reward ratio
+          {t('calculator.subtitle')}
         </p>
       </div>
 
@@ -260,9 +260,9 @@ export default function Calculator() {
             <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-bold shadow-sm">
               2
             </div>
-            <CardTitle className="text-base">Trade Setup</CardTitle>
+            <CardTitle className="text-base">{t('calculator.tradeSetup')}</CardTitle>
             <HelpTooltip
-              title="Trade Setup"
+              title={t('calculator.helpTradeSetupTitle')}
               content={
                 <div>
                   <p className="mb-2">Define your trade entry and exit points:</p>
@@ -284,7 +284,7 @@ export default function Calculator() {
         <CardContent className="space-y-3 pt-0">
           <div className="grid grid-cols-3 gap-3">
             <div className="space-y-1.5">
-              <Label htmlFor="pe" className="text-xs">Entry (PE)</Label>
+              <Label htmlFor="pe" className="text-xs">{t('calculator.entry')}</Label>
               <Input
                 id="pe"
                 type="number"
@@ -295,7 +295,7 @@ export default function Calculator() {
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="sl" className="text-xs">Stop Loss (SL)</Label>
+              <Label htmlFor="sl" className="text-xs">{t('calculator.stopLoss')}</Label>
               <Input
                 id="sl"
                 type="number"
@@ -306,7 +306,7 @@ export default function Calculator() {
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="tp" className="text-xs">Take Profit (TP)</Label>
+              <Label htmlFor="tp" className="text-xs">{t('calculator.takeProfit')}</Label>
               <Input
                 id="tp"
                 type="number"
@@ -321,17 +321,17 @@ export default function Calculator() {
           {metrics && (
             <div className="flex items-center gap-4 pt-2">
               <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground">Position:</span>
+                <span className="text-xs text-muted-foreground">{t('calculator.positionType')}:</span>
                 <Badge variant={metrics.type === 'LONG' ? 'default' : 'destructive'}>
                   {metrics.type}
                 </Badge>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground">SL Distance:</span>
+                <span className="text-xs text-muted-foreground">{t('calculator.slDistance')}:</span>
                 <span className="text-xs font-semibold">{formatPercent(metrics.distances.distanceSL_PCT)}</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground">Max Leverage:</span>
+                <span className="text-xs text-muted-foreground">{t('calculator.maxLeverage')}:</span>
                 <Badge variant={metrics.type === 'LONG' ? 'default' : 'destructive'} className="font-bold">
                   {metrics.maxLeverage}x
                 </Badge>
@@ -348,9 +348,9 @@ export default function Calculator() {
             <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-bold shadow-sm">
               3
             </div>
-            <CardTitle className="text-base">Set your Leverage</CardTitle>
+            <CardTitle className="text-base">{t('calculator.setLeverage')}</CardTitle>
             <HelpTooltip
-              title="Leverage Explained"
+              title={t('calculator.helpLeverageTitle')}
               content={
                 <div>
                   <p className="mb-3 text-primary font-semibold italic">
@@ -375,7 +375,7 @@ export default function Calculator() {
         <CardContent className="pt-0">
           <div className="space-y-3">
             <div className="space-y-1.5">
-              <Label htmlFor="leverage" className="text-xs">Leverage (x)</Label>
+              <Label htmlFor="leverage" className="text-xs">{t('calculator.leverageX')}</Label>
               <Input
                 id="leverage"
                 type="number"
@@ -397,7 +397,7 @@ export default function Calculator() {
             <div className="flex gap-3">
               <AlertCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
               <div className="space-y-1">
-                <div className="font-semibold text-sm text-destructive">Validation Errors</div>
+                <div className="font-semibold text-sm text-destructive">{t('calculator.validationErrors')}</div>
                 <ul className="text-sm text-destructive/90 space-y-1">
                   {validationErrors.map((error, i) => (
                     <li key={i}>• {error}</li>
@@ -414,7 +414,7 @@ export default function Calculator() {
         <>
           <Card className={isValid ? 'border-2 border-success/50 bg-success/5' : ''}>
             <CardHeader>
-              <CardTitle>Calculated Results</CardTitle>
+              <CardTitle>{t('calculator.calculatedResults')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Primary Results */}

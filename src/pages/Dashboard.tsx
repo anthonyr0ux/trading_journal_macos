@@ -69,18 +69,18 @@ export default function Dashboard() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
-        <div className="text-muted-foreground">Loading...</div>
+        <div className="text-muted-foreground">{t('common.loading')}</div>
       </div>
     );
   }
 
   const dateRangeOptions = [
-    { value: 'all' as DateRange, label: t('dashboard.dateRange.allTime') || 'All Time' },
-    { value: '7d' as DateRange, label: t('dashboard.dateRange.lastWeek') || 'Last Week' },
-    { value: '30d' as DateRange, label: t('dashboard.dateRange.lastMonth') || 'Last Month' },
-    { value: '90d' as DateRange, label: t('dashboard.dateRange.3months') || '3 Months' },
-    { value: '180d' as DateRange, label: t('dashboard.dateRange.6months') || '6 Months' },
-    { value: '365d' as DateRange, label: t('dashboard.dateRange.year') || 'Year' },
+    { value: 'all' as DateRange, label: t('dashboard.dateRange.allTime') },
+    { value: '7d' as DateRange, label: t('dashboard.dateRange.lastWeek') },
+    { value: '30d' as DateRange, label: t('dashboard.dateRange.lastMonth') },
+    { value: '90d' as DateRange, label: t('dashboard.dateRange.3months') },
+    { value: '180d' as DateRange, label: t('dashboard.dateRange.6months') },
+    { value: '365d' as DateRange, label: t('dashboard.dateRange.year') },
   ];
 
   return (
@@ -88,10 +88,10 @@ export default function Dashboard() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">
-            {t('dashboard.title') || 'Dashboard'}
+            {t('dashboard.title')}
           </h1>
           <p className="text-muted-foreground">
-            {t('dashboard.subtitle') || 'Your trading performance overview'}
+            {t('dashboard.subtitle')}
           </p>
         </div>
 
@@ -120,20 +120,20 @@ export default function Dashboard() {
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Trades</CardTitle>
+                <CardTitle className="text-sm font-medium">{t('dashboard.totalTrades')}</CardTitle>
                 <BarChart3 className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{stats.total_trades}</div>
                 <p className="text-xs text-muted-foreground">
-                  {stats.open_trades} open
+                  {stats.open_trades} {t('dashboard.open')}
                 </p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Win Rate</CardTitle>
+                <CardTitle className="text-sm font-medium">{t('dashboard.winRate')}</CardTitle>
                 <TrendingUp className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
@@ -146,7 +146,7 @@ export default function Dashboard() {
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total P&L</CardTitle>
+                <CardTitle className="text-sm font-medium">{t('dashboard.finishedTradesPnL')}</CardTitle>
                 <DollarSign className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
@@ -154,14 +154,14 @@ export default function Dashboard() {
                   {formatCurrency(stats.total_pnl)}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  All closed trades
+                  {t('dashboard.allClosedTrades')}
                 </p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Profit Factor</CardTitle>
+                <CardTitle className="text-sm font-medium">{t('dashboard.profitFactor')}</CardTitle>
                 <TrendingUp className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
@@ -179,7 +179,7 @@ export default function Dashboard() {
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             <Card>
               <CardHeader>
-                <CardTitle className="text-sm font-medium">Best Trade</CardTitle>
+                <CardTitle className="text-sm font-medium">{t('dashboard.bestTrade')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-success">
@@ -190,7 +190,7 @@ export default function Dashboard() {
 
             <Card>
               <CardHeader>
-                <CardTitle className="text-sm font-medium">Worst Trade</CardTitle>
+                <CardTitle className="text-sm font-medium">{t('dashboard.worstTrade')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-destructive">
@@ -201,7 +201,7 @@ export default function Dashboard() {
 
             <Card>
               <CardHeader>
-                <CardTitle className="text-sm font-medium">Avg Effective RR</CardTitle>
+                <CardTitle className="text-sm font-medium">{t('dashboard.avgEffectiveRR')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
@@ -219,7 +219,7 @@ export default function Dashboard() {
           {/* Cumulative P&L Chart */}
           <Card>
             <CardHeader>
-              <CardTitle>Equity Curve</CardTitle>
+              <CardTitle>{t('dashboard.equityCurve')}</CardTitle>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
@@ -242,7 +242,7 @@ export default function Dashboard() {
                       borderRadius: '0.5rem',
                     }}
                     labelStyle={{ color: 'hsl(var(--foreground))' }}
-                    formatter={(value: number) => [formatCurrency(value), 'P&L']}
+                    formatter={(value: number) => [formatCurrency(value), t('journal.pnl')]}
                   />
                   <Line
                     type="monotone"
@@ -259,7 +259,7 @@ export default function Dashboard() {
           {/* Daily P&L Chart */}
           <Card>
             <CardHeader>
-              <CardTitle>Daily P&L</CardTitle>
+              <CardTitle>{t('dashboard.dailyPnL')}</CardTitle>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
@@ -284,7 +284,7 @@ export default function Dashboard() {
                     labelStyle={{ color: 'hsl(var(--foreground))' }}
                     formatter={(value: number, name: string) => [
                       formatCurrency(value),
-                      name === 'daily_pnl' ? 'Daily P&L' : name
+                      name === 'daily_pnl' ? t('dashboard.dailyPnL') : name
                     ]}
                   />
                   <Bar
@@ -308,13 +308,13 @@ export default function Dashboard() {
       {/* Recent Trades */}
       <Card>
         <CardHeader>
-          <CardTitle>Recent Trades</CardTitle>
+          <CardTitle>{t('dashboard.recentTrades')}</CardTitle>
         </CardHeader>
         <CardContent>
           {trades.length === 0 ? (
             <div className="text-center py-8">
               <p className="text-muted-foreground">
-                No trades yet. Create your first trade to get started!
+                {t('dashboard.noTradesMessage')}
               </p>
             </div>
           ) : (
