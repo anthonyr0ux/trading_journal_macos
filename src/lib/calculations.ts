@@ -300,7 +300,7 @@ export function calculateExecutionMetrics(params: {
   positionSize: number;
   type: string;
 }) {
-  const { pe, sl, exits, oneR, positionSize, type } = params;
+  const { pe, sl, exits, oneR, type } = params;
 
   const distanceSL_USD = type === 'LONG' ? pe - sl : sl - pe;
 

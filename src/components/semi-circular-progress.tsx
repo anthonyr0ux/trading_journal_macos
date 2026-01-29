@@ -18,7 +18,6 @@ export function SemiCircularProgress({
   const offset = circumference - (value / 100) * circumference;
 
   // Center coordinates
-  const cx = size / 2;
   const cy = size / 2;
 
   // Color based on value

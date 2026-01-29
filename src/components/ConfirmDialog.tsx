@@ -10,7 +10,6 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -35,8 +34,6 @@ export function ConfirmDialog({
   onConfirm,
   loading = false,
 }: ConfirmDialogProps) {
-  const { t } = useTranslation();
-
   const handleConfirm = () => {
     onConfirm();
   };

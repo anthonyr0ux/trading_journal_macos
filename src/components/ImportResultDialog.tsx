@@ -10,7 +10,6 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { CheckCircle2, AlertCircle } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
 
 interface ImportResultDialogProps {
   open: boolean;
@@ -27,8 +26,6 @@ export function ImportResultDialog({
   onOpenChange,
   result,
 }: ImportResultDialogProps) {
-  const { t } = useTranslation();
-
   if (!result) return null;
 
   const hasErrors = result.errors.length > 0;

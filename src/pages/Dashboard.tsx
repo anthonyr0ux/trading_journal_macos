@@ -4,7 +4,7 @@ import { api, type Trade, type DashboardStats, type EquityCurvePoint } from '../
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { formatCurrency, formatPercent, getDateRangeTimestamp, type DateRange } from '../lib/utils';
-import { TrendingUp, TrendingDown, DollarSign, BarChart3, Calendar } from 'lucide-react';
+import { TrendingUp, DollarSign, BarChart3, Calendar } from 'lucide-react';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { HelpBadge } from '../components/HelpBadge';
 
