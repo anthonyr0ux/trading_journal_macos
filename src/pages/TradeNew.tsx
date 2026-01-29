@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Button } from '../components/ui/button';
 import { Textarea } from '../components/ui/textarea';
 import { Badge } from '../components/ui/badge';
-import { api, type Settings } from '../lib/api';
+import { api } from '../lib/api';
 import { calculateTradeMetrics } from '../lib/calculations';
 import { formatCurrency, formatRR } from '../lib/utils';
 import { ArrowLeft, AlertCircle, Calendar, TrendingUp, Copy } from 'lucide-react';
@@ -18,7 +19,6 @@ export default function TradeNew() {
   const location = useLocation();
   const { t } = useTranslation();
   const [saving, setSaving] = useState(false);
-  const [settings, setSettings] = useState<Settings | null>(null);
 
   // Check if data came from calculator
   const calculatorData = location.state?.fromCalculator ? location.state.calculatorData : null;
@@ -55,23 +55,22 @@ export default function TradeNew() {
   const [notes, setNotes] = useState('');
 
   useEffect(() => {
-    loadSettings();
-  }, []);
-
-  const loadSettings = async () => {
-    try {
-      const data = await api.getSettings();
-      setSettings(data);
-      if (!calculatorData) {
-        setPortfolio(data.initial_capital);
-        setRPercent(data.current_r_percent);
-        setMinRR(data.default_min_rr);
-        setLeverage(data.default_leverage);
+    const loadSettings = async () => {
+      try {
+        const data = await api.getSettings();
+        if (!calculatorData) {
+          setPortfolio(data.initial_capital);
+          setRPercent(data.current_r_percent);
+          setMinRR(data.default_min_rr);
+          setLeverage(data.default_leverage);
+        }
+      } catch (error) {
+        console.error('Failed to load settings:', error);
       }
-    } catch (error) {
-      console.error('Failed to load settings:', error);
-    }
-  };
+    };
+
+    loadSettings();
+  }, [calculatorData]);
 
   // Calculate metrics for plan
   let planMetrics = null;
@@ -132,7 +131,7 @@ export default function TradeNew() {
     if (!planValidation.valid || !planMetrics) return;
 
     if (planMetrics.type === 'UNDEFINED') {
-      alert(t('tradeNew.invalidSetup'));
+      toast.error(t('tradeNew.invalidSetup'));
       return;
     }
 
@@ -143,11 +142,6 @@ export default function TradeNew() {
         percent: tp.percent * 100,
         rr: tp.rr,
       })));
-
-      // Prepare exits JSON if any exits are filled
-      const validExits = exits.filter(e => e.price > 0);
-      const exitsJson = validExits.length > 0 ? JSON.stringify(validExits) : null;
-
 
       await api.createTrade({
         pair: pair.toUpperCase(),
@@ -171,10 +165,11 @@ export default function TradeNew() {
         notes,
       });
 
+      toast.success(t('tradeNew.tradeCreated') || 'Trade created successfully');
       navigate('/journal');
     } catch (error) {
       console.error('Failed to create trade:', error);
-      alert(t('tradeNew.failedToCreate') + ': ' + error);
+      toast.error(t('tradeNew.failedToCreate') + ': ' + error);
     } finally {
       setSaving(false);
     }

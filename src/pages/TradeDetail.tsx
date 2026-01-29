@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -70,7 +71,7 @@ export default function TradeDetail() {
       setNotes(data.notes || '');
     } catch (error) {
       console.error('Failed to load trade:', error);
-      alert(t('tradeDetail.failedToLoad'));
+      toast.error(t('tradeDetail.failedToLoad'));
       navigate('/journal');
     } finally {
       setLoading(false);
@@ -145,11 +146,11 @@ export default function TradeDetail() {
         notes: notes,
       });
 
-      alert(t('tradeDetail.tradeUpdated'));
+      toast.success(t('tradeDetail.tradeUpdated'));
       navigate('/journal');
     } catch (error) {
       console.error('Failed to update trade:', error);
-      alert(t('tradeDetail.failedToUpdate') + ': ' + error);
+      toast.error(t('tradeDetail.failedToUpdate') + ': ' + error);
     } finally {
       setSaving(false);
     }
@@ -158,31 +159,34 @@ export default function TradeDetail() {
   const handleDuplicate = async () => {
     if (!trade) return;
 
-    if (confirm(t('tradeDetail.cloneConfirm'))) {
-      try {
+    toast.promise(
+      async () => {
         const newTrade = await api.duplicateTrade(trade.id);
         navigate(`/journal/${newTrade.id}`);
-        alert(t('tradeDetail.tradeDuplicated'));
-      } catch (error) {
-        console.error('Failed to duplicate trade:', error);
-        alert(t('tradeDetail.failedToDuplicate') + ': ' + error);
+        return newTrade;
+      },
+      {
+        loading: t('tradeDetail.duplicating') || 'Duplicating trade...',
+        success: t('tradeDetail.tradeDuplicated'),
+        error: (error) => t('tradeDetail.failedToDuplicate') + ': ' + error,
       }
-    }
+    );
   };
 
   const handleDelete = async () => {
     if (!trade) return;
 
-    if (confirm(t('tradeDetail.deleteConfirm'))) {
-      try {
+    toast.promise(
+      async () => {
         await api.deleteTrade(trade.id);
-        alert(t('tradeDetail.tradeDeleted'));
         navigate('/journal');
-      } catch (error) {
-        console.error('Failed to delete trade:', error);
-        alert(t('tradeDetail.failedToDelete') + ': ' + error);
+      },
+      {
+        loading: t('tradeDetail.deleting') || 'Deleting trade...',
+        success: t('tradeDetail.tradeDeleted'),
+        error: (error) => t('tradeDetail.failedToDelete') + ': ' + error,
       }
-    }
+    );
   };
 
   const handleCopyPlanToExecution = () => {

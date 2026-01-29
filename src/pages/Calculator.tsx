@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -8,7 +9,7 @@ import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
 import { Copy, Check, AlertCircle, Save, HelpCircle, ArrowRight } from 'lucide-react';
 import { calculateTradeMetrics } from '../lib/calculations';
-import { formatCurrency, formatPercent, formatRR, formatLeverage } from '../lib/utils';
+import { formatCurrency, formatPercent, formatRR } from '../lib/utils';
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
 import { api } from '../lib/api';
 import { HelpBadge } from '../components/HelpBadge';
@@ -84,10 +85,10 @@ export default function Calculator() {
         default_min_rr: minRR,
         default_leverage: leverage,
       });
-      alert(t('calculator.settingsSaved') || 'Settings saved successfully!');
+      toast.success(t('calculator.settingsSaved') || 'Settings saved successfully!');
     } catch (error) {
       console.error('Failed to save settings:', error);
-      alert(t('calculator.saveFailed') || 'Failed to save settings');
+      toast.error(t('calculator.saveFailed') || 'Failed to save settings');
     } finally {
       setSaving(false);
     }

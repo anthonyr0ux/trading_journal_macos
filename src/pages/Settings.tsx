@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
 import { api, type Settings as SettingsType, type ApiCredentialSafe } from '../lib/api';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -48,7 +49,7 @@ export default function Settings() {
       setCredentials(data);
     } catch (error) {
       console.error('Failed to load API credentials:', error);
-      alert(t('settings.failedToLoadCredentials') + ': ' + error);
+      toast.error(t('settings.failedToLoadCredentials') + ': ' + error);
     }
   };
 
@@ -57,13 +58,13 @@ export default function Settings() {
     try {
       const isValid = await api.testApiCredentials(id);
       if (isValid) {
-        alert(t('settings.connectionSuccessful'));
+        toast.success(t('settings.connectionSuccessful'));
       } else {
-        alert(t('settings.connectionFailed'));
+        toast.error(t('settings.connectionFailed'));
       }
     } catch (error) {
       console.error('Failed to test credentials:', error);
-      alert(t('settings.failedToTestCredentials') + ': ' + error);
+      toast.error(t('settings.failedToTestCredentials') + ': ' + error);
     } finally {
       setTestingCredentialId(null);
     }
@@ -87,7 +88,7 @@ export default function Settings() {
       await loadCredentials();
     } catch (error) {
       console.error('Failed to delete credentials:', error);
-      alert(t('settings.failedToDeleteCredentials') + ': ' + error);
+      toast.error(t('settings.failedToDeleteCredentials') + ': ' + error);
     }
   };
 
@@ -97,7 +98,7 @@ export default function Settings() {
       await loadCredentials();
     } catch (error) {
       console.error('Failed to update credentials:', error);
-      alert(t('settings.failedToUpdateCredentials') + ': ' + error);
+      toast.error(t('settings.failedToUpdateCredentials') + ': ' + error);
     }
   };
 
@@ -114,10 +115,10 @@ export default function Settings() {
         currency: settings.currency,
       });
       setSettings(updated);
-      alert(t('settings.settingsSaved'));
+      toast.success(t('settings.settingsSaved'));
     } catch (error) {
       console.error('Failed to save settings:', error);
-      alert(t('settings.saveFailed'));
+      toast.error(t('settings.saveFailed'));
     } finally {
       setSaving(false);
     }
@@ -138,21 +139,17 @@ export default function Settings() {
 
       if (filePath) {
         await writeTextFile(filePath, jsonData);
-        alert(t('settings.exportSuccess'));
+        toast.success(t('settings.exportSuccess'));
       }
     } catch (error) {
       console.error('Failed to export data:', error);
-      alert(t('settings.exportFailed') + ': ' + error);
+      toast.error(t('settings.exportFailed') + ': ' + error);
     } finally {
       setSaving(false);
     }
   };
 
   const handleImport = async () => {
-    if (!confirm(t('settings.importConfirm'))) {
-      return;
-    }
-
     setSaving(true);
     try {
       const filePath = await open({
@@ -167,58 +164,52 @@ export default function Settings() {
         const jsonData = await readTextFile(filePath);
         const [settingsUpdated, tradesImported] = await api.importAllData(jsonData);
 
-        alert(t('settings.importedDetails', { settings: settingsUpdated, trades: tradesImported }));
+        toast.success(t('settings.importedDetails', { settings: settingsUpdated, trades: tradesImported }));
 
         // Reload settings
         await loadSettings();
       }
     } catch (error) {
       console.error('Failed to import data:', error);
-      alert(t('settings.importFailed') + ': ' + error);
+      toast.error(t('settings.importFailed') + ': ' + error);
     } finally {
       setSaving(false);
     }
   };
 
   const handleDeleteImported = async () => {
-    if (!confirm(t('settings.deleteImportedConfirm'))) {
-      return;
-    }
-
-    setSaving(true);
-    try {
-      const count = await api.deleteBitgetTrades();
-      alert(t('settings.deletedImported', { count }));
-    } catch (error) {
-      console.error('Failed to delete trades:', error);
-      alert(t('settings.deleteFailed') + ': ' + error);
-    } finally {
-      setSaving(false);
-    }
+    toast.promise(
+      async () => {
+        const count = await api.deleteBitgetTrades();
+        return count;
+      },
+      {
+        loading: t('settings.deletingImported') || 'Deleting imported trades...',
+        success: (count) => t('settings.deletedImported', { count }),
+        error: (error) => t('settings.deleteFailed') + ': ' + error,
+      }
+    );
   };
 
   const handleDeleteAllTrades = async () => {
-    if (!confirm(t('settings.deleteAllConfirm'))) {
-      return;
-    }
-
-    // Additional confirmation
+    // Using prompt for the critical confirmation since this is a destructive action
     const confirmation = prompt(t('settings.typeDeleteToConfirm'));
     if (confirmation !== 'DELETE') {
-      alert(t('settings.deletionCancelled'));
+      toast.info(t('settings.deletionCancelled'));
       return;
     }
 
-    setSaving(true);
-    try {
-      const count = await api.deleteAllTrades();
-      alert(t('settings.deleteSuccess', { count }));
-    } catch (error) {
-      console.error('Failed to delete all trades:', error);
-      alert(t('settings.deleteFailed') + ': ' + error);
-    } finally {
-      setSaving(false);
-    }
+    toast.promise(
+      async () => {
+        const count = await api.deleteAllTrades();
+        return count;
+      },
+      {
+        loading: t('settings.deletingAllTrades') || 'Deleting all trades...',
+        success: (count) => t('settings.deleteSuccess', { count }),
+        error: (error) => t('settings.deleteFailed') + ': ' + error,
+      }
+    );
   };
 
   if (loading || !settings) {
