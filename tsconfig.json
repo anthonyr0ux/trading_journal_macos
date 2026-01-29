@@ -27,5 +27,6 @@
     }
   },
   "include": ["src"],
+  "exclude": ["node_modules", "dist", "src-tauri", ".build-temp-unused"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

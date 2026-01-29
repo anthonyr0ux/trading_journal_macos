@@ -26,6 +26,9 @@ dist-ssr
 # Tauri
 src-tauri/target
 
+# Build temporary files
+.build-temp-unused
+
 # Test files
 test-*.js
 *.test.js
