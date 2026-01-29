@@ -234,16 +234,6 @@ export default function Help() {
           </pre>
         </CardContent>
       </Card>
-
-      {/* Need Help */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">{t('help.needHelp')}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">{t('help.needHelpContent')}</p>
-        </CardContent>
-      </Card>
     </div>
   );
 }

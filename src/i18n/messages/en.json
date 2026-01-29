@@ -595,13 +595,10 @@
     "faqQ8": "Why is my Profit Factor showing infinity (∞)?",
     "faqA8": "Profit Factor = Gross Profit / Gross Loss. If you have no losing trades yet, Gross Loss = 0, resulting in division by zero (∞). This is normal for new accounts with only winning trades.",
 
-    "needHelp": "Need More Help?",
-    "needHelpContent": "If you have questions or need support, please check the FAQ section first. For additional assistance, refer to the documentation or reach out through the app's feedback channels.",
-
     "privacyNote": "Privacy & Security",
-    "privacyNoteContent": "🔒 Your data is 100% private and secure.\n• All data stored locally on your device\n• No cloud sync or external servers\n• API credentials stored in system keychain (Keychain on macOS, Credential Manager on Windows)\n• Use read-only API keys for exchanges\n• Regular backups recommended",
+    "privacyNoteContent": "Your data is 100% private and secure.\n• All data stored locally on your device\n• No cloud sync or external servers\n• API credentials stored in system keychain (Keychain on macOS, Credential Manager on Windows)\n• Use read-only API keys for exchanges\n• Regular backups recommended",
 
     "contactNote": "Contact & Support",
-    "contactNoteContent": "📱 Need help or have a question?\n• For any questions or error reports\n• Contact us on Telegram: @N0mad832\n• We're here to help!"
+    "contactNoteContent": "Need help or have a question?\n• For any questions or error reports\n• Contact us on Telegram: @N0mad832\n• We're here to help!"
   }
 }
