@@ -192,19 +192,19 @@ export default function Import() {
       {/* Import Instructions */}
       <Card>
         <CardHeader>
-          <CardTitle>How to Import from BitGet</CardTitle>
+          <CardTitle>{t('import.howToImport')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
           <ol className="list-decimal list-inside space-y-2 text-sm">
-            <li>Go to BitGet → Futures → Orders → History</li>
-            <li>Export your closed positions to CSV</li>
-            <li>Click "Select CSV File" below to upload</li>
-            <li>Review the preview and click "Import Trades"</li>
+            <li>{t('import.instructionStep1')}</li>
+            <li>{t('import.instructionStep2')}</li>
+            <li>{t('import.instructionStep3')}</li>
+            <li>{t('import.instructionStep4')}</li>
           </ol>
           <div className="flex items-start gap-2 p-3 rounded-lg bg-warning/10 border border-warning/20 mt-4">
             <AlertCircle className="h-5 w-5 text-warning shrink-0" />
             <div className="text-sm text-warning-foreground">
-              <strong>Note:</strong> BitGet CSV doesn't include stop loss data. RR metrics will be unavailable for imported trades.
+              {t('import.noteShort')}
             </div>
           </div>
         </CardContent>

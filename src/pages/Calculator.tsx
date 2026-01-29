@@ -509,10 +509,10 @@ export default function Calculator() {
                     size="lg"
                   >
                     <ArrowRight className="h-4 w-4 mr-2" />
-                    Send to Journal
+                    {t('calculator.sendToJournal')}
                   </Button>
                   <p className="text-xs text-muted-foreground text-center mt-2">
-                    Create a new trade entry with these calculated values
+                    {t('calculator.createNewTradeEntry')}
                   </p>
                 </div>
               )}

@@ -187,7 +187,9 @@
     "helpLeverageIntro": "Leverage multiplies your position size:",
     "helpLeverageHigher": "Higher leverage = Larger position with same margin",
     "helpLeverageMax": "Max safe leverage = Calculated based on SL distance",
-    "helpLeverageRisk": "Using more than max leverage risks liquidation before SL"
+    "helpLeverageRisk": "Using more than max leverage risks liquidation before SL",
+    "sendToJournal": "Send to Journal",
+    "createNewTradeEntry": "Create a new trade entry with these calculated values"
   },
   "settings": {
     "title": "Settings",

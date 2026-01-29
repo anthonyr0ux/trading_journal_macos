@@ -187,7 +187,9 @@
     "helpLeverageIntro": "Le levier multiplie la taille de votre position :",
     "helpLeverageHigher": "Levier plus élevé = Position plus grande avec la même marge",
     "helpLeverageMax": "Levier max sécurisé = Calculé selon la distance du SL",
-    "helpLeverageRisk": "Utiliser plus que le levier max risque la liquidation avant le SL"
+    "helpLeverageRisk": "Utiliser plus que le levier max risque la liquidation avant le SL",
+    "sendToJournal": "Envoyer au Journal",
+    "createNewTradeEntry": "Créer une nouvelle entrée de trade avec ces valeurs calculées"
   },
   "settings": {
     "title": "Paramètres",
