@@ -4,7 +4,8 @@
     "calculator": "Calculateur",
     "journal": "Journal",
     "import": "Importer",
-    "settings": "Paramètres"
+    "settings": "Paramètres",
+    "help": "Aide"
   },
   "dashboard": {
     "title": "Tableau de bord",
@@ -485,5 +486,115 @@
     "success": "Succès",
     "failed": "Échec",
     "partial": "Partielle"
+  },
+  "help": {
+    "title": "Aide & Documentation",
+    "subtitle": "Apprenez à utiliser Nemesis Trading Journal",
+    "quickStart": "Démarrage Rapide",
+    "quickStartDesc": "Commencez avec les bases",
+    "features": "Fonctionnalités",
+    "featuresDesc": "Explorez toutes les fonctionnalités",
+    "concepts": "Concepts de Trading",
+    "conceptsDesc": "Comprendre la gestion du risque",
+    "faq": "FAQ",
+    "faqDesc": "Questions fréquemment posées",
+
+    "gettingStarted": "Démarrage",
+    "gettingStartedContent": "Bienvenue sur Nemesis Trading Journal ! Ce guide vous aidera à commencer à suivre et analyser vos trades.",
+
+    "dashboardHelp": "Tableau de Bord",
+    "dashboardTitle": "Comprendre Votre Tableau de Bord",
+    "dashboardContent": "Le Tableau de Bord fournit un aperçu complet de vos performances de trading. Il affiche les métriques clés incluant le total des trades, le taux de réussite, les profits & pertes, et le facteur de profit. Utilisez les filtres de plage de dates pour analyser vos performances sur différentes périodes.",
+    "dashboardMetrics": "Métriques Clés Expliquées",
+    "dashboardMetricsContent": "• Total Trades : Nombre de trades exécutés\n• Taux de Réussite : Pourcentage de trades gagnants\n• Facteur de Profit : Ratio du profit brut sur la perte brute\n• Courbe d'Équité : Représentation visuelle du P&L cumulé dans le temps\n• P&L Quotidien : Graphique à barres montrant le profit/perte par jour",
+
+    "calculatorHelp": "Calculateur de Position",
+    "calculatorTitle": "Utiliser le Calculateur de Position",
+    "calculatorContent": "Le Calculateur de Position vous aide à déterminer la taille de position correcte basée sur vos règles de gestion du risque. Entrez votre valeur de portfolio, pourcentage de risque, prix d'entrée, stop loss et take profit pour calculer la taille de position, marge et ratio risque-récompense.",
+    "calculatorStep1": "Étape 1 : Paramètres de Stratégie",
+    "calculatorStep1Content": "• Portfolio : Votre capital de trading total\n• R% : Pourcentage du portfolio à risquer par trade (typiquement 1-2%)\n• RR Min : Ratio Risque:Récompense minimum requis\n• Formule : 1R = Portfolio × R%",
+    "calculatorStep2": "Étape 2 : Configuration du Trade",
+    "calculatorStep2Content": "• Entrée (PE) : Prix d'entrée prévu\n• Stop Loss (SL) : Prix où vous sortez si vous avez tort\n• Take Profit (TP) : Objectif de prix pour le profit\n• Le calculateur détermine automatiquement si vous êtes LONG ou SHORT",
+    "calculatorStep3": "Étape 3 : Définir le Levier",
+    "calculatorStep3Content": "• Le levier N'EST PAS un multiplicateur de risque\n• C'est un outil de gestion du capital\n• Le levier max sûr est calculé selon la distance du SL\n• Utiliser plus que le levier max risque la liquidation avant le SL\n• Formule : Marge = Taille de Position / Levier",
+    "calculatorResults": "Comprendre les Résultats",
+    "calculatorResultsContent": "• Marge : Capital requis pour ouvrir la position\n• Taille de Position : Valeur totale de votre position\n• Quantité : Montant de contrats/pièces à acheter\n• Ratio R:R : Ratio Risque-Récompense du trade\n• Le calculateur vous avertira si le levier dépasse les limites sûres",
+
+    "journalHelp": "Journal de Trading",
+    "journalTitle": "Gérer Vos Trades",
+    "journalContent": "Le Journal de Trading est l'endroit où vous planifiez, exécutez et analysez vos trades. Vous pouvez créer de nouveaux trades depuis le Calculateur ou manuellement, suivre l'exécution et analyser les résultats.",
+    "creatingTrade": "Créer un Trade",
+    "creatingTradeContent": "1. Cliquez sur 'Nouveau Trade' ou envoyez depuis le Calculateur\n2. Remplissez la section Plan de Trade (requis) :\n   • Paire et Exchange\n   • Prix d'entrée et Stop Loss\n   • Objectifs de Take Profit avec pourcentages d'allocation\n   • Levier\n3. Optionnellement remplir l'Exécution du Trade lors de l'exécution\n4. Ajoutez des Notes de Trade pour documenter votre analyse",
+    "tradePlanSection": "Section Plan de Trade",
+    "tradePlanContent": "• Informations de Base : Paire, exchange, dates\n• Paramètres Portfolio : Capital, risque %, RR min\n• Configuration Prévue : Entrée, stop loss, levier\n• Take Profits Prévus : Jusqu'à 4 niveaux TP avec % d'allocation\n• Tous les TPs doivent totaliser 100%\n• L'app valide que votre plan respecte les exigences RR minimales",
+    "tradeExecutionSection": "Section Exécution du Trade",
+    "tradeExecutionContent": "• Remplissez ceci lorsque vous exécutez le trade\n• Prix d'Entrée Réel : Votre prix de remplissage réel\n• Date de Clôture : Quand le trade a été fermé\n• Sorties Réelles : Prix de sortie réels et % fermé\n• Bouton Copier le Plan : Copiez rapidement les TPs prévus vers les sorties\n• L'app calcule le P&L en direct et le RR effectif",
+    "viewingTrades": "Voir les Détails du Trade",
+    "viewingTradesContent": "Cliquez sur n'importe quel trade pour voir :\n• Plan et exécution complets du trade\n• Métriques clés : Valeur du portfolio, risque 1R, RR Prévu/Réel\n• Résultats en Direct : P&L en temps réel si partiellement fermé\n• Notes du Trade : Votre analyse et observations\n• Actions : Dupliquer ou supprimer des trades",
+    "filteringTrades": "Filtrage & Recherche",
+    "filteringTradesContent": "• Recherche par paire (ex : BTC, ETH, BTCUSDT)\n• Filtrer par plage de dates (7j, 30j, 90j, etc.)\n• Filtrer par statut (OUVERT, GAIN, PERTE, BE)\n• Les filtres se combinent pour vous aider à trouver rapidement des trades spécifiques",
+
+    "importHelp": "Importer des Trades",
+    "importTitle": "Importer depuis les Exchanges",
+    "importContent": "Importez des trades depuis les exports CSV BitGet pour remplir rapidement votre journal avec des trades historiques. L'app mappe automatiquement les données de l'exchange aux champs de trade.",
+    "importSteps": "Étapes d'Importation",
+    "importStepsContent": "1. Allez sur BitGet → Futures → Ordres → Historique\n2. Exportez vos positions fermées en CSV\n3. Cliquez sur 'Sélectionner un Fichier CSV' dans la page Import\n4. Examinez l'aperçu - les doublons sont automatiquement détectés\n5. Cliquez sur 'Importer les Trades' pour ajouter à votre journal",
+    "importLimitations": "Limitations de l'Import",
+    "importLimitationsContent": "• Le CSV BitGet n'inclut pas les données de stop loss prévues\n• L'app estime le SL basé sur vos paramètres de portfolio\n• Les métriques Risque/Récompense sont approximatives pour les trades importés\n• Les trades créés manuellement ont des données plus précises\n• Vérifiez toujours les trades importés pour l'exactitude",
+
+    "settingsHelp": "Paramètres",
+    "settingsTitle": "Configurer Votre Journal",
+    "settingsContent": "Personnalisez les paramètres de votre journal de trading, gérez les connexions aux exchanges et gérez la sauvegarde/restauration des données.",
+    "portfolioSettings": "Paramètres Portfolio",
+    "portfolioSettingsContent": "• Capital Initial : Votre valeur de portfolio de départ\n• Risque % (R) : Risque par défaut par trade (typiquement 1-2%)\n• R:R Minimum : Ratio risque-récompense minimum pour les trades\n• Levier par Défaut : Votre multiplicateur de levier préféré\n• Devise : Devise d'affichage (USD, EUR, etc.)",
+    "exchangeConnections": "Connexions Exchange",
+    "exchangeConnectionsContent": "• Connectez vos comptes BitGet et BloFin\n• Utilisez des clés API EN LECTURE SEULE pour la sécurité\n• Testez la connexion avant de sauvegarder\n• Synchronisez les trades automatiquement depuis les exchanges\n• BitGet : 90 jours d'historique, BloFin : 180 jours\n• Les identifiants sont chiffrés et stockés localement",
+    "backupRestore": "Sauvegarde & Restauration",
+    "backupRestoreContent": "• Exporter : Téléchargez tous les trades et paramètres en JSON\n• Importer : Restaurez depuis une sauvegarde précédente\n• Les sauvegardes sont utiles pour migrer vers un autre appareil\n• Vos données sont stockées localement - pas de sync cloud\n• Sauvegardes régulières recommandées",
+    "dangerZone": "Zone Dangereuse",
+    "dangerZoneContent": "⚠️ Actions irréversibles :\n• Supprimer Tous les Trades Importés : Supprime les imports BitGet/BloFin\n• Supprimer Tous les Trades : Supprime définitivement tout\n• Exportez toujours une sauvegarde avant d'utiliser ces options\n• Tapez 'DELETE' pour confirmer les actions dangereuses",
+
+    "conceptsHelp": "Concepts de Trading",
+    "conceptsTitle": "Comprendre la Gestion du Risque",
+    "conceptsContent": "Apprenez les concepts de base qui rendent ce journal de trading efficace pour gérer le risque et améliorer les performances.",
+
+    "whatIs1R": "Qu'est-ce que 1R ?",
+    "whatIs1RContent": "1R (Un R) est votre unité de risque de base - le montant que vous êtes prêt à perdre sur un seul trade.\n\nFormule : 1R = Portfolio × Risque%\n\nExemple : Avec un portfolio de 10 000$ et un risque de 2% :\n1R = 10 000$ × 0,02 = 200$\n\nCela signifie que vous risquez 200$ par trade. Si vous gagnez 2R, vous faites 400$. Si vous perdez 1R, vous perdez 200$.",
+
+    "whatIsRR": "Qu'est-ce que le R:R (Risque-Récompense) ?",
+    "whatIsRRContent": "Le ratio Risque-Récompense compare le profit potentiel à la perte potentielle.\n\nFormule : R:R = (Take Profit - Entrée) / (Entrée - Stop Loss)\n\nExemple :\n• Entrée : 100$\n• Stop Loss : 95$ (risque 5$)\n• Take Profit : 115$ (profit 15$)\n• R:R = 15$ / 5$ = 3:1\n\nUn R:R de 3:1 signifie que vous risquez 1$ pour gagner 3$. Un minimum de 2:1 est recommandé pour un trading durable.",
+
+    "whatIsLeverage": "Qu'est-ce que le Levier ?",
+    "whatIsLeverageContent": "Le levier est un outil de gestion du capital, PAS un multiplicateur de risque.\n\nPoints clés :\n• Levier plus élevé = Position plus grande avec la même marge\n• Un levier 10x ne signifie pas un risque 10x\n• Le risque est déterminé par votre distance de Stop Loss\n• Levier max sûr = 1 / (Distance SL %)\n• Utiliser plus que le levier max risque la liquidation\n\nExemple :\n• Le SL est à 5% de l'entrée\n• Levier max sûr = 1 / 0,05 = 20x\n• Utiliser 25x pourrait liquider avant que le SL ne soit atteint",
+
+    "positionSizing": "Taille de Position",
+    "positionSizingContent": "Une taille de position appropriée est cruciale pour la gestion du risque.\n\nLe calculateur détermine la taille de position basée sur :\n1. Votre montant de risque (1R)\n2. Distance du stop loss\n3. Levier\n\nFormule : Taille de Position = (1R × Levier) / Distance SL %\n\nNe risquez jamais plus de 1-2% de votre portfolio par trade. Même les traders professionnels risquent rarement plus de 2%.",
+
+    "winRate": "Taux de Réussite vs Facteur de Profit",
+    "winRateContent": "Taux de Réussite : Pourcentage de trades gagnants\nFacteur de Profit : Profit Brut / Perte Brute\n\nVous n'avez pas besoin d'un taux de réussite élevé pour être rentable !\n\nExemple 1 (Taux de Réussite Élevé) :\n• 70% de réussite, R:R 1:1\n• 7 gains × 100$ = 700$\n• 3 pertes × 100$ = 300$\n• Facteur de Profit : 700/300 = 2,33 ✓\n\nExemple 2 (Taux de Réussite Faible) :\n• 40% de réussite, R:R 3:1\n• 4 gains × 300$ = 1200$\n• 6 pertes × 100$ = 600$\n• Facteur de Profit : 1200/600 = 2,0 ✓\n\nConcentrez-vous sur le Risque-Récompense, pas seulement le taux de réussite !",
+
+    "faqSection": "Questions Fréquemment Posées",
+    "faqQ1": "Mes données sont-elles stockées dans le cloud ?",
+    "faqA1": "Non. Toutes les données sont stockées localement sur votre appareil. Rien n'est envoyé à des serveurs externes. Vos données de trading restent complètement privées et sous votre contrôle.",
+    "faqQ2": "Puis-je utiliser ceci sur plusieurs appareils ?",
+    "faqA2": "L'app stocke les données localement, donc chaque appareil a des données séparées. Utilisez la fonction Sauvegarde/Restauration pour exporter d'un appareil et importer vers un autre.",
+    "faqQ3": "Pourquoi ne puis-je pas voir les données de stop loss pour les trades importés ?",
+    "faqA3": "Les exports CSV des exchanges n'incluent pas les niveaux de stop loss prévus. L'app estime le SL basé sur vos paramètres de risque du portfolio. Les trades créés manuellement ont des données SL précises.",
+    "faqQ4": "Quelle est la différence entre les trades 'Ouverts' et 'Fermés' ?",
+    "faqA4": "OUVERT : Plan de trade créé mais position encore active ou pas complètement sortie.\nFERMÉ (GAIN/PERTE/BE) : Toutes les sorties enregistrées et position fermée à 100%. L'app détecte automatiquement le statut basé sur le P&L.",
+    "faqQ5": "Puis-je modifier un trade après l'avoir créé ?",
+    "faqA5": "Oui ! Cliquez sur n'importe quel trade dans le Journal pour voir et modifier. Vous pouvez mettre à jour les données d'exécution, notes et tous les champs sauf le plan de base. Utilisez 'Dupliquer' pour créer un trade similaire avec un nouveau plan.",
+    "faqQ6": "Que se passe-t-il si je dépasse le levier max ?",
+    "faqA6": "L'app vous avertit mais ne l'empêche pas. Dépasser le levier max signifie que vous risquez la liquidation avant que votre stop loss ne soit atteint. Restez toujours dans ou en dessous du levier max sûr calculé.",
+    "faqQ7": "Comment suivre plusieurs niveaux de take profit ?",
+    "faqA7": "Dans le Plan de Trade, ajoutez jusqu'à 4 niveaux de take profit avec des allocations en pourcentage (doit totaliser 100%). Dans l'Exécution du Trade, enregistrez les prix de sortie réels et pourcentages fermés pour chaque niveau.",
+    "faqQ8": "Pourquoi mon Facteur de Profit affiche l'infini (∞) ?",
+    "faqA8": "Facteur de Profit = Profit Brut / Perte Brute. Si vous n'avez pas encore de trades perdants, Perte Brute = 0, résultant en une division par zéro (∞). C'est normal pour les nouveaux comptes avec seulement des trades gagnants.",
+
+    "needHelp": "Besoin d'Aide Supplémentaire ?",
+    "needHelpContent": "Si vous avez des questions ou besoin d'assistance, consultez d'abord la section FAQ. Pour une aide supplémentaire, référez-vous à la documentation ou contactez via les canaux de feedback de l'app.",
+
+    "privacyNote": "Confidentialité & Sécurité",
+    "privacyNoteContent": "🔒 Vos données sont 100% privées et sécurisées.\n• Toutes les données stockées localement sur votre appareil\n• Pas de sync cloud ou serveurs externes\n• Identifiants API chiffrés avec AES-256\n• Utilisez des clés API en lecture seule pour les exchanges\n• Sauvegardes régulières recommandées"
   }
 }

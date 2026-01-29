@@ -11,6 +11,7 @@ import { api, type Trade } from '../lib/api';
 import { calculateExecutionMetrics } from '../lib/calculations';
 import { formatCurrency, formatRR, formatPercent } from '../lib/utils';
 import { ArrowLeft, Copy, Trash2, AlertCircle, TrendingUp, TrendingDown, Calendar, DollarSign } from 'lucide-react';
+import { HelpBadge } from '../components/HelpBadge';
 
 type Exit = {
   price: number;
@@ -250,6 +251,7 @@ export default function TradeDetail() {
           <div>
             <div className="flex items-center gap-3">
               <h1 className="text-3xl font-bold">{trade.pair}</h1>
+              <HelpBadge section="journal" />
               <Badge variant={
                 trade.position_type === 'LONG' ? 'default' : 'destructive'
               } className="text-sm px-3 py-1">

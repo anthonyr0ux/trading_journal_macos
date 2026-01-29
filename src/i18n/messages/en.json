@@ -4,7 +4,8 @@
     "calculator": "Calculator",
     "journal": "Journal",
     "import": "Import",
-    "settings": "Settings"
+    "settings": "Settings",
+    "help": "Help"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -489,5 +490,115 @@
     "success": "Success",
     "failed": "Failed",
     "partial": "Partial"
+  },
+  "help": {
+    "title": "Help & Documentation",
+    "subtitle": "Learn how to use Nemesis Trading Journal",
+    "quickStart": "Quick Start",
+    "quickStartDesc": "Get started with the basics",
+    "features": "Features",
+    "featuresDesc": "Explore all features",
+    "concepts": "Trading Concepts",
+    "conceptsDesc": "Understand risk management",
+    "faq": "FAQ",
+    "faqDesc": "Frequently asked questions",
+
+    "gettingStarted": "Getting Started",
+    "gettingStartedContent": "Welcome to Nemesis Trading Journal! This guide will help you get started with tracking and analyzing your trades.",
+
+    "dashboardHelp": "Dashboard",
+    "dashboardTitle": "Understanding Your Dashboard",
+    "dashboardContent": "The Dashboard provides a comprehensive overview of your trading performance. It displays key metrics including total trades, win rate, profit & loss, and profit factor. Use the date range filters to analyze your performance over different time periods.",
+    "dashboardMetrics": "Key Metrics Explained",
+    "dashboardMetricsContent": "• Total Trades: Number of trades executed\n• Win Rate: Percentage of winning trades\n• Profit Factor: Ratio of gross profit to gross loss\n• Equity Curve: Visual representation of cumulative P&L over time\n• Daily P&L: Bar chart showing profit/loss per day",
+
+    "calculatorHelp": "Position Calculator",
+    "calculatorTitle": "Using the Position Calculator",
+    "calculatorContent": "The Position Calculator helps you determine the correct position size based on your risk management rules. Enter your portfolio value, risk percentage, entry price, stop loss, and take profit to calculate position size, margin, and risk-reward ratio.",
+    "calculatorStep1": "Step 1: Strategy Settings",
+    "calculatorStep1Content": "• Portfolio: Your total trading capital\n• R%: Percentage of portfolio to risk per trade (typically 1-2%)\n• Min RR: Minimum Risk:Reward ratio required\n• Formula: 1R = Portfolio × R%",
+    "calculatorStep2": "Step 2: Trade Setup",
+    "calculatorStep2Content": "• Entry (PE): Planned Entry price\n• Stop Loss (SL): Price where you exit if wrong\n• Take Profit (TP): Price target for profit\n• The calculator automatically determines if you're going LONG or SHORT",
+    "calculatorStep3": "Step 3: Set Leverage",
+    "calculatorStep3Content": "• Leverage is NOT a risk multiplier\n• It's a capital management tool\n• Max safe leverage is calculated based on SL distance\n• Using more than max leverage risks liquidation before SL\n• Formula: Margin = Position Size / Leverage",
+    "calculatorResults": "Understanding Results",
+    "calculatorResultsContent": "• Margin: Capital required to open the position\n• Position Size: Total value of your position\n• Quantity: Amount of contracts/coins to buy\n• R:R Ratio: Risk-Reward ratio of the trade\n• The calculator will warn if leverage exceeds safe limits",
+
+    "journalHelp": "Trade Journal",
+    "journalTitle": "Managing Your Trades",
+    "journalContent": "The Trade Journal is where you plan, execute, and review your trades. You can create new trades from the Calculator or manually, track execution, and analyze results.",
+    "creatingTrade": "Creating a Trade",
+    "creatingTradeContent": "1. Click 'New Trade' or send from Calculator\n2. Fill in Trade Plan section (required):\n   • Pair and Exchange\n   • Entry price and Stop Loss\n   • Take Profit targets with allocation percentages\n   • Leverage\n3. Optionally fill Trade Execution when you execute\n4. Add Trade Notes to document your analysis",
+    "tradePlanSection": "Trade Plan Section",
+    "tradePlanContent": "• Basic Information: Pair, exchange, dates\n• Portfolio Settings: Capital, risk %, min RR\n• Planned Setup: Entry, stop loss, leverage\n• Planned Take Profits: Up to 4 TP levels with % allocation\n• All TPs must add up to 100%\n• The app validates your plan meets minimum RR requirements",
+    "tradeExecutionSection": "Trade Execution Section",
+    "tradeExecutionContent": "• Fill this when you execute the trade\n• Actual Entry Price: Your real fill price\n• Close Date: When the trade was closed\n• Actual Exits: Real exit prices and % closed\n• Copy Plan button: Quickly copy planned TPs to exits\n• The app calculates live P&L and effective RR",
+    "viewingTrades": "Viewing Trade Details",
+    "viewingTradesContent": "Click any trade to view:\n• Complete trade plan and execution\n• Key metrics: Portfolio value, 1R risk, Planned/Actual RR\n• Live Results: Real-time P&L if partially closed\n• Trade Notes: Your analysis and observations\n• Actions: Duplicate or delete trades",
+    "filteringTrades": "Filtering & Search",
+    "filteringTradesContent": "• Search by pair (e.g., BTC, ETH, BTCUSDT)\n• Filter by date range (7d, 30d, 90d, etc.)\n• Filter by status (OPEN, WIN, LOSS, BE)\n• Filters combine to help you find specific trades quickly",
+
+    "importHelp": "Import Trades",
+    "importTitle": "Importing from Exchanges",
+    "importContent": "Import trades from BitGet CSV exports to quickly populate your journal with historical trades. The app automatically maps exchange data to trade fields.",
+    "importSteps": "Import Steps",
+    "importStepsContent": "1. Go to BitGet → Futures → Orders → History\n2. Export your closed positions as CSV\n3. Click 'Select CSV File' in the Import page\n4. Review the preview - duplicates are automatically detected\n5. Click 'Import Trades' to add to your journal",
+    "importLimitations": "Import Limitations",
+    "importLimitationsContent": "• BitGet CSV doesn't include planned stop loss data\n• The app estimates SL based on your portfolio settings\n• Risk/Reward metrics are approximate for imported trades\n• Manually created trades have more accurate data\n• Always review imported trades for accuracy",
+
+    "settingsHelp": "Settings",
+    "settingsTitle": "Configuring Your Journal",
+    "settingsContent": "Customize your trading journal settings, manage exchange connections, and handle data backup/restore.",
+    "portfolioSettings": "Portfolio Settings",
+    "portfolioSettingsContent": "• Initial Capital: Your starting portfolio value\n• Risk % (R): Default risk per trade (typically 1-2%)\n• Minimum R:R: Minimum risk-reward ratio for trades\n• Default Leverage: Your preferred leverage multiplier\n• Currency: Display currency (USD, EUR, etc.)",
+    "exchangeConnections": "Exchange Connections",
+    "exchangeConnectionsContent": "• Connect BitGet and BloFin accounts\n• Use READ-ONLY API keys for security\n• Test connection before saving\n• Sync trades automatically from exchanges\n• BitGet: 90 days history, BloFin: 180 days\n• Credentials are encrypted and stored locally",
+    "backupRestore": "Backup & Restore",
+    "backupRestoreContent": "• Export: Download all trades and settings as JSON\n• Import: Restore from a previous backup\n• Backups are useful for migrating to another device\n• Your data is stored locally - no cloud sync\n• Regular backups recommended",
+    "dangerZone": "Danger Zone",
+    "dangerZoneContent": "⚠️ Irreversible actions:\n• Delete All Imported Trades: Removes BitGet/BloFin imports\n• Delete All Trades: Permanently deletes everything\n• Always export a backup before using these\n• Type 'DELETE' to confirm dangerous actions",
+
+    "conceptsHelp": "Trading Concepts",
+    "conceptsTitle": "Understanding Risk Management",
+    "conceptsContent": "Learn the core concepts that make this trading journal effective for managing risk and improving performance.",
+
+    "whatIs1R": "What is 1R?",
+    "whatIs1RContent": "1R (One R) is your base risk unit - the amount you're willing to lose on a single trade.\n\nFormula: 1R = Portfolio × Risk%\n\nExample: With $10,000 portfolio and 2% risk:\n1R = $10,000 × 0.02 = $200\n\nThis means you risk $200 per trade. If you win 2R, you make $400. If you lose 1R, you lose $200.",
+
+    "whatIsRR": "What is R:R (Risk-Reward)?",
+    "whatIsRRContent": "Risk-Reward ratio compares potential profit to potential loss.\n\nFormula: R:R = (Take Profit - Entry) / (Entry - Stop Loss)\n\nExample:\n• Entry: $100\n• Stop Loss: $95 (risk $5)\n• Take Profit: $115 (profit $15)\n• R:R = $15 / $5 = 3:1\n\nA 3:1 R:R means you risk $1 to make $3. Minimum 2:1 is recommended for sustainable trading.",
+
+    "whatIsLeverage": "What is Leverage?",
+    "whatIsLeverageContent": "Leverage is a capital management tool, NOT a risk multiplier.\n\nKey points:\n• Higher leverage = Larger position with same margin\n• 10x leverage doesn't mean 10x risk\n• Risk is determined by your Stop Loss distance\n• Max safe leverage = 1 / (SL Distance %)\n• Using more than max leverage risks liquidation\n\nExample:\n• SL is 5% away from entry\n• Max safe leverage = 1 / 0.05 = 20x\n• Using 25x could liquidate before SL hits",
+
+    "positionSizing": "Position Sizing",
+    "positionSizingContent": "Proper position sizing is crucial for risk management.\n\nThe calculator determines position size based on:\n1. Your risk amount (1R)\n2. Stop loss distance\n3. Leverage\n\nFormula: Position Size = (1R × Leverage) / SL Distance %\n\nNever risk more than 1-2% of your portfolio per trade. Even professional traders rarely risk more than 2%.",
+
+    "winRate": "Win Rate vs Profit Factor",
+    "winRateContent": "Win Rate: Percentage of winning trades\nProfit Factor: Gross Profit / Gross Loss\n\nYou don't need a high win rate to be profitable!\n\nExample 1 (High Win Rate):\n• 70% win rate, 1:1 R:R\n• 7 wins × $100 = $700\n• 3 losses × $100 = $300\n• Profit Factor: 700/300 = 2.33 ✓\n\nExample 2 (Low Win Rate):\n• 40% win rate, 3:1 R:R\n• 4 wins × $300 = $1200\n• 6 losses × $100 = $600\n• Profit Factor: 1200/600 = 2.0 ✓\n\nFocus on Risk-Reward, not just win rate!",
+
+    "faqSection": "Frequently Asked Questions",
+    "faqQ1": "Is my data stored in the cloud?",
+    "faqA1": "No. All data is stored locally on your device. Nothing is sent to external servers. Your trading data remains completely private and under your control.",
+    "faqQ2": "Can I use this on multiple devices?",
+    "faqA2": "The app stores data locally, so each device has separate data. Use the Backup/Restore feature to export from one device and import to another.",
+    "faqQ3": "Why can't I see stop loss data for imported trades?",
+    "faqA3": "Exchange CSV exports don't include planned stop loss levels. The app estimates SL based on your portfolio risk settings. Manually created trades have accurate SL data.",
+    "faqQ4": "What's the difference between 'Open' and 'Closed' trades?",
+    "faqA4": "OPEN: Trade plan created but position is still active or not fully exited.\nCLOSED (WIN/LOSS/BE): All exits recorded and position is 100% closed. The app auto-detects status based on P&L.",
+    "faqQ5": "Can I edit a trade after creating it?",
+    "faqA5": "Yes! Click any trade in the Journal to view and edit. You can update execution data, notes, and all fields except the core plan. Use 'Duplicate' to create a similar trade with a fresh plan.",
+    "faqQ6": "What happens if I exceed max leverage?",
+    "faqA6": "The app warns you but doesn't prevent it. Exceeding max leverage means you risk liquidation before your stop loss is hit. Always stay within or below the calculated max safe leverage.",
+    "faqQ7": "How do I track multiple take profit levels?",
+    "faqA7": "In the Trade Plan, add up to 4 take profit levels with percentage allocations (must total 100%). In Trade Execution, record actual exit prices and percentages closed for each level.",
+    "faqQ8": "Why is my Profit Factor showing infinity (∞)?",
+    "faqA8": "Profit Factor = Gross Profit / Gross Loss. If you have no losing trades yet, Gross Loss = 0, resulting in division by zero (∞). This is normal for new accounts with only winning trades.",
+
+    "needHelp": "Need More Help?",
+    "needHelpContent": "If you have questions or need support, please check the FAQ section first. For additional assistance, refer to the documentation or reach out through the app's feedback channels.",
+
+    "privacyNote": "Privacy & Security",
+    "privacyNoteContent": "🔒 Your data is 100% private and secure.\n• All data stored locally on your device\n• No cloud sync or external servers\n• API credentials encrypted with AES-256\n• Use read-only API keys for exchanges\n• Regular backups recommended"
   }
 }

@@ -11,6 +11,7 @@ import { calculateTradeMetrics } from '../lib/calculations';
 import { formatCurrency, formatPercent, formatRR, formatLeverage } from '../lib/utils';
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
 import { api } from '../lib/api';
+import { HelpBadge } from '../components/HelpBadge';
 
 // Help tooltips component
 const HelpTooltip = ({ title, content }: { title: string; content: string | JSX.Element }) => {
@@ -163,8 +164,9 @@ export default function Calculator() {
   return (
     <div className="space-y-4 max-w-4xl mx-auto">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">
+        <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
           {t('calculator.title') || 'Position Calculator'}
+          <HelpBadge section="calculator" />
         </h1>
         <p className="text-muted-foreground">
           {t('calculator.subtitle')}

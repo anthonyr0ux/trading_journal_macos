@@ -1,18 +1,19 @@
 import { Outlet } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Calculator, BookOpen, Upload, Settings } from 'lucide-react';
+import { LayoutDashboard, Calculator, BookOpen, Upload, Settings, HelpCircle } from 'lucide-react';
 
 export default function Layout() {
   const location = useLocation();
   const { t, i18n } = useTranslation();
 
   const navigation = [
-    { name: t('nav.dashboard') || 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-    { name: t('nav.calculator') || 'Calculator', path: '/calculator', icon: Calculator },
-    { name: t('nav.journal') || 'Journal', path: '/journal', icon: BookOpen },
-    { name: t('nav.import') || 'Import', path: '/import', icon: Upload },
-    { name: t('nav.settings') || 'Settings', path: '/settings', icon: Settings },
+    { name: t('nav.dashboard'), path: '/dashboard', icon: LayoutDashboard },
+    { name: t('nav.calculator'), path: '/calculator', icon: Calculator },
+    { name: t('nav.journal'), path: '/journal', icon: BookOpen },
+    { name: t('nav.import'), path: '/import', icon: Upload },
+    { name: t('nav.settings'), path: '/settings', icon: Settings },
+    { name: t('nav.help'), path: '/help', icon: HelpCircle },
   ];
 
   return (

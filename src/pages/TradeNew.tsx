@@ -11,6 +11,7 @@ import { api, type Settings } from '../lib/api';
 import { calculateTradeMetrics } from '../lib/calculations';
 import { formatCurrency, formatRR } from '../lib/utils';
 import { ArrowLeft, AlertCircle, Calendar, TrendingUp, Copy } from 'lucide-react';
+import { HelpBadge } from '../components/HelpBadge';
 
 export default function TradeNew() {
   const navigate = useNavigate();
@@ -190,8 +191,9 @@ export default function TradeNew() {
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">
+          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
             {calculatorData ? t('tradeNew.titleFromCalculator') : t('tradeNew.title')}
+            <HelpBadge section="journal" />
           </h1>
           <p className="text-muted-foreground">
             {t('tradeNew.subtitle')}

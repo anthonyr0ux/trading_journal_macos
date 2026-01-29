@@ -6,6 +6,7 @@ import { Button } from '../components/ui/button';
 import { formatCurrency, formatPercent } from '../lib/utils';
 import { TrendingUp, TrendingDown, DollarSign, BarChart3, Calendar } from 'lucide-react';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { HelpBadge } from '../components/HelpBadge';
 
 type DateRange = 'all' | '7d' | '30d' | '90d' | '180d' | '365d';
 
@@ -87,8 +88,9 @@ export default function Dashboard() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">
+          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
             {t('dashboard.title')}
+            <HelpBadge section="dashboard" />
           </h1>
           <p className="text-muted-foreground">
             {t('dashboard.subtitle')}

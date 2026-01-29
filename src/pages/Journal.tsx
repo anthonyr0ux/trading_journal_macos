@@ -8,6 +8,7 @@ import { Input } from '../components/ui/input';
 import { Badge } from '../components/ui/badge';
 import { formatCurrency } from '../lib/utils';
 import { Plus, Eye, Calendar, Search } from 'lucide-react';
+import { HelpBadge } from '../components/HelpBadge';
 
 type DateRange = 'all' | '7d' | '30d' | '90d' | '180d' | '365d';
 type StatusFilter = 'all' | 'OPEN' | 'WIN' | 'LOSS' | 'BE';
@@ -106,8 +107,9 @@ export default function Journal() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">
+          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
             {t('journal.title') || 'Nemesis Trading Journal'}
+            <HelpBadge section="journal" />
           </h1>
           <p className="text-muted-foreground">
             {t('journal.manageTrades') || 'Manage your trades'}

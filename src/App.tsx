@@ -8,6 +8,7 @@ import TradeNew from './pages/TradeNew';
 import TradeDetail from './pages/TradeDetail';
 import Import from './pages/Import';
 import Settings from './pages/Settings';
+import Help from './pages/Help';
 import Layout from './pages/Layout';
 
 function App() {
@@ -23,6 +24,7 @@ function App() {
           <Route path="journal/:id" element={<TradeDetail />} />
           <Route path="import" element={<Import />} />
           <Route path="settings" element={<Settings />} />
+          <Route path="help" element={<Help />} />
         </Route>
       </Routes>
     </BrowserRouter>

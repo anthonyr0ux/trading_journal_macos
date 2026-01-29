@@ -7,6 +7,7 @@ import { Label } from '../components/ui/label';
 import { api, type ImportPreview, type ImportResult } from '../lib/api';
 import { formatCurrency } from '../lib/utils';
 import { ArrowLeft, Upload, AlertCircle, CheckCircle2, XCircle } from 'lucide-react';
+import { HelpBadge } from '../components/HelpBadge';
 import { open } from '@tauri-apps/plugin-dialog';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { ConfirmDialog } from '../components/ConfirmDialog';
@@ -158,7 +159,10 @@ export default function Import() {
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
-          <h1 className="text-3xl font-bold">Import Trades</h1>
+          <h1 className="text-3xl font-bold flex items-center gap-2">
+            Import Trades
+            <HelpBadge section="import" />
+          </h1>
           <p className="text-muted-foreground">Import trades from BitGet CSV export</p>
         </div>
       </div>
