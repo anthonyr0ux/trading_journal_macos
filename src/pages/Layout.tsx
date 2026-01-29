@@ -2,6 +2,7 @@ import { Outlet } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Link, useLocation } from 'react-router-dom';
 import { LayoutDashboard, Calculator, BookOpen, Upload, Settings, HelpCircle } from 'lucide-react';
+import nemesisLogo from '../assets/nemesis-logo.jpg';
 
 export default function Layout() {
   const location = useLocation();
@@ -21,10 +22,17 @@ export default function Layout() {
       {/* Sidebar */}
       <aside className="w-64 bg-card border-r border-border flex flex-col">
         <div className="p-6">
-          <h1 className="text-2xl font-bold text-foreground leading-tight">
-            Nemesis
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <div className="flex items-center gap-3 mb-2">
+            <img
+              src={nemesisLogo}
+              alt="Nemesis Logo"
+              className="w-12 h-12 object-contain"
+            />
+            <h1 className="text-2xl font-bold text-foreground leading-tight">
+              Nemesis
+            </h1>
+          </div>
+          <p className="text-sm text-muted-foreground">
             {i18n.language === 'fr' ? 'Journal de Trading' : 'Trading Journal'}
           </p>
         </div>
