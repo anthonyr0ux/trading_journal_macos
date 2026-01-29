@@ -26,10 +26,13 @@ export default function Settings() {
   const [syncDialogOpen, setSyncDialogOpen] = useState(false);
   const [syncingCredential, setSyncingCredential] = useState<ApiCredentialSafe | null>(null);
   const [deleteAllDialogOpen, setDeleteAllDialogOpen] = useState(false);
+  const [totalTrades, setTotalTrades] = useState(0);
+  const [importedTrades, setImportedTrades] = useState(0);
 
   useEffect(() => {
     loadSettings();
     loadCredentials();
+    loadTradeCounts();
   }, []);
 
   const loadSettings = async () => {
@@ -52,6 +55,18 @@ export default function Settings() {
     } catch (error) {
       console.error('Failed to load API credentials:', error);
       toast.error(t('settings.failedToLoadCredentials') + ': ' + error);
+    }
+  };
+
+  const loadTradeCounts = async () => {
+    try {
+      const allTrades = await api.getTrades();
+      setTotalTrades(allTrades.length);
+
+      const imported = allTrades.filter(t => t.import_fingerprint !== null && t.import_fingerprint !== undefined);
+      setImportedTrades(imported.length);
+    } catch (error) {
+      console.error('Failed to load trade counts:', error);
     }
   };
 
@@ -168,8 +183,9 @@ export default function Settings() {
 
         toast.success(t('settings.importedDetails', { settings: settingsUpdated, trades: tradesImported }));
 
-        // Reload settings
+        // Reload settings and trade counts
         await loadSettings();
+        await loadTradeCounts();
       }
     } catch (error) {
       console.error('Failed to import data:', error);
@@ -192,6 +208,7 @@ export default function Settings() {
       // Reload data after successful deletion
       if (count > 0) {
         loadSettings();
+        loadTradeCounts();
       }
     } catch (error) {
       // Error already shown by toast.promise
@@ -212,6 +229,7 @@ export default function Settings() {
       // Reload data after successful deletion
       if (count > 0) {
         loadSettings();
+        loadTradeCounts();
       }
     } catch (error) {
       // Error already shown by toast.promise
@@ -466,7 +484,7 @@ export default function Settings() {
               variant="destructive"
               size="sm"
               onClick={handleDeleteImported}
-              disabled={saving}
+              disabled={saving || importedTrades === 0}
             >
               <XCircle className="h-4 w-4 mr-2" />
               {t('settings.deleteImported')}
@@ -485,7 +503,7 @@ export default function Settings() {
               variant="destructive"
               size="sm"
               onClick={() => setDeleteAllDialogOpen(true)}
-              disabled={saving}
+              disabled={saving || totalTrades === 0}
             >
               <Trash2 className="h-4 w-4 mr-2" />
               {t('settings.deleteAll')}
