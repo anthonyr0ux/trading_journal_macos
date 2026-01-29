@@ -208,10 +208,6 @@ pub async fn update_trade(
             updates.push("total_pnl = ?");
             values.push(Box::new(total_pnl));
         }
-        if let Some(realized_pnl) = trade_update.get("realized_pnl").and_then(|v| v.as_f64()) {
-            updates.push("realized_pnl = ?");
-            values.push(Box::new(realized_pnl));
-        }
         if let Some(pnl_in_r) = trade_update.get("pnl_in_r").and_then(|v| v.as_f64()) {
             updates.push("pnl_in_r = ?");
             values.push(Box::new(pnl_in_r));

@@ -13,8 +13,8 @@ pub struct BitgetResponse<T> {
 /// BitGet fill history data wrapper
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FillHistoryData {
-    #[serde(rename = "fillList")]
-    pub fill_list: Vec<BitgetFill>,
+    #[serde(rename = "fillList", default)]
+    pub fill_list: Option<Vec<BitgetFill>>,
     #[serde(rename = "endId")]
     pub end_id: Option<String>,
 }

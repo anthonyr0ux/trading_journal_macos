@@ -47,7 +47,9 @@ export default function Journal() {
       if (startDate) filters.start_date = startDate;
       if (statusFilter !== 'all') filters.status = statusFilter;
 
+      console.log('Loading trades with filters:', filters);
       const data = await api.getTrades(Object.keys(filters).length > 0 ? filters : undefined);
+      console.log('Loaded', data.length, 'trades');
       setTrades(data);
     } catch (error) {
       console.error('Failed to load trades:', error);

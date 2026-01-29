@@ -52,6 +52,10 @@ pub async fn get_dashboard_stats(
             let three_months_ago = chrono::Utc::now().timestamp() - (90 * 24 * 60 * 60);
             format!("AND close_date >= {}", three_months_ago)
         },
+        Some("6months") => {
+            let six_months_ago = chrono::Utc::now().timestamp() - (180 * 24 * 60 * 60);
+            format!("AND close_date >= {}", six_months_ago)
+        },
         Some("year") => {
             let year_ago = chrono::Utc::now().timestamp() - (365 * 24 * 60 * 60);
             format!("AND close_date >= {}", year_ago)
@@ -191,6 +195,10 @@ pub async fn get_equity_curve(
         Some("3months") => {
             let three_months_ago = chrono::Utc::now().timestamp() - (90 * 24 * 60 * 60);
             format!("AND close_date >= {}", three_months_ago)
+        },
+        Some("6months") => {
+            let six_months_ago = chrono::Utc::now().timestamp() - (180 * 24 * 60 * 60);
+            format!("AND close_date >= {}", six_months_ago)
         },
         Some("year") => {
             let year_ago = chrono::Utc::now().timestamp() - (365 * 24 * 60 * 60);

@@ -188,8 +188,10 @@ impl ExchangeClient for BitgetClient {
 
             let history_data = self.fetch_fill_history(&bitget_request).await?;
 
-            // Map fills to raw trades
-            for fill in &history_data.fill_list {
+            // Map fills to raw trades (handle null fillList)
+            let empty_vec = vec![];
+            let fills = history_data.fill_list.as_ref().unwrap_or(&empty_vec);
+            for fill in fills {
                 match map_fill_to_raw_trade(fill) {
                     Ok(raw_trade) => all_raw_trades.push(raw_trade),
                     Err(e) => {
@@ -199,7 +201,7 @@ impl ExchangeClient for BitgetClient {
             }
 
             // Check if we should continue pagination
-            let has_more = history_data.end_id.is_some() && !history_data.fill_list.is_empty();
+            let has_more = history_data.end_id.is_some() && !fills.is_empty();
 
             if !has_more || all_raw_trades.len() >= limit as usize {
                 return Ok(FetchTradesResponse {

@@ -1,8 +1,15 @@
 use super::types::BitgetFill;
 use crate::api::client::RawTrade;
 
-/// Map BitGet fill to RawTrade
+/// Map BitGet fill to RawTrade (only for closing positions)
 pub fn map_fill_to_raw_trade(fill: &BitgetFill) -> Result<RawTrade, String> {
+    // Skip opening positions - we only want closing trades with actual PnL
+    if let Some(ref trade_side) = fill.trade_side {
+        if trade_side == "open" {
+            return Err("Skipping opening position (no PnL)".to_string());
+        }
+    }
+
     // Parse price
     let entry_price = fill
         .price_avg

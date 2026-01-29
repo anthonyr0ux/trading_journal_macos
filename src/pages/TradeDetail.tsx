@@ -10,7 +10,7 @@ import { Badge } from '../components/ui/badge';
 import { api, type Trade } from '../lib/api';
 import { calculateExecutionMetrics } from '../lib/calculations';
 import { formatCurrency, formatRR, formatPercent } from '../lib/utils';
-import { ArrowLeft, Copy, Trash2, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Copy, Trash2, AlertCircle, TrendingUp, TrendingDown, Calendar, DollarSign } from 'lucide-react';
 
 type Exit = {
   price: number;
@@ -83,7 +83,6 @@ export default function TradeDetail() {
     try {
       // Calculate execution metrics
       let totalPnl = null;
-      let realizedPnl = null;
       let effectiveRR = null;
       let newStatus = trade.status;
 
@@ -109,14 +108,13 @@ export default function TradeDetail() {
           });
 
           totalPnl = metrics.totalPnl;
-          realizedPnl = metrics.realizedPnl;
           effectiveRR = metrics.effectiveRR;
           newStatus = metrics.totalPnl >= 0 ? 'WIN' : 'LOSS';
         } else if (totalExitPercent > 0) {
           // Partial exit
           const normalizedExits = validExits.map(e => ({
             price: e.price,
-            percent: e.percent / 100, // Keep as actual percent for partial
+            percent: e.percent / 100,
           }));
 
           const metrics = calculateExecutionMetrics({
@@ -128,7 +126,6 @@ export default function TradeDetail() {
             type: trade.position_type,
           });
 
-          realizedPnl = metrics.realizedPnl;
           effectiveRR = metrics.effectiveRR;
           newStatus = 'OPEN';
         }
@@ -142,7 +139,6 @@ export default function TradeDetail() {
         exits: exitsJson,
         close_date: closeDateTimestamp,
         total_pnl: totalPnl,
-        realized_pnl: realizedPnl,
         effective_rr: effectiveRR,
         status: newStatus,
         notes: executionNotes,
@@ -226,7 +222,8 @@ export default function TradeDetail() {
   }
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
+    <div className="space-y-6 max-w-7xl mx-auto">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={() => navigate('/journal')}>
@@ -236,18 +233,20 @@ export default function TradeDetail() {
             <div className="flex items-center gap-3">
               <h1 className="text-3xl font-bold">{trade.pair}</h1>
               <Badge variant={
-                trade.status === 'WIN' ? 'default' :
-                trade.status === 'LOSS' ? 'destructive' :
-                trade.status === 'BREAKEVEN' ? 'secondary' :
-                'outline'
-              }>
-                {trade.status}
-              </Badge>
-              <Badge variant={trade.position_type === 'LONG' ? 'default' : 'destructive'}>
+                trade.position_type === 'LONG' ? 'default' : 'destructive'
+              } className="text-sm px-3 py-1">
                 {trade.position_type}
               </Badge>
+              <Badge variant={
+                trade.status === 'WIN' ? 'default' :
+                trade.status === 'LOSS' ? 'destructive' :
+                trade.status === 'BE' ? 'secondary' :
+                'outline'
+              } className="text-sm px-3 py-1">
+                {trade.status}
+              </Badge>
             </div>
-            <p className="text-muted-foreground">{trade.exchange}</p>
+            <p className="text-muted-foreground mt-1">{trade.exchange}</p>
           </div>
         </div>
         <div className="flex gap-2">
@@ -262,268 +261,390 @@ export default function TradeDetail() {
         </div>
       </div>
 
-      {/* Trade Plan - Read Only */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Trade Plan</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-3">
-            <div>
-              <div className="text-xs text-muted-foreground">Analysis Date</div>
-              <div className="text-sm font-medium">
-                {new Date(trade.analysis_date * 1000).toLocaleDateString()}
-              </div>
-            </div>
-            <div>
-              <div className="text-xs text-muted-foreground">Trade Date</div>
-              <div className="text-sm font-medium">
-                {new Date(trade.trade_date * 1000).toLocaleDateString()}
-              </div>
-            </div>
-            <div>
-              <div className="text-xs text-muted-foreground">Portfolio Value</div>
-              <div className="text-sm font-medium">{formatCurrency(trade.portfolio_value)}</div>
-            </div>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-4">
-            <div>
-              <div className="text-xs text-muted-foreground">Planned Entry (PE)</div>
-              <div className="text-sm font-medium">{trade.planned_pe.toFixed(8)}</div>
-            </div>
-            <div>
-              <div className="text-xs text-muted-foreground">Stop Loss (SL)</div>
-              <div className="text-sm font-medium">{trade.planned_sl.toFixed(8)}</div>
-            </div>
-            <div>
-              <div className="text-xs text-muted-foreground">Leverage</div>
-              <div className="text-sm font-medium">{trade.leverage}x</div>
-            </div>
-            <div>
-              <div className="text-xs text-muted-foreground">R% Risk</div>
-              <div className="text-sm font-medium">{formatPercent(trade.r_percent)}</div>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <div className="text-xs text-muted-foreground">Planned Take Profits</div>
-            <div className="grid gap-2">
-              {plannedTps.map((tp: any, index: number) => (
-                <div key={index} className="flex items-center justify-between text-sm border rounded-lg p-2">
-                  <div className="font-medium">TP{index + 1}</div>
-                  <div>{tp.price.toFixed(8)}</div>
-                  <div>{tp.percent.toFixed(1)}%</div>
-                  <div className="text-muted-foreground">RR: {formatRR(tp.rr)}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-4 pt-3 border-t">
-            <div>
-              <div className="text-xs text-muted-foreground">1R</div>
-              <div className="text-lg font-semibold">{formatCurrency(trade.one_r)}</div>
-            </div>
-            <div>
-              <div className="text-xs text-muted-foreground">Margin</div>
-              <div className="text-lg font-semibold">{formatCurrency(trade.margin)}</div>
-            </div>
-            <div>
-              <div className="text-xs text-muted-foreground">Position Size</div>
-              <div className="text-lg font-semibold">{formatCurrency(trade.position_size)}</div>
-            </div>
-            <div>
-              <div className="text-xs text-muted-foreground">Quantity</div>
-              <div className="text-lg font-semibold">{trade.quantity.toFixed(4)}</div>
-            </div>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2">
-            <div>
-              <div className="text-xs text-muted-foreground">Planned Weighted RR</div>
-              <div className="text-lg font-semibold">{formatRR(trade.planned_weighted_rr)}</div>
-            </div>
-            <div>
-              <div className="text-xs text-muted-foreground">Min RR Required</div>
-              <div className="text-lg font-semibold">{formatRR(trade.min_rr)}</div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Trade Execution - Editable */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Trade Execution</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="effectivePe">Effective Entry Price</Label>
-              <Input
-                id="effectivePe"
-                type="number"
-                step="0.00000001"
-                value={effectivePe || ''}
-                onChange={(e) => setEffectivePe(Number(e.target.value))}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="closeDate">Close Date (Optional)</Label>
-              <Input
-                id="closeDate"
-                type="date"
-                value={closeDate}
-                onChange={(e) => setCloseDate(e.target.value)}
-              />
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            <Label>Exits (leave price at 0 if not taken)</Label>
-            {exits.map((exit, index) => (
-              <div key={index} className="grid gap-4 md:grid-cols-3 items-end">
-                <div className="space-y-2">
-                  <Label htmlFor={`exit${index}-price`}>Exit {index + 1} Price</Label>
-                  <Input
-                    id={`exit${index}-price`}
-                    type="number"
-                    step="0.00000001"
-                    value={exit.price || ''}
-                    onChange={(e) => {
-                      const newExits = [...exits];
-                      newExits[index].price = Number(e.target.value);
-                      setExits(newExits);
-                    }}
-                    placeholder="Not taken"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor={`exit${index}-percent`}>Position Closed (%)</Label>
-                  <Input
-                    id={`exit${index}-percent`}
-                    type="number"
-                    min="0"
-                    max="100"
-                    value={exit.percent || ''}
-                    onChange={(e) => {
-                      const newExits = [...exits];
-                      newExits[index].percent = Number(e.target.value);
-                      setExits(newExits);
-                    }}
-                    disabled={!exit.price}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Allocation</Label>
-                  <div className="h-10 flex items-center text-sm text-muted-foreground">
-                    {plannedTps[index] ? `${plannedTps[index].percent.toFixed(1)}% planned` : '-'}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {validExits.length > 0 && (
-            <div className="flex items-start gap-2 p-3 rounded-lg bg-muted">
-              <AlertCircle className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
-              <div className="text-sm text-muted-foreground">
-                Total position closed: <span className="font-semibold">{totalExitPercent.toFixed(1)}%</span>
-                {Math.abs(totalExitPercent - 100) <= 0.1 ? (
-                  <span className="text-success ml-2">✓ Trade complete</span>
-                ) : totalExitPercent > 100 ? (
-                  <span className="text-destructive ml-2">⚠ Exceeds 100%</span>
-                ) : (
-                  <span className="text-warning ml-2">Partial exit</span>
-                )}
-              </div>
-            </div>
-          )}
-
-          <div className="space-y-2">
-            <Label htmlFor="executionNotes">Execution Notes</Label>
-            <Textarea
-              id="executionNotes"
-              value={executionNotes}
-              onChange={(e) => setExecutionNotes(e.target.value)}
-              placeholder="Add notes about how the trade played out..."
-              rows={3}
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Execution Results */}
-      {executionValid && executionMetrics && (
-        <Card className="border-2 border-primary/50">
-          <CardHeader>
-            <CardTitle>Execution Results</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-3">
+      {/* Key Metrics Summary */}
+      <div className="grid gap-4 md:grid-cols-4">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
               <div>
-                <div className="text-xs text-muted-foreground">Realized P&L</div>
-                <div className={`text-2xl font-bold ${
-                  executionMetrics.realizedPnl >= 0 ? 'text-success' : 'text-destructive'
-                }`}>
-                  {formatCurrency(executionMetrics.realizedPnl)}
-                </div>
+                <p className="text-xs text-muted-foreground">Portfolio Value</p>
+                <p className="text-2xl font-bold">{formatCurrency(trade.portfolio_value)}</p>
               </div>
-              <div>
-                <div className="text-xs text-muted-foreground">Total P&L (if complete)</div>
-                <div className={`text-2xl font-bold ${
-                  executionMetrics.totalPnl >= 0 ? 'text-success' : 'text-destructive'
-                }`}>
-                  {formatCurrency(executionMetrics.totalPnl)}
-                </div>
-              </div>
-              <div>
-                <div className="text-xs text-muted-foreground">Effective RR</div>
-                <div className="text-2xl font-bold">
-                  {formatRR(executionMetrics.effectiveRR)}
-                </div>
-              </div>
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2">
-              <div>
-                <div className="text-xs text-muted-foreground">Planned RR</div>
-                <div className="text-lg font-semibold">{formatRR(trade.planned_weighted_rr)}</div>
-              </div>
-              <div>
-                <div className="text-xs text-muted-foreground">RR Performance</div>
-                <div className={`text-lg font-semibold ${
-                  executionMetrics.effectiveRR >= trade.planned_weighted_rr
-                    ? 'text-success'
-                    : 'text-warning'
-                }`}>
-                  {executionMetrics.effectiveRR >= trade.planned_weighted_rr
-                    ? '✓ Met or exceeded plan'
-                    : '⚠ Below planned RR'
-                  }
-                </div>
-              </div>
+              <DollarSign className="h-8 w-8 text-muted-foreground" />
             </div>
           </CardContent>
         </Card>
-      )}
 
-      {/* Actions */}
-      <div className="flex gap-4">
-        <Button
-          variant="outline"
-          onClick={() => navigate('/journal')}
-        >
-          Cancel
-        </Button>
-        <Button
-          onClick={handleSave}
-          disabled={saving}
-        >
-          {saving ? 'Saving...' : 'Save Changes'}
-        </Button>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-muted-foreground">Risk (1R)</p>
+                <p className="text-2xl font-bold">{formatCurrency(trade.one_r)}</p>
+                <p className="text-xs text-muted-foreground">{formatPercent(trade.r_percent)} risk</p>
+              </div>
+              <AlertCircle className="h-8 w-8 text-muted-foreground" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-muted-foreground">Planned RR</p>
+                <p className="text-2xl font-bold">{formatRR(trade.planned_weighted_rr)}</p>
+                <p className="text-xs text-muted-foreground">Min: {formatRR(trade.min_rr)}</p>
+              </div>
+              <TrendingUp className="h-8 w-8 text-green-500" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-muted-foreground">Actual P&L</p>
+                <p className={`text-2xl font-bold ${
+                  trade.total_pnl
+                    ? (trade.total_pnl >= 0 ? 'text-green-500' : 'text-red-500')
+                    : ''
+                }`}>
+                  {trade.total_pnl ? formatCurrency(trade.total_pnl) : '-'}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {trade.effective_weighted_rr ? `${formatRR(trade.effective_weighted_rr)} RR` : 'Not closed'}
+                </p>
+              </div>
+              {trade.total_pnl && (trade.total_pnl >= 0 ?
+                <TrendingUp className="h-8 w-8 text-green-500" /> :
+                <TrendingDown className="h-8 w-8 text-red-500" />
+              )}
+            </div>
+          </CardContent>
+        </Card>
       </div>
+
+      {/* Two Column Layout */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* Left Column: Trade Plan (Read-Only) */}
+        <div className="space-y-6">
+          <Card>
+            <CardHeader className="bg-muted/50">
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className="h-5 w-5" />
+                Trade Plan
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 pt-6">
+              {/* Dates */}
+              <div className="grid gap-3 grid-cols-2">
+                <div className="p-3 bg-muted/50 rounded-lg">
+                  <div className="text-xs text-muted-foreground mb-1">Analysis Date</div>
+                  <div className="text-sm font-semibold">
+                    {new Date(trade.analysis_date * 1000).toLocaleDateString()}
+                  </div>
+                </div>
+                <div className="p-3 bg-muted/50 rounded-lg">
+                  <div className="text-xs text-muted-foreground mb-1">Trade Date</div>
+                  <div className="text-sm font-semibold">
+                    {new Date(trade.trade_date * 1000).toLocaleDateString()}
+                  </div>
+                </div>
+              </div>
+
+              {/* Entry & Stop Loss */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between p-3 border rounded-lg bg-blue-50 dark:bg-blue-950/20">
+                  <div>
+                    <div className="text-xs text-muted-foreground">Planned Entry (PE)</div>
+                    <div className="text-lg font-bold">${trade.planned_pe.toFixed(8)}</div>
+                  </div>
+                  <Badge variant="outline">{trade.leverage}x Leverage</Badge>
+                </div>
+
+                <div className="flex items-center justify-between p-3 border rounded-lg bg-red-50 dark:bg-red-950/20">
+                  <div>
+                    <div className="text-xs text-muted-foreground">Stop Loss (SL)</div>
+                    <div className="text-lg font-bold">${trade.planned_sl.toFixed(8)}</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-xs text-muted-foreground">Distance</div>
+                    <div className="text-sm font-semibold">
+                      {Math.abs(((trade.planned_pe - trade.planned_sl) / trade.planned_pe) * 100).toFixed(2)}%
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Take Profits */}
+              <div className="space-y-2">
+                <div className="text-sm font-semibold">Planned Take Profits</div>
+                <div className="space-y-2">
+                  {plannedTps.map((tp: any, index: number) => (
+                    <div key={index} className="flex items-center justify-between p-3 border rounded-lg bg-green-50 dark:bg-green-950/20">
+                      <div className="flex items-center gap-3">
+                        <Badge variant="outline" className="w-12 justify-center">TP{index + 1}</Badge>
+                        <div>
+                          <div className="text-sm font-semibold">${tp.price?.toFixed(8) || '-'}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {tp.percent != null ? `${tp.percent.toFixed(1)}% of position` : '-'}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-xs text-muted-foreground">RR</div>
+                        <div className="text-sm font-semibold">{tp.rr != null ? formatRR(tp.rr) : '-'}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Position Details */}
+              <div className="pt-3 border-t space-y-2">
+                <div className="text-sm font-semibold mb-3">Position Details</div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-2 bg-muted/50 rounded">
+                    <div className="text-xs text-muted-foreground">Position Size</div>
+                    <div className="text-sm font-semibold">{formatCurrency(trade.position_size)}</div>
+                  </div>
+                  <div className="p-2 bg-muted/50 rounded">
+                    <div className="text-xs text-muted-foreground">Quantity</div>
+                    <div className="text-sm font-semibold">{trade.quantity.toFixed(4)}</div>
+                  </div>
+                  <div className="p-2 bg-muted/50 rounded">
+                    <div className="text-xs text-muted-foreground">Margin</div>
+                    <div className="text-sm font-semibold">{formatCurrency(trade.margin)}</div>
+                  </div>
+                  <div className="p-2 bg-muted/50 rounded">
+                    <div className="text-xs text-muted-foreground">Leverage</div>
+                    <div className="text-sm font-semibold">{trade.leverage}x</div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Right Column: Execution (Editable) */}
+        <div className="space-y-6">
+          <Card>
+            <CardHeader className="bg-primary/5">
+              <CardTitle className="flex items-center gap-2">
+                <TrendingUp className="h-5 w-5" />
+                Trade Execution
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 pt-6">
+              {/* Actual Entry & Close Date */}
+              <div className="grid gap-3 grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="effectivePe" className="text-xs font-semibold">Actual Entry Price</Label>
+                  <Input
+                    id="effectivePe"
+                    type="number"
+                    step="0.00000001"
+                    value={effectivePe || ''}
+                    onChange={(e) => setEffectivePe(Number(e.target.value))}
+                    className="font-mono"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Planned: ${trade.planned_pe.toFixed(8)}
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="closeDate" className="text-xs font-semibold">Close Date</Label>
+                  <Input
+                    id="closeDate"
+                    type="date"
+                    value={closeDate}
+                    onChange={(e) => setCloseDate(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">Optional</p>
+                </div>
+              </div>
+
+              {/* Exit Points */}
+              <div className="space-y-3">
+                <Label className="text-sm font-semibold">Exit Points</Label>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Enter actual exit prices and % of position closed. Leave price at 0 if not taken yet.
+                </p>
+
+                {exits.map((exit, index) => (
+                  <div key={index} className="p-3 border rounded-lg space-y-3 bg-muted/30">
+                    <div className="flex items-center justify-between">
+                      <Badge variant="outline">Exit {index + 1}</Badge>
+                      {plannedTps[index]?.percent != null && (
+                        <span className="text-xs text-muted-foreground">
+                          Planned: {plannedTps[index].percent.toFixed(1)}% @ ${plannedTps[index].price?.toFixed(8)}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="grid gap-3 grid-cols-2">
+                      <div className="space-y-1">
+                        <Label htmlFor={`exit${index}-price`} className="text-xs">Exit Price</Label>
+                        <Input
+                          id={`exit${index}-price`}
+                          type="number"
+                          step="0.00000001"
+                          value={exit.price || ''}
+                          onChange={(e) => {
+                            const newExits = [...exits];
+                            newExits[index].price = Number(e.target.value);
+                            setExits(newExits);
+                          }}
+                          placeholder="0.00000000"
+                          className="font-mono text-sm"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label htmlFor={`exit${index}-percent`} className="text-xs">% Closed</Label>
+                        <Input
+                          id={`exit${index}-percent`}
+                          type="number"
+                          min="0"
+                          max="100"
+                          value={exit.percent || ''}
+                          onChange={(e) => {
+                            const newExits = [...exits];
+                            newExits[index].percent = Number(e.target.value);
+                            setExits(newExits);
+                          }}
+                          disabled={!exit.price}
+                          placeholder="0"
+                          className="text-sm"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Exit Status */}
+              {validExits.length > 0 && (
+                <div className={`p-3 rounded-lg border-2 ${
+                  Math.abs(totalExitPercent - 100) <= 0.1
+                    ? 'bg-green-50 dark:bg-green-950/20 border-green-500'
+                    : totalExitPercent > 100
+                    ? 'bg-red-50 dark:bg-red-950/20 border-red-500'
+                    : 'bg-yellow-50 dark:bg-yellow-950/20 border-yellow-500'
+                }`}>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-sm font-semibold">Position Closed</div>
+                      <div className="text-2xl font-bold">{totalExitPercent.toFixed(1)}%</div>
+                    </div>
+                    <div className="text-right">
+                      {Math.abs(totalExitPercent - 100) <= 0.1 ? (
+                        <Badge variant="default" className="bg-green-500">✓ Complete</Badge>
+                      ) : totalExitPercent > 100 ? (
+                        <Badge variant="destructive">⚠ Over 100%</Badge>
+                      ) : (
+                        <Badge variant="secondary">Partial Exit</Badge>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Execution Notes */}
+              <div className="space-y-2">
+                <Label htmlFor="executionNotes" className="text-sm font-semibold">Execution Notes</Label>
+                <Textarea
+                  id="executionNotes"
+                  value={executionNotes}
+                  onChange={(e) => setExecutionNotes(e.target.value)}
+                  placeholder="How did the trade play out? What did you learn?"
+                  rows={4}
+                  className="resize-none"
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Live Results Preview */}
+          {executionValid && executionMetrics && (
+            <Card className="border-2 border-primary">
+              <CardHeader className="bg-primary/10">
+                <CardTitle className="text-lg">Live Results</CardTitle>
+              </CardHeader>
+              <CardContent className="pt-6 space-y-4">
+                <div className="grid gap-4 grid-cols-2">
+                  <div className="text-center p-4 bg-muted/50 rounded-lg">
+                    <div className="text-xs text-muted-foreground mb-1">Realized P&L</div>
+                    <div className={`text-3xl font-bold ${
+                      executionMetrics.realizedPnl >= 0 ? 'text-green-500' : 'text-red-500'
+                    }`}>
+                      {formatCurrency(executionMetrics.realizedPnl)}
+                    </div>
+                  </div>
+                  <div className="text-center p-4 bg-muted/50 rounded-lg">
+                    <div className="text-xs text-muted-foreground mb-1">Total P&L</div>
+                    <div className={`text-3xl font-bold ${
+                      executionMetrics.totalPnl >= 0 ? 'text-green-500' : 'text-red-500'
+                    }`}>
+                      {formatCurrency(executionMetrics.totalPnl)}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-4 bg-muted/50 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-xs text-muted-foreground">Effective RR</div>
+                      <div className="text-2xl font-bold">{formatRR(executionMetrics.effectiveRR)}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xs text-muted-foreground">vs Planned</div>
+                      <div className={`text-lg font-semibold ${
+                        executionMetrics.effectiveRR >= trade.planned_weighted_rr
+                          ? 'text-green-500'
+                          : 'text-yellow-500'
+                      }`}>
+                        {executionMetrics.effectiveRR >= trade.planned_weighted_rr
+                          ? '✓ Exceeded'
+                          : '△ Below Plan'
+                        }
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </div>
+
+      {/* Save Actions */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              Save changes to update the trade in your journal
+            </p>
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                onClick={() => navigate('/journal')}
+                disabled={saving}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSave}
+                disabled={saving}
+                size="lg"
+              >
+                {saving ? 'Saving...' : 'Save Changes'}
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

@@ -225,13 +225,13 @@ pub async fn import_bitget_csv(
     })
 }
 
-/// Delete all BitGet imported trades
+/// Delete all BitGet imported trades (both CSV and API imports)
 #[tauri::command]
 pub async fn delete_bitget_trades(db: State<'_, Database>) -> Result<usize, String> {
     let conn = db.conn.lock().map_err(|e| e.to_string())?;
     let count = conn
         .execute(
-            "DELETE FROM trades WHERE exchange = 'BitGet' AND import_fingerprint IS NOT NULL",
+            "DELETE FROM trades WHERE import_fingerprint LIKE 'csv|bitget|%' OR import_fingerprint LIKE 'api|bitget|%'",
             [],
         )
         .map_err(|e| e.to_string())?;

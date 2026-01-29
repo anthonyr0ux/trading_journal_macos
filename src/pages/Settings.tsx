@@ -10,6 +10,7 @@ import { save, open } from '@tauri-apps/plugin-dialog';
 import { writeTextFile, readTextFile } from '@tauri-apps/plugin-fs';
 import { ExchangeCard } from '../components/ExchangeCard';
 import { ExchangeDialog } from '../components/ExchangeDialog';
+import { SyncDialog } from '../components/SyncDialog';
 
 export default function Settings() {
   const { t } = useTranslation();
@@ -19,6 +20,8 @@ export default function Settings() {
   const [credentials, setCredentials] = useState<ApiCredentialSafe[]>([]);
   const [showExchangeDialog, setShowExchangeDialog] = useState(false);
   const [testingCredentialId, setTestingCredentialId] = useState<string | null>(null);
+  const [syncDialogOpen, setSyncDialogOpen] = useState(false);
+  const [syncingCredential, setSyncingCredential] = useState<ApiCredentialSafe | null>(null);
 
   useEffect(() => {
     loadSettings();
@@ -66,8 +69,15 @@ export default function Settings() {
   };
 
   const handleSync = (id: string) => {
-    // TODO: Navigate to sync page or open sync dialog
-    alert('Sync functionality coming soon!');
+    const credential = credentials.find(c => c.id === id);
+    if (credential) {
+      setSyncingCredential(credential);
+      setSyncDialogOpen(true);
+    }
+  };
+
+  const handleSyncComplete = async () => {
+    await loadCredentials(); // Refresh to show updated last_sync_timestamp
   };
 
   const handleDeleteCredentials = async (id: string) => {
@@ -355,6 +365,17 @@ export default function Settings() {
         onOpenChange={setShowExchangeDialog}
         onSaved={loadCredentials}
       />
+
+      {syncingCredential && (
+        <SyncDialog
+          open={syncDialogOpen}
+          onOpenChange={setSyncDialogOpen}
+          credentialId={syncingCredential.id}
+          exchangeName={syncingCredential.exchange}
+          historyLimit={syncingCredential.exchange === 'bitget' ? '90 days' : '180 days'}
+          onComplete={handleSyncComplete}
+        />
+      )}
 
       <Card>
         <CardHeader>

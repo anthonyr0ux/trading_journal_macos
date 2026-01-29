@@ -43,10 +43,18 @@ export default function Dashboard() {
       const startDate = getDateRangeTimestamp(dateRange);
       const filters = startDate ? { start_date: startDate } : undefined;
 
+      // Map dashboard date range to backend format
+      const backendDateRange = dateRange === 'all' ? undefined :
+                               dateRange === '7d' ? 'week' :
+                               dateRange === '30d' ? 'month' :
+                               dateRange === '90d' ? '3months' :
+                               dateRange === '180d' ? '6months' :
+                               dateRange === '365d' ? 'year' : undefined;
+
       const [tradesData, statsData, equityCurveData] = await Promise.all([
         api.getTrades(filters),
-        api.getDashboardStats(),
-        api.getEquityCurve(),
+        api.getDashboardStats(backendDateRange),
+        api.getEquityCurve(backendDateRange),
       ]);
       setTrades(tradesData);
       setStats(statsData);

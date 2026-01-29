@@ -9,6 +9,9 @@ import { formatCurrency } from '../lib/utils';
 import { ArrowLeft, Upload, AlertCircle, CheckCircle2, XCircle } from 'lucide-react';
 import { open } from '@tauri-apps/plugin-dialog';
 import { getCurrentWindow } from '@tauri-apps/api/window';
+import { ConfirmDialog } from '../components/ConfirmDialog';
+import { ErrorDialog } from '../components/ErrorDialog';
+import { ImportResultDialog } from '../components/ImportResultDialog';
 
 export default function Import() {
   const navigate = useNavigate();
@@ -20,6 +23,11 @@ export default function Import() {
   const [portfolio, setPortfolio] = useState(10000);
   const [rPercent, setRPercent] = useState(2);
   const [isDragging, setIsDragging] = useState(false);
+
+  // Dialog states
+  const [errorDialog, setErrorDialog] = useState<{ open: boolean; message: string | null }>({ open: false, message: null });
+  const [confirmImportDialog, setConfirmImportDialog] = useState(false);
+  const [importResultDialog, setImportResultDialog] = useState<{ open: boolean; result: { imported: number; duplicates: number; errors: string[] } | null }>({ open: false, result: null });
 
   // Set up Tauri file drop listener
   useEffect(() => {
@@ -43,10 +51,10 @@ export default function Import() {
                   await processFile(content);
                 } catch (error) {
                   console.error('Failed to read dropped file:', error);
-                  alert('Failed to read file: ' + error);
+                  setErrorDialog({ open: true, message: 'Failed to read file: ' + error });
                 }
               } else {
-                alert('Please drop a CSV file');
+                setErrorDialog({ open: true, message: 'Please drop a CSV file' });
               }
             }
           } else if (event.payload.type === 'cancel') {
@@ -85,7 +93,7 @@ export default function Import() {
       }
     } catch (error) {
       console.error('Failed to select file:', error);
-      alert('Failed to open file: ' + error);
+      setErrorDialog({ open: true, message: 'Failed to open file: ' + error });
     }
   };
 
@@ -116,19 +124,19 @@ export default function Import() {
       setPreviews(preview);
     } catch (error) {
       console.error('Failed to preview import:', error);
-      alert('Failed to preview import: ' + error);
+      setErrorDialog({ open: true, message: 'Failed to preview import: ' + error });
     } finally {
       setLoading(false);
     }
   };
 
-  const handleImport = async () => {
+  const handleImportClick = () => {
     if (!csvContent) return;
+    setConfirmImportDialog(true);
+  };
 
-    if (!confirm(`Import ${previews.length} trades? This will add them to your journal.`)) {
-      return;
-    }
-
+  const handleImportConfirm = async () => {
+    setConfirmImportDialog(false);
     setLoading(true);
     try {
       const result = await api.importBitgetCsv(csvContent, portfolio, rPercent / 100);
@@ -137,24 +145,7 @@ export default function Import() {
       setPreviews([]);
     } catch (error) {
       console.error('Failed to import trades:', error);
-      alert('Failed to import trades: ' + error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleDeleteImported = async () => {
-    if (!confirm('Delete ALL BitGet imported trades? This cannot be undone.')) {
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const count = await api.deleteBitgetTrades();
-      alert(`Deleted ${count} imported trades`);
-    } catch (error) {
-      console.error('Failed to delete trades:', error);
-      alert('Failed to delete trades: ' + error);
+      setErrorDialog({ open: true, message: 'Failed to import trades: ' + error });
     } finally {
       setLoading(false);
     }
@@ -298,7 +289,7 @@ export default function Import() {
               }}>
                 Cancel
               </Button>
-              <Button onClick={handleImport} disabled={loading}>
+              <Button onClick={handleImportClick} disabled={loading}>
                 {loading ? 'Importing...' : `Import ${previews.length} Trades`}
               </Button>
             </div>
@@ -356,6 +347,28 @@ export default function Import() {
         </Card>
       )}
 
+      {/* Dialogs */}
+      <ErrorDialog
+        open={errorDialog.open}
+        onOpenChange={(open) => setErrorDialog({ open, message: null })}
+        error={errorDialog.message}
+      />
+
+      <ConfirmDialog
+        open={confirmImportDialog}
+        onOpenChange={setConfirmImportDialog}
+        title="Import Trades?"
+        description={`Import ${previews.length} trades? This will add them to your journal.`}
+        confirmLabel="Import"
+        onConfirm={handleImportConfirm}
+        loading={loading}
+      />
+
+      <ImportResultDialog
+        open={importResultDialog.open}
+        onOpenChange={(open) => setImportResultDialog({ open, result: null })}
+        result={importResultDialog.result}
+      />
     </div>
   );
 }
