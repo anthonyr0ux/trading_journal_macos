@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
-import { Copy, Check, AlertCircle, Save, HelpCircle } from 'lucide-react';
+import { Copy, Check, AlertCircle, Save, HelpCircle, ArrowRight } from 'lucide-react';
 import { calculateTradeMetrics } from '../lib/calculations';
 import { formatCurrency, formatPercent, formatRR, formatLeverage } from '../lib/utils';
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
@@ -38,6 +39,7 @@ const HelpTooltip = ({ title, content }: { title: string; content: string | JSX.
 
 export default function Calculator() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
 
   // Step 1: Strategy Settings
   const [portfolio, setPortfolio] = useState(10000);
@@ -135,6 +137,27 @@ export default function Calculator() {
       setCopied(field);
       setTimeout(() => setCopied(null), 2000);
     }
+  };
+
+  const handleSendToJournal = () => {
+    if (!metrics || !isValid) return;
+
+    // Navigate to new trade with calculator data
+    navigate('/journal/new', {
+      state: {
+        fromCalculator: true,
+        calculatorData: {
+          portfolio,
+          rPercent,
+          minRR,
+          pe,
+          sl,
+          tp,
+          leverage,
+          metrics,
+        },
+      },
+    });
   };
 
   return (
@@ -473,6 +496,23 @@ export default function Calculator() {
                   </div>
                 </div>
               </div>
+
+              {/* Send to Journal Button */}
+              {isValid && (
+                <div className="pt-4 border-t">
+                  <Button
+                    onClick={handleSendToJournal}
+                    className="w-full"
+                    size="lg"
+                  >
+                    <ArrowRight className="h-4 w-4 mr-2" />
+                    Send to Journal
+                  </Button>
+                  <p className="text-xs text-muted-foreground text-center mt-2">
+                    Create a new trade entry with these calculated values
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </>
