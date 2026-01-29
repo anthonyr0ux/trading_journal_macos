@@ -408,6 +408,7 @@
     "confirm": "Confirm",
     "save": "Save",
     "delete": "Delete",
+    "collapse": "Collapse",
     "clear": "Clear",
     "loading": "Loading...",
     "error": "An error occurred",

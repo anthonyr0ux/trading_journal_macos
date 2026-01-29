@@ -1,12 +1,22 @@
+import { useState, useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Calculator, BookOpen, Upload, Settings, HelpCircle } from 'lucide-react';
+import { LayoutDashboard, Calculator, BookOpen, Upload, Settings, HelpCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import nemesisLogo from '../assets/nemesis-logo.jpg';
+import { Button } from '../components/ui/button';
 
 export default function Layout() {
   const location = useLocation();
   const { t, i18n } = useTranslation();
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    const saved = localStorage.getItem('sidebar-collapsed');
+    return saved ? JSON.parse(saved) : false;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('sidebar-collapsed', JSON.stringify(isCollapsed));
+  }, [isCollapsed]);
 
   const navigation = [
     { name: t('nav.dashboard'), path: '/dashboard', icon: LayoutDashboard },
@@ -20,23 +30,39 @@ export default function Layout() {
   return (
     <div className="flex h-screen bg-background">
       {/* Sidebar */}
-      <aside className="w-64 bg-card border-r border-border flex flex-col">
-        <div className="p-6">
-          <div className="flex items-center gap-3 mb-2">
-            <img
-              src={nemesisLogo}
-              alt="Nemesis Logo"
-              className="w-12 h-12 object-contain"
-            />
-            <h1 className="text-2xl font-bold text-foreground leading-tight">
-              Nemesis
-            </h1>
-          </div>
-          <p className="text-sm text-muted-foreground">
-            {i18n.language === 'fr' ? 'Journal de Trading' : 'Trading Journal'}
-          </p>
+      <aside className={`bg-card border-r border-border flex flex-col transition-all duration-300 ${
+        isCollapsed ? 'w-20' : 'w-64'
+      }`}>
+        {/* Header */}
+        <div className={`p-6 ${isCollapsed ? 'p-4' : ''}`}>
+          {!isCollapsed ? (
+            <>
+              <div className="flex items-center gap-3 mb-2">
+                <img
+                  src={nemesisLogo}
+                  alt="Nemesis Logo"
+                  className="w-12 h-12 object-contain"
+                />
+                <h1 className="text-2xl font-bold text-foreground leading-tight">
+                  Nemesis
+                </h1>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                {i18n.language === 'fr' ? 'Journal de Trading' : 'Trading Journal'}
+              </p>
+            </>
+          ) : (
+            <div className="flex justify-center">
+              <img
+                src={nemesisLogo}
+                alt="Nemesis Logo"
+                className="w-10 h-10 object-contain"
+              />
+            </div>
+          )}
         </div>
 
+        {/* Navigation */}
         <nav className="flex-1 px-3 space-y-1">
           {navigation.map((item) => {
             const Icon = item.icon;
@@ -49,14 +75,34 @@ export default function Layout() {
                   isActive
                     ? 'bg-primary text-primary-foreground'
                     : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-                }`}
+                } ${isCollapsed ? 'justify-center' : ''}`}
+                title={isCollapsed ? item.name : undefined}
               >
-                <Icon className="h-5 w-5" />
-                <span>{item.name}</span>
+                <Icon className="h-5 w-5 flex-shrink-0" />
+                {!isCollapsed && <span>{item.name}</span>}
               </Link>
             );
           })}
         </nav>
+
+        {/* Toggle Button */}
+        <div className={`p-3 border-t border-border ${isCollapsed ? 'flex justify-center' : ''}`}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className={`w-full ${isCollapsed ? 'w-auto' : ''}`}
+          >
+            {isCollapsed ? (
+              <ChevronRight className="h-5 w-5" />
+            ) : (
+              <>
+                <ChevronLeft className="h-5 w-5 mr-2" />
+                <span>{t('common.collapse') || 'Collapse'}</span>
+              </>
+            )}
+          </Button>
+        </div>
       </aside>
 
       {/* Main Content */}
