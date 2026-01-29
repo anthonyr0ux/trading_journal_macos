@@ -341,10 +341,39 @@ export default function TradeNew() {
                       type="number"
                       value={leverage}
                       onChange={(e) => setLeverage(Number(e.target.value))}
-                      className="text-sm"
+                      className={`text-sm ${planMetrics && leverage > planMetrics.maxLeverage ? 'border-destructive' : ''}`}
                     />
+                    {planMetrics && (
+                      <div className="text-xs space-y-1">
+                        <div className="text-muted-foreground">
+                          Max safe: {planMetrics.maxLeverage}x
+                        </div>
+                        {leverage > planMetrics.maxLeverage && (
+                          <div className="text-destructive font-medium flex items-center gap-1">
+                            <AlertCircle className="h-3 w-3" />
+                            Leverage exceeds safe limit!
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
+
+                {/* Validation Warnings */}
+                {planValidation.errors.length > 0 && (
+                  <div className="mt-3 p-3 bg-destructive/10 border border-destructive/20 rounded-md">
+                    <div className="flex items-start gap-2">
+                      <AlertCircle className="h-4 w-4 text-destructive mt-0.5" />
+                      <div className="flex-1 space-y-1">
+                        {planValidation.errors.map((error, idx) => (
+                          <div key={idx} className="text-sm text-destructive">
+                            {error}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Planned Take Profits */}
