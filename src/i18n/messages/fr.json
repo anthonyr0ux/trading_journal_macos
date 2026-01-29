@@ -173,8 +173,21 @@
     "setLeverage": "Définissez votre Levier",
     "helpStrategyTitle": "Paramètres de Stratégie",
     "helpStrategyContent": "Configurez vos paramètres de gestion du risque",
+    "helpStrategyIntro": "Configurez vos paramètres de gestion du risque :",
+    "helpStrategyPortfolio": "Portfolio : Votre capital de trading total",
+    "helpStrategyRPercent": "R% : Pourcentage du portfolio à risquer par trade (typiquement 1-2%)",
+    "helpStrategyMinRR": "Min RR : Ratio Risque:Récompense minimum requis (ex: 2.0 signifie que l'objectif de profit est 2x votre risque)",
+    "helpStrategyFormula": "Formule : 1R = Portfolio × R%",
     "helpTradeSetupTitle": "Configuration du Trade",
-    "helpLeverageTitle": "Explication du Levier"
+    "helpTradeSetupIntro": "Définissez vos points d'entrée et de sortie :",
+    "helpTradeSetupEntry": "Entrée (PE) : Prix d'entrée planifié",
+    "helpTradeSetupStopLoss": "Stop Loss (SL) : Prix auquel vous sortez si vous avez tort",
+    "helpTradeSetupTakeProfit": "Take Profit (TP) : Prix cible pour le profit",
+    "helpLeverageTitle": "Explication du Levier",
+    "helpLeverageIntro": "Le levier multiplie la taille de votre position :",
+    "helpLeverageHigher": "Levier plus élevé = Position plus grande avec la même marge",
+    "helpLeverageMax": "Levier max sécurisé = Calculé selon la distance du SL",
+    "helpLeverageRisk": "Utiliser plus que le levier max risque la liquidation avant le SL"
   },
   "settings": {
     "title": "Paramètres",

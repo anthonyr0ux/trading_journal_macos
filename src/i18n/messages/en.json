@@ -173,8 +173,21 @@
     "setLeverage": "Set your Leverage",
     "helpStrategyTitle": "Strategy Settings",
     "helpStrategyContent": "Configure your risk management parameters",
+    "helpStrategyIntro": "Configure your risk management parameters:",
+    "helpStrategyPortfolio": "Portfolio: Your total trading capital",
+    "helpStrategyRPercent": "R%: Percentage of portfolio to risk per trade (typically 1-2%)",
+    "helpStrategyMinRR": "Min RR: Minimum Risk:Reward ratio required (e.g., 2.0 means profit target is 2x your risk)",
+    "helpStrategyFormula": "Formula: 1R = Portfolio × R%",
     "helpTradeSetupTitle": "Trade Setup",
-    "helpLeverageTitle": "Leverage Explained"
+    "helpTradeSetupIntro": "Define your trade entry and exit points:",
+    "helpTradeSetupEntry": "Entry (PE): Planned Entry price",
+    "helpTradeSetupStopLoss": "Stop Loss (SL): Price where you exit if wrong",
+    "helpTradeSetupTakeProfit": "Take Profit (TP): Price target for profit",
+    "helpLeverageTitle": "Leverage Explained",
+    "helpLeverageIntro": "Leverage multiplies your position size:",
+    "helpLeverageHigher": "Higher leverage = Larger position with same margin",
+    "helpLeverageMax": "Max safe leverage = Calculated based on SL distance",
+    "helpLeverageRisk": "Using more than max leverage risks liquidation before SL"
   },
   "settings": {
     "title": "Settings",

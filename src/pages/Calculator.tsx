@@ -186,16 +186,16 @@ export default function Calculator() {
                 {t('calculator.strategySettings') || 'Strategy Settings'}
               </CardTitle>
               <HelpTooltip
-                title="Strategy Settings"
+                title={t('calculator.helpStrategyTitle')}
                 content={
                   <div>
-                    <p className="mb-2">Configure your risk management parameters:</p>
+                    <p className="mb-2">{t('calculator.helpStrategyIntro')}</p>
                     <ul className="list-disc list-inside space-y-1">
-                      <li><strong>Portfolio:</strong> Your total trading capital</li>
-                      <li><strong>R%:</strong> Percentage of portfolio to risk per trade (typically 1-2%)</li>
-                      <li><strong>Min RR:</strong> Minimum Risk:Reward ratio required (e.g., 2.0 means profit target is 2x your risk)</li>
+                      <li>{t('calculator.helpStrategyPortfolio')}</li>
+                      <li>{t('calculator.helpStrategyRPercent')}</li>
+                      <li>{t('calculator.helpStrategyMinRR')}</li>
                     </ul>
-                    <p className="mt-2"><strong>Formula:</strong> 1R = Portfolio × R%</p>
+                    <p className="mt-2"><strong>{t('calculator.helpStrategyFormula')}</strong></p>
                   </div>
                 }
               />
@@ -268,11 +268,11 @@ export default function Calculator() {
               title={t('calculator.helpTradeSetupTitle')}
               content={
                 <div>
-                  <p className="mb-2">Define your trade entry and exit points:</p>
+                  <p className="mb-2">{t('calculator.helpTradeSetupIntro')}</p>
                   <ul className="list-disc list-inside space-y-1">
-                    <li><strong>Entry (PE):</strong> Planned Entry price</li>
-                    <li><strong>Stop Loss (SL):</strong> Price where you exit if wrong</li>
-                    <li><strong>Take Profit (TP):</strong> Price target for profit</li>
+                    <li>{t('calculator.helpTradeSetupEntry')}</li>
+                    <li>{t('calculator.helpTradeSetupStopLoss')}</li>
+                    <li>{t('calculator.helpTradeSetupTakeProfit')}</li>
                   </ul>
                   <div className="mt-3 p-2 bg-muted/50 rounded text-xs font-mono">
                     <div>SL Distance = |PE - SL| / PE</div>
@@ -357,13 +357,13 @@ export default function Calculator() {
               content={
                 <div>
                   <p className="mb-3 text-primary font-semibold italic">
-                    {t('calculator.leverageNotRisk') || 'Leverage is not a risk multiplier but a capital management tool'}
+                    {t('calculator.leverageNotRisk')}
                   </p>
-                  <p className="mb-2">Leverage multiplies your position size:</p>
+                  <p className="mb-2">{t('calculator.helpLeverageIntro')}</p>
                   <ul className="list-disc list-inside space-y-1">
-                    <li><strong>Higher leverage</strong> = Larger position with same margin</li>
-                    <li><strong>Max safe leverage</strong> = Calculated based on SL distance</li>
-                    <li>Using more than max leverage risks liquidation before SL</li>
+                    <li>{t('calculator.helpLeverageHigher')}</li>
+                    <li>{t('calculator.helpLeverageMax')}</li>
+                    <li>{t('calculator.helpLeverageRisk')}</li>
                   </ul>
                   <div className="mt-3 p-2 bg-muted/50 rounded text-xs font-mono space-y-1">
                     <div>Margin = Position Size / Leverage</div>
