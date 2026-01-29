@@ -29,7 +29,7 @@ export default function TradeDetail() {
   const [effectivePe, setEffectivePe] = useState(0);
   const [exits, setExits] = useState<Exit[]>([]);
   const [closeDate, setCloseDate] = useState('');
-  const [executionNotes, setExecutionNotes] = useState('');
+  const [notes, setNotes] = useState('');
 
   useEffect(() => {
     if (id) {
@@ -66,7 +66,7 @@ export default function TradeDetail() {
         setCloseDate(new Date(data.close_date * 1000).toISOString().split('T')[0]);
       }
 
-      setExecutionNotes(data.notes || '');
+      setNotes(data.notes || '');
     } catch (error) {
       console.error('Failed to load trade:', error);
       alert('Failed to load trade');
@@ -141,7 +141,7 @@ export default function TradeDetail() {
         total_pnl: totalPnl,
         effective_rr: effectiveRR,
         status: newStatus,
-        notes: executionNotes,
+        notes: notes,
       });
 
       alert('Trade updated successfully');
@@ -580,19 +580,6 @@ export default function TradeDetail() {
                   </div>
                 </div>
               )}
-
-              {/* Execution Notes */}
-              <div className="space-y-2">
-                <Label htmlFor="executionNotes" className="text-sm font-semibold">Execution Notes</Label>
-                <Textarea
-                  id="executionNotes"
-                  value={executionNotes}
-                  onChange={(e) => setExecutionNotes(e.target.value)}
-                  placeholder="How did the trade play out? What did you learn?"
-                  rows={4}
-                  className="resize-none"
-                />
-              </div>
             </CardContent>
           </Card>
 
@@ -648,6 +635,23 @@ export default function TradeDetail() {
           )}
         </div>
       </div>
+
+      {/* Trade Notes */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Trade Notes</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Textarea
+            id="notes"
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Why this trade? What's the setup? Entry conditions? How did it play out? What did you learn?"
+            rows={6}
+            className="resize-none"
+          />
+        </CardContent>
+      </Card>
 
       {/* Save Actions */}
       <Card>

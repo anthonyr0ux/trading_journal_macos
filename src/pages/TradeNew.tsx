@@ -39,7 +39,6 @@ export default function TradeNew() {
     { price: 0, percent: 0 },
     { price: 0, percent: 0 },
   ]);
-  const [planNotes, setPlanNotes] = useState('');
 
   // Form state - EXECUTION SECTION
   const [effectivePe, setEffectivePe] = useState(0);
@@ -50,7 +49,9 @@ export default function TradeNew() {
     { price: 0, percent: 0 },
     { price: 0, percent: 0 },
   ]);
-  const [executionNotes, setExecutionNotes] = useState('');
+
+  // Unified notes
+  const [notes, setNotes] = useState('');
 
   useEffect(() => {
     loadSettings();
@@ -146,7 +147,6 @@ export default function TradeNew() {
       const validExits = exits.filter(e => e.price > 0);
       const exitsJson = validExits.length > 0 ? JSON.stringify(validExits) : null;
 
-      const notes = planNotes + (executionNotes ? '\n\n--- Execution Notes ---\n' + executionNotes : '');
 
       await api.createTrade({
         pair: pair.toUpperCase(),
@@ -421,19 +421,6 @@ export default function TradeNew() {
                 ))}
               </div>
 
-              {/* Planning Notes */}
-              <div className="space-y-2 pt-3 border-t">
-                <Label htmlFor="planNotes" className="text-sm font-semibold">Planning Notes</Label>
-                <Textarea
-                  id="planNotes"
-                  value={planNotes}
-                  onChange={(e) => setPlanNotes(e.target.value)}
-                  placeholder="Why this trade? What's the setup? Entry conditions..."
-                  rows={4}
-                  className="resize-none"
-                />
-              </div>
-
               {/* Validation Errors */}
               {planValidation.errors.length > 0 && (
                 <div className="flex items-start gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/20">
@@ -588,23 +575,27 @@ export default function TradeNew() {
                   </div>
                 ))}
               </div>
-
-              {/* Execution Notes */}
-              <div className="space-y-2">
-                <Label htmlFor="executionNotes" className="text-sm font-semibold">Execution Notes</Label>
-                <Textarea
-                  id="executionNotes"
-                  value={executionNotes}
-                  onChange={(e) => setExecutionNotes(e.target.value)}
-                  placeholder="How did the trade play out? What did you learn?"
-                  rows={4}
-                  className="resize-none"
-                />
-              </div>
             </CardContent>
           </Card>
         </div>
       </div>
+
+      {/* Trade Notes */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Trade Notes</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Textarea
+            id="notes"
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Why this trade? What's the setup? Entry conditions? How did it play out? What did you learn?"
+            rows={6}
+            className="resize-none"
+          />
+        </CardContent>
+      </Card>
 
       {/* Save Button */}
       <Card>
