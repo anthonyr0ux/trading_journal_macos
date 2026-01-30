@@ -172,11 +172,11 @@ pub async fn import_bitget_csv(
                         "INSERT INTO trades (
                             id, pair, exchange, analysis_date, trade_date, close_date, status,
                             portfolio_value, r_percent, min_rr,
-                            planned_pe, planned_sl, leverage, planned_tps,
+                            planned_pe, planned_sl, leverage, planned_tps, planned_entries,
                             position_type, one_r, margin, position_size, quantity,
-                            planned_weighted_rr, effective_pe, exits, total_pnl,
+                            planned_weighted_rr, effective_pe, effective_entries, exits, total_pnl,
                             notes, import_fingerprint, created_at, updated_at
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                         rusqlite::params![
                             id,
                             trade_data.pair,
@@ -192,6 +192,7 @@ pub async fn import_bitget_csv(
                             estimated_sl,
                             leverage,
                             planned_tps,
+                            serde_json::to_string(&vec![serde_json::json!({"price": trade_data.entry_price, "percent": 100})]).ok(),
                             trade_data.position_type,
                             one_r,
                             margin,
@@ -199,6 +200,7 @@ pub async fn import_bitget_csv(
                             trade_data.quantity,
                             0.0, // No planned RR for imports
                             trade_data.entry_price,
+                            serde_json::to_string(&vec![serde_json::json!({"price": trade_data.entry_price, "percent": 100})]).ok(),
                             exits,
                             trade_data.realized_pnl,
                             notes,
@@ -358,7 +360,7 @@ pub async fn export_all_data(db: State<'_, Database>) -> Result<String, String> 
     // Get all trades
     let mut stmt = conn
         .prepare(
-            "SELECT id, pair, exchange, analysis_date, trade_date, close_date, status, portfolio_value, r_percent, min_rr, planned_pe, planned_sl, leverage, planned_tps, position_type, one_r, margin, position_size, quantity, planned_weighted_rr, effective_pe, exits, effective_weighted_rr, total_pnl, pnl_in_r, notes, import_fingerprint, created_at, updated_at FROM trades ORDER BY trade_date DESC",
+            "SELECT id, pair, exchange, analysis_date, trade_date, close_date, status, portfolio_value, r_percent, min_rr, planned_pe, planned_sl, leverage, planned_tps, planned_entries, position_type, one_r, margin, position_size, quantity, planned_weighted_rr, effective_pe, effective_entries, exits, effective_weighted_rr, total_pnl, pnl_in_r, notes, import_fingerprint, created_at, updated_at FROM trades ORDER BY trade_date DESC",
         )
         .map_err(|e| e.to_string())?;
 
@@ -379,21 +381,23 @@ pub async fn export_all_data(db: State<'_, Database>) -> Result<String, String> 
                 planned_sl: row.get(11)?,
                 leverage: row.get(12)?,
                 planned_tps: row.get(13)?,
-                position_type: row.get(14)?,
-                one_r: row.get(15)?,
-                margin: row.get(16)?,
-                position_size: row.get(17)?,
-                quantity: row.get(18)?,
-                planned_weighted_rr: row.get(19)?,
-                effective_pe: row.get(20).ok(),
-                exits: row.get(21).ok(),
-                effective_weighted_rr: row.get(22).ok(),
-                total_pnl: row.get(23).ok(),
-                pnl_in_r: row.get(24).ok(),
-                notes: row.get(25)?,
-                import_fingerprint: row.get(26).ok(),
-                created_at: row.get(27)?,
-                updated_at: row.get(28)?,
+                planned_entries: row.get(14).ok(),
+                position_type: row.get(15)?,
+                one_r: row.get(16)?,
+                margin: row.get(17)?,
+                position_size: row.get(18)?,
+                quantity: row.get(19)?,
+                planned_weighted_rr: row.get(20)?,
+                effective_pe: row.get(21).ok(),
+                effective_entries: row.get(22).ok(),
+                exits: row.get(23).ok(),
+                effective_weighted_rr: row.get(24).ok(),
+                total_pnl: row.get(25).ok(),
+                pnl_in_r: row.get(26).ok(),
+                notes: row.get(27)?,
+                import_fingerprint: row.get(28).ok(),
+                created_at: row.get(29)?,
+                updated_at: row.get(30)?,
             })
         })
         .map_err(|e| e.to_string())?
@@ -452,7 +456,7 @@ pub async fn import_all_data(
         }
 
         conn.execute(
-            "INSERT INTO trades (id, pair, exchange, analysis_date, trade_date, close_date, status, portfolio_value, r_percent, min_rr, planned_pe, planned_sl, leverage, planned_tps, position_type, one_r, margin, position_size, quantity, planned_weighted_rr, effective_pe, exits, effective_weighted_rr, total_pnl, pnl_in_r, notes, import_fingerprint, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO trades (id, pair, exchange, analysis_date, trade_date, close_date, status, portfolio_value, r_percent, min_rr, planned_pe, planned_sl, leverage, planned_tps, planned_entries, position_type, one_r, margin, position_size, quantity, planned_weighted_rr, effective_pe, effective_entries, exits, effective_weighted_rr, total_pnl, pnl_in_r, notes, import_fingerprint, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             rusqlite::params![
                 trade.id,
                 trade.pair,
@@ -468,6 +472,7 @@ pub async fn import_all_data(
                 trade.planned_sl,
                 trade.leverage,
                 trade.planned_tps,
+                trade.planned_entries,
                 trade.position_type,
                 trade.one_r,
                 trade.margin,
@@ -475,6 +480,7 @@ pub async fn import_all_data(
                 trade.quantity,
                 trade.planned_weighted_rr,
                 trade.effective_pe,
+                trade.effective_entries,
                 trade.exits,
                 trade.effective_weighted_rr,
                 trade.total_pnl,

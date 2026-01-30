@@ -11,7 +11,7 @@ use crate::api::{
 };
 
 use super::{
-    mapper::{generate_fingerprint, map_fill_to_raw_trade},
+    mapper::map_fill_to_raw_trade,
     types::{BitgetResponse, FillHistoryData, FillHistoryRequest},
 };
 

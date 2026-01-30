@@ -7,7 +7,7 @@ use crate::models::{
 use crate::api::{
     bitget::BitgetClient,
     blofin::BlofinClient,
-    client::{ExchangeClient, FetchTradesRequest},
+    client::ExchangeClient,
     credentials::{store_api_key, store_api_secret, store_passphrase, retrieve_api_key, retrieve_api_secret, retrieve_passphrase, delete_credentials},
 };
 use chrono::Utc;
@@ -530,6 +530,7 @@ fn map_raw_trade_to_trade(
         planned_sl: estimated_sl,
         leverage,
         planned_tps,
+        planned_entries: Some(serde_json::to_string(&vec![serde_json::json!({"price": entry_price, "percent": 100})]).unwrap_or_default()),
         position_type,
         one_r,
         margin,
@@ -537,6 +538,7 @@ fn map_raw_trade_to_trade(
         quantity,
         planned_weighted_rr,
         effective_pe: Some(entry_price),
+        effective_entries: Some(serde_json::to_string(&vec![serde_json::json!({"price": entry_price, "percent": 100})]).unwrap_or_default()),
         close_date: raw.close_timestamp.map(|ts| ts / 1000),
         exits,
         effective_weighted_rr: Some(planned_weighted_rr),
@@ -550,22 +552,23 @@ fn map_raw_trade_to_trade(
 }
 
 /// Insert trade into database
+#[allow(dead_code)]
 fn insert_trade(conn: &rusqlite::Connection, trade: &Trade) -> Result<(), rusqlite::Error> {
     conn.execute(
         "INSERT INTO trades (
             id, pair, exchange, analysis_date, trade_date, status,
             portfolio_value, r_percent, min_rr,
-            planned_pe, planned_sl, leverage, planned_tps,
+            planned_pe, planned_sl, leverage, planned_tps, planned_entries,
             position_type, one_r, margin, position_size, quantity, planned_weighted_rr,
-            effective_pe, close_date, exits,
+            effective_pe, effective_entries, close_date, exits,
             effective_weighted_rr, total_pnl, pnl_in_r,
             notes, import_fingerprint, created_at, updated_at
         ) VALUES (
             ?, ?, ?, ?, ?, ?,
             ?, ?, ?,
-            ?, ?, ?, ?,
+            ?, ?, ?, ?, ?,
             ?, ?, ?, ?, ?, ?,
-            ?, ?, ?,
+            ?, ?, ?, ?,
             ?, ?, ?,
             ?, ?, ?, ?
         )",
@@ -583,6 +586,7 @@ fn insert_trade(conn: &rusqlite::Connection, trade: &Trade) -> Result<(), rusqli
             trade.planned_sl,
             trade.leverage,
             trade.planned_tps,
+            trade.planned_entries,
             trade.position_type,
             trade.one_r,
             trade.margin,
@@ -590,6 +594,7 @@ fn insert_trade(conn: &rusqlite::Connection, trade: &Trade) -> Result<(), rusqli
             trade.quantity,
             trade.planned_weighted_rr,
             trade.effective_pe,
+            trade.effective_entries,
             trade.close_date,
             trade.exits,
             trade.effective_weighted_rr,

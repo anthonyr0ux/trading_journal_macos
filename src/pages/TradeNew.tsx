@@ -10,9 +10,10 @@ import { Textarea } from '../components/ui/textarea';
 import { Badge } from '../components/ui/badge';
 import { api } from '../lib/api';
 import { calculateTradeMetrics } from '../lib/calculations';
-import { formatCurrency, formatRR } from '../lib/utils';
-import { ArrowLeft, AlertCircle, Calendar, TrendingUp, Copy } from 'lucide-react';
+import { formatCurrency, formatRR, cn } from '../lib/utils';
+import { ArrowLeft, AlertCircle, Calendar, TrendingUp, Copy, Plus, X } from 'lucide-react';
 import { HelpBadge } from '../components/HelpBadge';
+import { calculateWeightedEntry } from '../lib/calculations';
 
 export default function TradeNew() {
   const navigate = useNavigate();
@@ -41,6 +42,11 @@ export default function TradeNew() {
     { price: 0, percent: 0 },
   ]);
 
+  // Multi-PE state
+  const [plannedEntries, setPlannedEntries] = useState([
+    { price: calculatorData?.pe || 0, percent: 100 }
+  ]);
+
   // Form state - EXECUTION SECTION
   const [effectivePe, setEffectivePe] = useState(0);
   const [closeDate, setCloseDate] = useState('');
@@ -51,8 +57,45 @@ export default function TradeNew() {
     { price: 0, percent: 0 },
   ]);
 
+  const [effectiveEntries, setEffectiveEntries] = useState([
+    { price: 0, percent: 0 }
+  ]);
+
   // Unified notes
   const [notes, setNotes] = useState('');
+
+  // Helper functions for managing entries
+  const addPlannedEntry = () => {
+    setPlannedEntries([...plannedEntries, { price: 0, percent: 0 }]);
+  };
+
+  const removePlannedEntry = (index: number) => {
+    if (plannedEntries.length > 1) {
+      setPlannedEntries(plannedEntries.filter((_, i) => i !== index));
+    }
+  };
+
+  const updatePlannedEntry = (index: number, field: 'price' | 'percent', value: number) => {
+    const newEntries = [...plannedEntries];
+    newEntries[index][field] = value;
+    setPlannedEntries(newEntries);
+  };
+
+  const addEffectiveEntry = () => {
+    setEffectiveEntries([...effectiveEntries, { price: 0, percent: 0 }]);
+  };
+
+  const removeEffectiveEntry = (index: number) => {
+    if (effectiveEntries.length > 1) {
+      setEffectiveEntries(effectiveEntries.filter((_, i) => i !== index));
+    }
+  };
+
+  const updateEffectiveEntry = (index: number, field: 'price' | 'percent', value: number) => {
+    const newEntries = [...effectiveEntries];
+    newEntries[index][field] = value;
+    setEffectiveEntries(newEntries);
+  };
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -60,7 +103,7 @@ export default function TradeNew() {
         const data = await api.getSettings();
         if (!calculatorData) {
           setPortfolio(data.initial_capital);
-          setRPercent(data.current_r_percent);
+          setRPercent(data.current_r_percent * 100); // Convert from decimal to percentage
           setMinRR(data.default_min_rr);
           setLeverage(data.default_leverage);
         }
@@ -72,31 +115,59 @@ export default function TradeNew() {
     loadSettings();
   }, [calculatorData]);
 
+  // Sync plannedPe with weighted entry price for backward compatibility
+  useEffect(() => {
+    const validEntries = plannedEntries.filter(e => e.price > 0);
+    if (validEntries.length > 0) {
+      const weighted = calculateWeightedEntry(validEntries);
+      setPlannedPe(weighted);
+    }
+  }, [plannedEntries]);
+
   // Calculate metrics for plan
   let planMetrics = null;
   let planValidation = { valid: false, errors: [] as string[] };
 
   try {
-    if (plannedPe && plannedSl && plannedTps.some(tp => tp.price > 0)) {
+    // Validate planned entries
+    const validEntries = plannedEntries.filter(e => e.price > 0);
+    const totalEntryPercent = validEntries.reduce((sum, e) => sum + e.percent, 0);
+
+    if ((validEntries.length > 0 || plannedPe) && plannedSl && plannedTps.some(tp => tp.price > 0)) {
       const validTps = plannedTps.filter(tp => tp.price > 0);
       const totalPercent = validTps.reduce((sum, tp) => sum + tp.percent, 0);
 
       planValidation.errors = [];
 
+      // Validate entries
+      if (validEntries.length === 0 && !plannedPe) {
+        planValidation.errors.push('At least one entry is required');
+      }
+
+      if (validEntries.length > 0 && Math.abs(totalEntryPercent - 100) > 0.1) {
+        planValidation.errors.push(`Entry allocation (${totalEntryPercent.toFixed(1)}%) must equal 100%`);
+      }
+
+      // Validate TPs
       if (Math.abs(totalPercent - 100) > 0.1) {
         planValidation.errors.push(`TP allocation (${totalPercent.toFixed(1)}%) must equal 100%`);
       }
 
-      if (Math.abs(totalPercent - 100) <= 0.1) {
+      if (Math.abs(totalPercent - 100) <= 0.1 && (validEntries.length === 0 || Math.abs(totalEntryPercent - 100) <= 0.1)) {
         const normalizedTps = validTps.map(tp => ({
           price: tp.price,
           percent: tp.percent / totalPercent
         }));
 
+        // Use entries if available, otherwise fall back to single PE
+        const entriesForCalc = validEntries.length > 0 ? validEntries : undefined;
+        const peForCalc = validEntries.length === 0 ? plannedPe : undefined;
+
         planMetrics = calculateTradeMetrics({
           portfolio,
           rPercent: rPercent / 100,
-          pe: plannedPe,
+          entries: entriesForCalc,
+          pe: peForCalc,
           sl: plannedSl,
           tps: normalizedTps,
           leverage,
@@ -118,6 +189,14 @@ export default function TradeNew() {
 
   const handleCopyPlanToExecution = () => {
     setEffectivePe(plannedPe);
+
+    // Copy entries
+    const copiedEntries = plannedEntries.map(e => ({
+      price: e.price,
+      percent: e.percent
+    }));
+    setEffectiveEntries(copiedEntries);
+
     // Copy TPs to exits with same structure
     const copiedExits = plannedTps.map(tp => ({
       price: tp.price,
@@ -143,6 +222,20 @@ export default function TradeNew() {
         rr: tp.rr,
       })));
 
+      // Prepare planned entries
+      const validEntries = plannedEntries.filter(e => e.price > 0);
+      const plannedEntriesJson = validEntries.length > 0
+        ? JSON.stringify(validEntries.map(e => ({
+            price: e.price,
+            percent: e.percent
+          })))
+        : undefined;
+
+      // Calculate weighted PE for backward compatibility
+      const weightedPE = validEntries.length > 0
+        ? calculateWeightedEntry(validEntries)
+        : plannedPe;
+
       await api.createTrade({
         pair: pair.toUpperCase(),
         exchange,
@@ -152,10 +245,11 @@ export default function TradeNew() {
         portfolio_value: portfolio,
         r_percent: rPercent / 100,
         min_rr: minRR,
-        planned_pe: plannedPe,
+        planned_pe: weightedPE,
         planned_sl: plannedSl,
         leverage,
         planned_tps: plannedTpsJson,
+        planned_entries: plannedEntriesJson,
         position_type: planMetrics.type,
         one_r: planMetrics.oneR,
         margin: planMetrics.margin,
@@ -303,20 +397,114 @@ export default function TradeNew() {
               {/* Planned Setup */}
               <div className="space-y-3 pt-3 border-t">
                 <div className="text-sm font-semibold">{t('tradeNew.plannedSetup')}</div>
-                <div className="grid gap-3 grid-cols-3">
-                  <div className="space-y-2">
-                    <Label htmlFor="plannedPe" className="text-xs">{t('tradeNew.entryRequired')}</Label>
-                    <Input
-                      id="plannedPe"
-                      type="number"
-                      step="0.00000001"
-                      value={plannedPe || ''}
-                      onChange={(e) => setPlannedPe(Number(e.target.value))}
-                      className="font-mono text-sm"
-                      placeholder={t('tradeNew.pricePlaceholder')}
-                      required
-                    />
+
+                {/* Multi-PE Section */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-semibold">
+                      {t('tradeNew.plannedEntries')}
+                    </Label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={addPlannedEntry}
+                    >
+                      <Plus className="h-4 w-4 mr-1" />
+                      {t('tradeNew.addEntry')}
+                    </Button>
                   </div>
+
+                  {plannedEntries.map((entry, index) => (
+                    <div key={index} className="p-3 border rounded-lg bg-muted/30 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Badge variant="outline">Entry {index + 1}</Badge>
+                        {plannedEntries.length > 1 && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removePlannedEntry(index)}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+
+                      <div className="grid gap-3 grid-cols-2">
+                        <div>
+                          <Label htmlFor={`entry${index}-price`} className="text-xs">
+                            {t('calculator.entryShort')} {index === 0 && '*'}
+                          </Label>
+                          <Input
+                            id={`entry${index}-price`}
+                            type="number"
+                            step="0.00000001"
+                            value={entry.price || ''}
+                            onChange={(e) => updatePlannedEntry(index, 'price', Number(e.target.value))}
+                            placeholder="0.00"
+                            className="font-mono text-sm"
+                            required={index === 0}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor={`entry${index}-percent`} className="text-xs">
+                            {t('tradeNew.allocationPercent')}
+                          </Label>
+                          <Input
+                            id={`entry${index}-percent`}
+                            type="number"
+                            min="0"
+                            max="100"
+                            value={entry.percent || ''}
+                            onChange={(e) => updatePlannedEntry(index, 'percent', Number(e.target.value))}
+                            disabled={!entry.price}
+                            placeholder="0"
+                            className="text-sm"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* Allocation Summary */}
+                  {(() => {
+                    const validEntries = plannedEntries.filter(e => e.price > 0);
+                    const totalPercent = validEntries.reduce((sum, e) => sum + e.percent, 0);
+                    const isValid = Math.abs(totalPercent - 100) <= 0.1;
+
+                    return validEntries.length > 0 && (
+                      <div className={cn(
+                        "p-3 rounded-lg border",
+                        isValid ? "bg-green-50 border-green-500/50" : "bg-yellow-50 border-yellow-500/50"
+                      )}>
+                        <div className="text-xs text-muted-foreground mb-1">
+                          Total Allocation: {totalPercent.toFixed(1)}%
+                        </div>
+                        {!isValid && (
+                          <p className="text-xs text-yellow-700">
+                            Must equal 100%
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })()}
+
+                  {/* Weighted Average Display */}
+                  {plannedEntries.filter(e => e.price > 0).length > 1 && (
+                    <div className="p-3 bg-blue-50 border border-blue-500/50 rounded-lg">
+                      <div className="text-xs text-muted-foreground mb-1">
+                        {t('tradeNew.weightedAverageEntry')}
+                      </div>
+                      <div className="text-lg font-bold font-mono text-gray-900">
+                        ${calculateWeightedEntry(plannedEntries).toFixed(8)}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Stop Loss & Leverage */}
+                <div className="grid gap-3 grid-cols-2 pt-3">
                   <div className="space-y-2">
                     <Label htmlFor="plannedSl" className="text-xs">{t('tradeNew.stopLossRequired')}</Label>
                     <Input
@@ -486,34 +674,146 @@ export default function TradeNew() {
                 </div>
               </div>
 
-              {/* Actual Entry & Close Date */}
-              <div className="grid gap-3 grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="effectivePe" className="text-xs font-semibold">{t('tradeNew.actualEntry')}</Label>
-                  <Input
-                    id="effectivePe"
-                    type="number"
-                    step="0.00000001"
-                    value={effectivePe || ''}
-                    onChange={(e) => setEffectivePe(Number(e.target.value))}
-                    className="font-mono"
-                    placeholder={t('tradeNew.leaveEmptyNotExecuted')}
-                  />
-                  {plannedPe > 0 && (
-                    <p className="text-xs text-muted-foreground">
-                      {t('tradeNew.plannedSetup')}: ${plannedPe.toFixed(8)}
-                    </p>
-                  )}
+              {/* Effective Entries (Multi-PE) */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-semibold">
+                    {t('tradeNew.actualEntries')}
+                  </Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={addEffectiveEntry}
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    {t('tradeNew.addEntry')}
+                  </Button>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="closeDate" className="text-xs font-semibold">{t('tradeDetail.closeDate')}</Label>
-                  <Input
-                    id="closeDate"
-                    type="date"
-                    value={closeDate}
-                    onChange={(e) => setCloseDate(e.target.value)}
-                  />
-                  <p className="text-xs text-muted-foreground">{t('tradeDetail.closeDateOptional')}</p>
+
+                <p className="text-xs text-muted-foreground">
+                  {t('tradeNew.actualEntriesHelp')}
+                </p>
+
+                {effectiveEntries.map((entry, index) => (
+                  <div key={index} className="p-3 border rounded-lg bg-muted/30 space-y-2">
+                    {/* Show planned entry as reference */}
+                    {plannedEntries[index]?.price > 0 && (
+                      <div className="text-xs text-muted-foreground">
+                        Planned: {plannedEntries[index].percent}% @ ${plannedEntries[index].price.toFixed(8)}
+                      </div>
+                    )}
+
+                    <div className="flex items-center justify-between">
+                      <Badge variant="outline">Entry {index + 1}</Badge>
+                      {effectiveEntries.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeEffectiveEntry(index)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+
+                    <div className="grid gap-3 grid-cols-2">
+                      <div>
+                        <Label htmlFor={`effective-entry${index}-price`} className="text-xs">
+                          Actual Price
+                        </Label>
+                        <Input
+                          id={`effective-entry${index}-price`}
+                          type="number"
+                          step="0.00000001"
+                          value={entry.price || ''}
+                          onChange={(e) => updateEffectiveEntry(index, 'price', Number(e.target.value))}
+                          placeholder="0.00"
+                          className="font-mono text-sm"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor={`effective-entry${index}-percent`} className="text-xs">
+                          Filled %
+                        </Label>
+                        <Input
+                          id={`effective-entry${index}-percent`}
+                          type="number"
+                          min="0"
+                          max="100"
+                          value={entry.percent || ''}
+                          onChange={(e) => updateEffectiveEntry(index, 'percent', Number(e.target.value))}
+                          disabled={!entry.price}
+                          placeholder="0"
+                          className="text-sm"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                {/* Total filled percentage indicator */}
+                {(() => {
+                  const totalFilled = effectiveEntries
+                    .filter(e => e.price > 0)
+                    .reduce((sum, e) => sum + e.percent, 0);
+
+                  return totalFilled > 0 && (
+                    <div className={cn(
+                      "p-2 rounded text-xs text-center",
+                      totalFilled === 100 ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"
+                    )}>
+                      Position Filled: {totalFilled.toFixed(1)}%
+                    </div>
+                  );
+                })()}
+
+                {/* Weighted Average Display for Effective Entries */}
+                {effectiveEntries.filter(e => e.price > 0).length > 1 && (
+                  <div className="p-3 bg-blue-50 border border-blue-500/50 rounded-lg">
+                    <div className="text-xs text-muted-foreground mb-1">
+                      Weighted Avg Effective Entry
+                    </div>
+                    <div className="text-lg font-bold font-mono text-gray-900">
+                      ${calculateWeightedEntry(effectiveEntries).toFixed(8)}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Legacy Single Entry Field (for backward compatibility) */}
+              <div className="space-y-3 pt-3 border-t">
+                <div className="grid gap-3 grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="effectivePe" className="text-xs font-semibold">
+                      {t('tradeNew.actualEntry')} (Legacy)
+                    </Label>
+                    <Input
+                      id="effectivePe"
+                      type="number"
+                      step="0.00000001"
+                      value={effectivePe || ''}
+                      onChange={(e) => setEffectivePe(Number(e.target.value))}
+                      className="font-mono"
+                      placeholder={t('tradeNew.leaveEmptyNotExecuted')}
+                    />
+                    {plannedPe > 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        {t('tradeNew.plannedSetup')}: ${plannedPe.toFixed(8)}
+                      </p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="closeDate" className="text-xs font-semibold">{t('tradeDetail.closeDate')}</Label>
+                    <Input
+                      id="closeDate"
+                      type="date"
+                      value={closeDate}
+                      onChange={(e) => setCloseDate(e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">{t('tradeDetail.closeDateOptional')}</p>
+                  </div>
                 </div>
               </div>
 

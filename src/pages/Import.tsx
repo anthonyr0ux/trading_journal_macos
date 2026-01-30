@@ -129,10 +129,10 @@ export default function Import() {
     try {
       const settings = await api.getSettings();
       setPortfolio(settings.initial_capital);
-      setRPercent(settings.current_r_percent);
+      setRPercent(settings.current_r_percent * 100); // Convert from decimal to percentage
 
       // Preview trades with loaded settings
-      await previewImport(content, settings.initial_capital, settings.current_r_percent / 100);
+      await previewImport(content, settings.initial_capital, settings.current_r_percent);
     } catch (error) {
       console.error('Failed to load settings:', error);
       // Use default values if settings fail to load

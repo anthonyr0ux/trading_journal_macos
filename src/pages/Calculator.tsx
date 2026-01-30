@@ -68,7 +68,7 @@ export default function Calculator() {
     try {
       const settings = await api.getSettings();
       setPortfolio(settings.initial_capital);
-      setRPercent(settings.current_r_percent);
+      setRPercent(settings.current_r_percent * 100); // Convert from decimal to percentage
       setMinRR(settings.default_min_rr);
       setLeverage(settings.default_leverage);
     } catch (error) {

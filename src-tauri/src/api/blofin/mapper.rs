@@ -76,6 +76,7 @@ pub fn map_trade_to_raw_trade(trade: &BlofinTrade) -> Result<RawTrade, String> {
 }
 
 /// Generate fingerprint for deduplication
+#[allow(dead_code)]
 pub fn generate_fingerprint(trade: &BlofinTrade) -> String {
     // Format: api|blofin|{trade_id}|{order_id}|{symbol}|{qty}|{pnl}|{timestamp}
     format!(

@@ -6,7 +6,8 @@ import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
 import { Input } from '../components/ui/input';
 import { Badge } from '../components/ui/badge';
-import { formatCurrency, getDateRangeTimestamp, type DateRange } from '../lib/utils';
+import { formatCurrency, formatRR, getDateRangeTimestamp, type DateRange } from '../lib/utils';
+import { calculateExecutionMetrics, calculateWeightedEntry } from '../lib/calculations';
 import { Plus, Eye, Calendar, Search } from 'lucide-react';
 import { HelpBadge } from '../components/HelpBadge';
 
@@ -193,6 +194,18 @@ export default function Journal() {
         ) : (
           <Card>
             <CardContent className="p-0">
+              {/* Table Header */}
+              <div className="flex items-center gap-4 p-3 bg-muted/50 border-b font-semibold text-xs text-muted-foreground">
+                <div className="min-w-[120px]">{t('journal.pair') || 'Pair'}</div>
+                <div className="min-w-[100px]">{t('journal.exchange') || 'Exchange'}</div>
+                <div className="min-w-[100px]">{t('journal.date') || 'Date'}</div>
+                <div className="min-w-[80px]">{t('common.status') || 'Status'}</div>
+                <div className="min-w-[80px] text-right">{t('journal.effectiveRR') || 'R:R'}</div>
+                <div className="min-w-[100px] text-right">{t('journal.pnlInR') || 'P&L (R)'}</div>
+                <div className="min-w-[120px] text-right ml-auto">{t('journal.pnl') || 'P&L'}</div>
+                <div className="w-10">{/* View button */}</div>
+              </div>
+
               <div className="divide-y">
                 {filteredTrades.map(trade => (
                   <div
@@ -227,7 +240,81 @@ export default function Journal() {
                       </Badge>
                     </div>
 
-                    {/* P&L */}
+                    {/* Effective R:R (calculated live) */}
+                    {(() => {
+                      let effectiveRR = null;
+
+                      if (trade.status !== 'OPEN' && trade.exits) {
+                        try {
+                          const exits = typeof trade.exits === 'string' ? JSON.parse(trade.exits) : trade.exits;
+                          const validExits = exits.filter((e: any) => e.price > 0);
+
+                          if (validExits.length > 0) {
+                            const totalExitPercent = validExits.reduce((sum: number, e: any) => sum + e.percent, 0);
+
+                            if (totalExitPercent > 0) {
+                              const normalizedExits = validExits.map((e: any) => ({
+                                price: e.price,
+                                percent: e.percent / 100,
+                              }));
+
+                              // Parse effective entries if available
+                              let entriesForCalc = undefined;
+                              if (trade.effective_entries) {
+                                const effectiveEntries = typeof trade.effective_entries === 'string'
+                                  ? JSON.parse(trade.effective_entries)
+                                  : trade.effective_entries;
+                                const validEntries = effectiveEntries.filter((e: any) => e.price > 0);
+                                if (validEntries.length > 0) {
+                                  entriesForCalc = validEntries;
+                                }
+                              }
+
+                              const metrics = calculateExecutionMetrics({
+                                entries: entriesForCalc,
+                                pe: entriesForCalc ? undefined : trade.effective_pe || trade.planned_pe,
+                                sl: trade.planned_sl,
+                                exits: normalizedExits,
+                                oneR: trade.one_r,
+                                positionSize: trade.position_size,
+                                type: trade.position_type,
+                              });
+
+                              effectiveRR = metrics.effectiveRR;
+                            }
+                          }
+                        } catch (error) {
+                          console.error('Failed to calculate effective RR for trade:', trade.id, error);
+                        }
+                      }
+
+                      return (
+                        <div className="text-sm text-muted-foreground min-w-[80px] text-right">
+                          {effectiveRR !== null ? formatRR(effectiveRR) : '-'}
+                        </div>
+                      );
+                    })()}
+
+                    {/* P&L in R (calculated live) */}
+                    {(() => {
+                      const pnlInR = trade.status !== 'OPEN' && trade.total_pnl !== null && trade.one_r > 0
+                        ? trade.total_pnl / trade.one_r
+                        : null;
+
+                      return (
+                        <div className={`font-semibold min-w-[100px] text-right ${
+                          pnlInR !== null
+                            ? (pnlInR >= 0 ? 'text-success' : 'text-destructive')
+                            : 'text-muted-foreground'
+                        }`}>
+                          {pnlInR !== null
+                            ? `${pnlInR >= 0 ? '+' : ''}${pnlInR.toFixed(2)}R`
+                            : '-'}
+                        </div>
+                      );
+                    })()}
+
+                    {/* P&L in Currency */}
                     <div className={`font-semibold min-w-[120px] text-right ml-auto ${
                       trade.total_pnl
                         ? (trade.total_pnl >= 0 ? 'text-success' : 'text-destructive')

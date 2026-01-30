@@ -97,6 +97,7 @@ pub fn delete_credentials(credential_id: &str) -> Result<(), ApiError> {
 /// Legacy compatibility: encrypt_credential now stores in keychain
 /// This maintains API compatibility while using secure storage
 #[deprecated(note = "Use store_api_key, store_api_secret, or store_passphrase instead")]
+#[allow(dead_code)]
 pub fn encrypt_credential(plaintext: &str) -> Result<String, ApiError> {
     // Return the plaintext as a marker that it should be stored in keychain
     // This is used for backward compatibility during migration
@@ -105,6 +106,7 @@ pub fn encrypt_credential(plaintext: &str) -> Result<String, ApiError> {
 
 /// Legacy compatibility: decrypt_credential now retrieves from keychain
 #[deprecated(note = "Use retrieve_api_key, retrieve_api_secret, or retrieve_passphrase instead")]
+#[allow(dead_code)]
 pub fn decrypt_credential(encrypted: &str) -> Result<String, ApiError> {
     // If it's a keychain marker, extract the credential ID
     if let Some(cred_id) = encrypted.strip_prefix("KEYCHAIN:") {

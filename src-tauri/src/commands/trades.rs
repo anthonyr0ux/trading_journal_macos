@@ -67,22 +67,24 @@ pub async fn get_trades(
             planned_sl: row.get(10)?,
             leverage: row.get(11)?,
             planned_tps: row.get(12)?,
-            position_type: row.get(13)?,
-            one_r: row.get(14)?,
-            margin: row.get(15)?,
-            position_size: row.get(16)?,
-            quantity: row.get(17)?,
-            planned_weighted_rr: row.get(18)?,
-            effective_pe: row.get(19)?,
-            close_date: row.get(20)?,
-            exits: row.get(21)?,
-            effective_weighted_rr: row.get(22)?,
-            total_pnl: row.get(23)?,
-            pnl_in_r: row.get(24)?,
-            notes: row.get(25)?,
-            import_fingerprint: row.get(26)?,
-            created_at: row.get(27)?,
-            updated_at: row.get(28)?,
+            planned_entries: row.get(13)?,
+            position_type: row.get(14)?,
+            one_r: row.get(15)?,
+            margin: row.get(16)?,
+            position_size: row.get(17)?,
+            quantity: row.get(18)?,
+            planned_weighted_rr: row.get(19)?,
+            effective_pe: row.get(20)?,
+            effective_entries: row.get(21)?,
+            close_date: row.get(22)?,
+            exits: row.get(23)?,
+            effective_weighted_rr: row.get(24)?,
+            total_pnl: row.get(25)?,
+            pnl_in_r: row.get(26)?,
+            notes: row.get(27)?,
+            import_fingerprint: row.get(28)?,
+            created_at: row.get(29)?,
+            updated_at: row.get(30)?,
         })
     }).map_err(|e| e.to_string())?;
 
@@ -115,22 +117,24 @@ pub async fn get_trade(
                 planned_sl: row.get(10)?,
                 leverage: row.get(11)?,
                 planned_tps: row.get(12)?,
-                position_type: row.get(13)?,
-                one_r: row.get(14)?,
-                margin: row.get(15)?,
-                position_size: row.get(16)?,
-                quantity: row.get(17)?,
-                planned_weighted_rr: row.get(18)?,
-                effective_pe: row.get(19)?,
-                close_date: row.get(20)?,
-                exits: row.get(21)?,
-                effective_weighted_rr: row.get(22)?,
-                total_pnl: row.get(23)?,
-                pnl_in_r: row.get(24)?,
-                notes: row.get(25)?,
-                import_fingerprint: row.get(26)?,
-                created_at: row.get(27)?,
-                updated_at: row.get(28)?,
+                planned_entries: row.get(13)?,
+                position_type: row.get(14)?,
+                one_r: row.get(15)?,
+                margin: row.get(16)?,
+                position_size: row.get(17)?,
+                quantity: row.get(18)?,
+                planned_weighted_rr: row.get(19)?,
+                effective_pe: row.get(20)?,
+                effective_entries: row.get(21)?,
+                close_date: row.get(22)?,
+                exits: row.get(23)?,
+                effective_weighted_rr: row.get(24)?,
+                total_pnl: row.get(25)?,
+                pnl_in_r: row.get(26)?,
+                notes: row.get(27)?,
+                import_fingerprint: row.get(28)?,
+                created_at: row.get(29)?,
+                updated_at: row.get(30)?,
             })
         },
     ).map_err(|e| e.to_string())?;
@@ -153,13 +157,13 @@ pub async fn create_trade(
             "INSERT INTO trades (
                 id, pair, exchange, analysis_date, trade_date, status,
                 portfolio_value, r_percent, min_rr, planned_pe, planned_sl, leverage,
-                planned_tps, position_type, one_r, margin, position_size, quantity,
+                planned_tps, planned_entries, position_type, one_r, margin, position_size, quantity,
                 planned_weighted_rr, notes, created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             rusqlite::params![
                 id, trade.pair, trade.exchange, trade.analysis_date, trade.trade_date, trade.status,
                 trade.portfolio_value, trade.r_percent, trade.min_rr, trade.planned_pe, trade.planned_sl, trade.leverage,
-                trade.planned_tps, trade.position_type, trade.one_r, trade.margin, trade.position_size, trade.quantity,
+                trade.planned_tps, trade.planned_entries, trade.position_type, trade.one_r, trade.margin, trade.position_size, trade.quantity,
                 trade.planned_weighted_rr, trade.notes, now, now
             ],
         ).map_err(|e| e.to_string())?;
@@ -208,6 +212,10 @@ pub async fn update_trade(
             updates.push("close_date = ?");
             values.push(Box::new(close_date));
         }
+        if let Some(effective_entries) = trade_update.get("effective_entries").and_then(|v| v.as_str()) {
+            updates.push("effective_entries = ?");
+            values.push(Box::new(effective_entries.to_string()));
+        }
         if let Some(exits) = trade_update.get("exits").and_then(|v| v.as_str()) {
             updates.push("exits = ?");
             values.push(Box::new(exits.to_string()));
@@ -227,6 +235,27 @@ pub async fn update_trade(
         if let Some(notes) = trade_update.get("notes").and_then(|v| v.as_str()) {
             updates.push("notes = ?");
             values.push(Box::new(notes.to_string()));
+        }
+        // Plan fields (editable after trade creation)
+        if let Some(planned_pe) = trade_update.get("planned_pe").and_then(|v| v.as_f64()) {
+            updates.push("planned_pe = ?");
+            values.push(Box::new(planned_pe));
+        }
+        if let Some(planned_sl) = trade_update.get("planned_sl").and_then(|v| v.as_f64()) {
+            updates.push("planned_sl = ?");
+            values.push(Box::new(planned_sl));
+        }
+        if let Some(leverage) = trade_update.get("leverage").and_then(|v| v.as_i64()) {
+            updates.push("leverage = ?");
+            values.push(Box::new(leverage));
+        }
+        if let Some(planned_tps) = trade_update.get("planned_tps").and_then(|v| v.as_str()) {
+            updates.push("planned_tps = ?");
+            values.push(Box::new(planned_tps.to_string()));
+        }
+        if let Some(planned_entries) = trade_update.get("planned_entries").and_then(|v| v.as_str()) {
+            updates.push("planned_entries = ?");
+            values.push(Box::new(planned_entries.to_string()));
         }
 
         let query = format!("UPDATE trades SET {} WHERE id = ?", updates.join(", "));
@@ -263,14 +292,14 @@ pub async fn duplicate_trade(
             "INSERT INTO trades (
                 id, pair, exchange, analysis_date, trade_date, status,
                 portfolio_value, r_percent, min_rr, planned_pe, planned_sl, leverage,
-                planned_tps, position_type, one_r, margin, position_size, quantity,
+                planned_tps, planned_entries, position_type, one_r, margin, position_size, quantity,
                 planned_weighted_rr, notes, created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             rusqlite::params![
                 new_id, original.pair, original.exchange, original.analysis_date, now, "OPEN",
                 original.portfolio_value, original.r_percent, original.min_rr,
                 original.planned_pe, original.planned_sl, original.leverage,
-                original.planned_tps, original.position_type, original.one_r,
+                original.planned_tps, original.planned_entries, original.position_type, original.one_r,
                 original.margin, original.position_size, original.quantity,
                 original.planned_weighted_rr, notes, now, now
             ],

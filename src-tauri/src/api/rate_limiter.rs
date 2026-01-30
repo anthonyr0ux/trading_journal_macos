@@ -35,6 +35,7 @@ impl RateLimiter {
     }
 
     /// Try to acquire a token without blocking
+    #[allow(dead_code)]
     pub fn try_acquire(&self) -> bool {
         self.limiter.check().is_ok()
     }

@@ -15,6 +15,27 @@ export function getPositionType(pe: number, tp: number): PositionType {
 }
 
 /**
+ * Calculate weighted average entry price from multiple entries
+ * @param entries Array of {price, percent} where percent is 0-100
+ * @returns Weighted average price
+ */
+export function calculateWeightedEntry(
+  entries: Array<{ price: number; percent: number }>
+): number {
+  const validEntries = entries.filter(e => e.price > 0 && e.percent > 0);
+  if (validEntries.length === 0) return 0;
+
+  const totalPercent = validEntries.reduce((sum, e) => sum + e.percent, 0);
+  if (totalPercent === 0) return 0;
+
+  const weightedSum = validEntries.reduce(
+    (sum, e) => sum + e.price * e.percent,
+    0
+  );
+  return weightedSum / totalPercent;
+}
+
+/**
  * Calculate 1R (risk per trade in dollars)
  */
 export function calculateOneR(portfolio: number, rPercent: number): number {
@@ -220,12 +241,20 @@ export function calculateExpectancy(
 export function calculateTradeMetrics(params: {
   portfolio: number;
   rPercent: number;
-  pe: number;
+  pe?: number;  // DEPRECATED: use entries instead
+  entries?: Array<{ price: number; percent: number }>;  // NEW: multi-PE support
   sl: number;
   tps: Array<{ price: number; percent: number }>;
   leverage: number;
 }) {
-  const { portfolio, rPercent, pe, sl, tps, leverage } = params;
+  const { portfolio, rPercent, sl, tps, leverage } = params;
+
+  // Calculate weighted PE from entries (or use legacy single PE)
+  const weightedPE = params.entries && params.entries.length > 0
+    ? calculateWeightedEntry(params.entries)
+    : params.pe || 0;
+
+  const pe = weightedPE;
 
   // Basic calculations
   const oneR = calculateOneR(portfolio, rPercent);
@@ -272,6 +301,7 @@ export function calculateTradeMetrics(params: {
   return {
     type,
     oneR,
+    weightedPE,  // NEW: include weighted entry price
     distances: {
       distanceSL_USD,
       distanceSL_PCT,
@@ -293,36 +323,56 @@ export function calculateTradeMetrics(params: {
  * Calculate execution metrics based on actual exits
  */
 export function calculateExecutionMetrics(params: {
-  pe: number;
+  pe?: number;  // DEPRECATED: use entries instead
+  entries?: Array<{ price: number; percent: number }>;  // NEW: multi-PE support
   sl: number;
   exits: Array<{ price: number; percent: number }>;
   oneR: number;
   positionSize: number;
   type: string;
 }) {
-  const { pe, sl, exits, oneR, type } = params;
+  const { sl, exits, oneR, type } = params;
+
+  // Calculate weighted effective PE from filled entries (or use legacy single PE)
+  const weightedPE = params.entries && params.entries.length > 0
+    ? calculateWeightedEntry(params.entries)
+    : params.pe || 0;
+
+  const pe = weightedPE;
 
   const distanceSL_USD = type === 'LONG' ? pe - sl : sl - pe;
 
-  let totalPnl = 0;
   let realizedPnl = 0;
   let totalRMultiple = 0;
+  let totalExitPercent = 0;
 
+  // Calculate realized P&L from actual exits
   exits.forEach(exit => {
     const exitDistance = type === 'LONG' ? exit.price - pe : pe - exit.price;
     const rMultiple = exitDistance / distanceSL_USD;
     const exitPnl = oneR * rMultiple * exit.percent;
 
-    totalPnl += exitPnl;
     realizedPnl += exitPnl;
     totalRMultiple += rMultiple * exit.percent;
+    totalExitPercent += exit.percent;
   });
+
+  // Calculate weighted average exit price
+  let weightedExitPrice = 0;
+  if (totalExitPercent > 0) {
+    weightedExitPrice = exits.reduce((sum, exit) => sum + exit.price * exit.percent, 0) / totalExitPercent;
+  }
+
+  // Calculate total P&L if 100% of position was closed at weighted average exit price
+  const exitDistance = type === 'LONG' ? weightedExitPrice - pe : pe - weightedExitPrice;
+  const totalRMultipleIfComplete = exitDistance / distanceSL_USD;
+  const totalPnl = oneR * totalRMultipleIfComplete;
 
   const effectiveRR = totalRMultiple;
 
   return {
-    totalPnl,
-    realizedPnl,
+    totalPnl,  // P&L if 100% position closed at weighted avg exit price
+    realizedPnl,  // P&L from actual partial exits
     effectiveRR,
   };
 }

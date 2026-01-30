@@ -59,6 +59,7 @@ pub struct FetchTradesResponse {
 #[async_trait]
 pub trait ExchangeClient: Send + Sync {
     /// Get the exchange name (e.g., "bitget", "blofin")
+    #[allow(dead_code)]
     fn exchange_name(&self) -> &str;
 
     /// Fetch historical trades from the exchange
@@ -71,5 +72,6 @@ pub trait ExchangeClient: Send + Sync {
     async fn test_credentials(&self) -> Result<bool, ApiError>;
 
     /// Get rate limit configuration for this exchange
+    #[allow(dead_code)]
     fn rate_limit(&self) -> RateLimitConfig;
 }

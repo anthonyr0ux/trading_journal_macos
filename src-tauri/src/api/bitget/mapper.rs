@@ -103,6 +103,7 @@ pub fn map_fill_to_raw_trade(fill: &BitgetFill) -> Result<RawTrade, String> {
 }
 
 /// Generate fingerprint for deduplication
+#[allow(dead_code)]
 pub fn generate_fingerprint(fill: &BitgetFill) -> String {
     // Format: api|bitget|{trade_id}|{order_id}|{symbol}|{qty}|{pnl}|{timestamp}
     let pnl = fill

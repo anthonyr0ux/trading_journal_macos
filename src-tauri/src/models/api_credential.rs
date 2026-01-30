@@ -7,9 +7,11 @@ pub struct ApiCredential {
     pub exchange: String,
     pub label: String,
     #[serde(skip_serializing)]
+    #[allow(dead_code)]
     pub api_key: String, // Never send full key to frontend
     pub api_key_preview: String, // Only last 4 chars
     #[serde(skip_serializing)]
+    #[allow(dead_code)]
     pub api_secret: String, // Never send to frontend
     #[serde(skip_serializing_if = "Option::is_none")]
     pub passphrase: Option<String>, // Never send to frontend

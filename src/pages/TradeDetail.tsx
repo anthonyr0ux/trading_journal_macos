@@ -8,13 +8,19 @@ import { Label } from '../components/ui/label';
 import { Button } from '../components/ui/button';
 import { Textarea } from '../components/ui/textarea';
 import { Badge } from '../components/ui/badge';
+import { Checkbox } from '../components/ui/checkbox';
 import { api, type Trade } from '../lib/api';
-import { calculateExecutionMetrics } from '../lib/calculations';
-import { formatCurrency, formatRR, formatPercent } from '../lib/utils';
-import { ArrowLeft, Copy, Trash2, AlertCircle, TrendingUp, TrendingDown, Calendar, DollarSign } from 'lucide-react';
+import { calculateExecutionMetrics, calculateWeightedEntry } from '../lib/calculations';
+import { formatCurrency, formatRR, formatPercent, cn } from '../lib/utils';
+import { ArrowLeft, Copy, Trash2, AlertCircle, TrendingUp, TrendingDown, Calendar, DollarSign, Plus, X } from 'lucide-react';
 import { HelpBadge } from '../components/HelpBadge';
 
 type Exit = {
+  price: number;
+  percent: number;
+};
+
+type Entry = {
   price: number;
   percent: number;
 };
@@ -27,11 +33,55 @@ export default function TradeDetail() {
   const [saving, setSaving] = useState(false);
   const [trade, setTrade] = useState<Trade | null>(null);
 
+  // Entry states
+  const [plannedEntries, setPlannedEntries] = useState<Entry[]>([]);
+  const [effectiveEntries, setEffectiveEntries] = useState<Entry[]>([]);
+
+  // Editable plan fields
+  const [plannedSl, setPlannedSl] = useState(0);
+  const [leverage, setLeverage] = useState(10);
+  const [plannedTps, setPlannedTps] = useState<Array<{price: number, percent: number}>>([]);
+
   // Editable execution fields
   const [effectivePe, setEffectivePe] = useState(0);
   const [exits, setExits] = useState<Exit[]>([]);
   const [closeDate, setCloseDate] = useState('');
   const [notes, setNotes] = useState('');
+  const [manualBE, setManualBE] = useState(false);
+
+  // Helper functions for managing planned entries
+  const addPlannedEntry = () => {
+    setPlannedEntries([...plannedEntries, { price: 0, percent: 0 }]);
+  };
+
+  const removePlannedEntry = (index: number) => {
+    if (plannedEntries.length > 1) {
+      setPlannedEntries(plannedEntries.filter((_, i) => i !== index));
+    }
+  };
+
+  const updatePlannedEntry = (index: number, field: 'price' | 'percent', value: number) => {
+    const newEntries = [...plannedEntries];
+    newEntries[index][field] = value;
+    setPlannedEntries(newEntries);
+  };
+
+  // Helper functions for managing effective entries
+  const addEffectiveEntry = () => {
+    setEffectiveEntries([...effectiveEntries, { price: 0, percent: 0 }]);
+  };
+
+  const removeEffectiveEntry = (index: number) => {
+    if (effectiveEntries.length > 1) {
+      setEffectiveEntries(effectiveEntries.filter((_, i) => i !== index));
+    }
+  };
+
+  const updateEffectiveEntry = (index: number, field: 'price' | 'percent', value: number) => {
+    const newEntries = [...effectiveEntries];
+    newEntries[index][field] = value;
+    setEffectiveEntries(newEntries);
+  };
 
   useEffect(() => {
     if (id) {
@@ -43,6 +93,48 @@ export default function TradeDetail() {
     try {
       const data = await api.getTrade(tradeId);
       setTrade(data);
+
+      // Parse planned entries
+      if (data.planned_entries) {
+        try {
+          const parsed = typeof data.planned_entries === 'string'
+            ? JSON.parse(data.planned_entries)
+            : data.planned_entries;
+          setPlannedEntries(parsed);
+        } catch {
+          // Fallback to single entry
+          setPlannedEntries([{ price: data.planned_pe, percent: 100 }]);
+        }
+      } else {
+        // Backward compat: derive from planned_pe
+        setPlannedEntries([{ price: data.planned_pe, percent: 100 }]);
+      }
+
+      // Parse effective entries
+      if (data.effective_entries) {
+        try {
+          const parsed = typeof data.effective_entries === 'string'
+            ? JSON.parse(data.effective_entries)
+            : data.effective_entries;
+          setEffectiveEntries(parsed);
+        } catch {
+          setEffectiveEntries([{ price: data.effective_pe || 0, percent: 100 }]);
+        }
+      } else if (data.effective_pe) {
+        setEffectiveEntries([{ price: data.effective_pe, percent: 100 }]);
+      } else {
+        setEffectiveEntries([{ price: 0, percent: 0 }]);
+      }
+
+      // Initialize plan fields
+      setPlannedSl(data.planned_sl);
+      setLeverage(data.leverage);
+
+      // Parse planned TPs
+      const parsedPlannedTps = typeof data.planned_tps === 'string'
+        ? JSON.parse(data.planned_tps)
+        : data.planned_tps;
+      setPlannedTps(parsedPlannedTps);
 
       // Initialize execution fields
       setEffectivePe(data.effective_pe || data.planned_pe);
@@ -58,10 +150,7 @@ export default function TradeDetail() {
         }
       } else {
         // Initialize with empty exits matching TPs
-        const plannedTps = typeof data.planned_tps === 'string'
-          ? JSON.parse(data.planned_tps)
-          : data.planned_tps;
-        setExits(plannedTps.map(() => ({ price: 0, percent: 0 })));
+        setExits(parsedPlannedTps.map(() => ({ price: 0, percent: 0 })));
       }
 
       if (data.close_date) {
@@ -69,6 +158,9 @@ export default function TradeDetail() {
       }
 
       setNotes(data.notes || '');
+
+      // Initialize manual BE checkbox if trade is marked as BE
+      setManualBE(data.status === 'BE');
     } catch (error) {
       console.error('Failed to load trade:', error);
       toast.error(t('tradeDetail.failedToLoad'));
@@ -90,7 +182,13 @@ export default function TradeDetail() {
 
       const validExits = exits.filter(e => e.price > 0);
 
-      if (validExits.length > 0) {
+      if (validExits.length === 0) {
+        // No exits - reset to OPEN status and clear P&L
+        newStatus = 'OPEN';
+        totalPnl = null;
+        effectiveRR = null;
+        setManualBE(false); // Reset BE checkbox when no exits
+      } else if (validExits.length > 0) {
         const totalExitPercent = validExits.reduce((sum, e) => sum + e.percent, 0);
 
         if (Math.abs(totalExitPercent - 100) <= 0.1) {
@@ -100,8 +198,13 @@ export default function TradeDetail() {
             percent: e.percent / totalExitPercent,
           }));
 
+          // Use effective entries if available, otherwise fall back to single PE
+          const validEffectiveEntries = effectiveEntries.filter(e => e.price > 0);
+          const entriesForCalc = validEffectiveEntries.length > 0 ? validEffectiveEntries : undefined;
+
           const metrics = calculateExecutionMetrics({
-            pe: effectivePe,
+            entries: entriesForCalc,
+            pe: entriesForCalc ? undefined : effectivePe,
             sl: trade.planned_sl,
             exits: normalizedExits,
             oneR: trade.one_r,
@@ -111,7 +214,27 @@ export default function TradeDetail() {
 
           totalPnl = metrics.totalPnl;
           effectiveRR = metrics.effectiveRR;
-          newStatus = metrics.totalPnl >= 0 ? 'WIN' : 'LOSS';
+
+          // Auto-uncheck BE if P&L is not near zero (has significant profit/loss)
+          if (manualBE && Math.abs(metrics.totalPnl) >= 1.0) {
+            setManualBE(false);
+          }
+
+          // Determine status based on P&L (with manual BE override for edge cases)
+          // Status is ALWAYS recalculated based on current execution data
+          if (Math.abs(metrics.totalPnl) < 0.5) {
+            // P&L is near zero - this is break-even
+            newStatus = 'BE';
+          } else if (metrics.totalPnl > 0) {
+            newStatus = 'WIN';
+          } else {
+            newStatus = 'LOSS';
+          }
+
+          // Manual BE override: only if user explicitly wants BE despite small profit/loss
+          if (manualBE && Math.abs(metrics.totalPnl) < 1.0) {
+            newStatus = 'BE';
+          }
         } else if (totalExitPercent > 0) {
           // Partial exit
           const normalizedExits = validExits.map(e => ({
@@ -119,8 +242,13 @@ export default function TradeDetail() {
             percent: e.percent / 100,
           }));
 
+          // Use effective entries if available, otherwise fall back to single PE
+          const validEffectiveEntries = effectiveEntries.filter(e => e.price > 0);
+          const entriesForCalc = validEffectiveEntries.length > 0 ? validEffectiveEntries : undefined;
+
           const metrics = calculateExecutionMetrics({
-            pe: effectivePe,
+            entries: entriesForCalc,
+            pe: entriesForCalc ? undefined : effectivePe,
             sl: trade.planned_sl,
             exits: normalizedExits,
             oneR: trade.one_r,
@@ -136,11 +264,50 @@ export default function TradeDetail() {
       const exitsJson = JSON.stringify(validExits);
       const closeDateTimestamp = closeDate ? Math.floor(new Date(closeDate).getTime() / 1000) : null;
 
+      // Prepare planned entries
+      const validPlannedEntries = plannedEntries.filter(e => e.price > 0);
+      const plannedEntriesJson = validPlannedEntries.length > 0
+        ? JSON.stringify(validPlannedEntries)
+        : undefined;
+
+      // Calculate weighted planned PE
+      const weightedPlannedPE = validPlannedEntries.length > 0
+        ? calculateWeightedEntry(validPlannedEntries)
+        : trade.planned_pe;
+
+      // Prepare planned TPs
+      const plannedTpsJson = JSON.stringify(plannedTps);
+
+      // Prepare effective entries
+      const validEffectiveEntries = effectiveEntries.filter(e => e.price > 0);
+      const effectiveEntriesJson = validEffectiveEntries.length > 0
+        ? JSON.stringify(validEffectiveEntries)
+        : undefined;
+
+      // Calculate weighted effective PE
+      const weightedEffectivePE = validEffectiveEntries.length > 0
+        ? calculateWeightedEntry(validEffectiveEntries)
+        : effectivePe;
+
+      // Calculate P&L in R multiples
+      const pnlInR = totalPnl !== null && trade.one_r > 0
+        ? totalPnl / trade.one_r
+        : null;
+
       await api.updateTrade(trade.id, {
-        effective_pe: effectivePe,
+        // Plan fields
+        planned_pe: weightedPlannedPE,
+        planned_sl: plannedSl,
+        leverage: leverage,
+        planned_tps: plannedTpsJson,
+        planned_entries: plannedEntriesJson,
+        // Execution fields
+        effective_pe: weightedEffectivePE,
+        effective_entries: effectiveEntriesJson,
         exits: exitsJson,
         close_date: closeDateTimestamp || undefined,
         total_pnl: totalPnl || undefined,
+        pnl_in_r: pnlInR || undefined,
         effective_weighted_rr: effectiveRR || undefined,
         status: newStatus,
         notes: notes,
@@ -195,11 +362,14 @@ export default function TradeDetail() {
     // Copy planned entry to actual entry
     setEffectivePe(trade.planned_pe);
 
-    // Parse planned TPs and copy to exits
-    const plannedTps = typeof trade.planned_tps === 'string'
-      ? JSON.parse(trade.planned_tps)
-      : trade.planned_tps;
+    // Copy planned entries to effective entries
+    const copiedEntries = plannedEntries.map(e => ({
+      price: e.price,
+      percent: e.percent
+    }));
+    setEffectiveEntries(copiedEntries);
 
+    // Copy planned TPs to exits
     const copiedExits = plannedTps.map((tp: any) => ({
       price: tp.price,
       percent: tp.percent
@@ -215,11 +385,6 @@ export default function TradeDetail() {
     return <div className="text-destructive">{t('tradeDetail.notFound')}</div>;
   }
 
-  // Parse planned TPs
-  const plannedTps = typeof trade.planned_tps === 'string'
-    ? JSON.parse(trade.planned_tps)
-    : trade.planned_tps;
-
   // Calculate current metrics
   const validExits = exits.filter(e => e.price > 0);
   const totalExitPercent = validExits.reduce((sum, e) => sum + e.percent, 0);
@@ -232,8 +397,13 @@ export default function TradeDetail() {
       percent: e.percent / 100,
     }));
 
+    // Use effective entries if available (multi-PE), otherwise fall back to single PE
+    const validEffectiveEntries = effectiveEntries.filter(e => e.price > 0);
+    const entriesForCalc = validEffectiveEntries.length > 0 ? validEffectiveEntries : undefined;
+
     executionMetrics = calculateExecutionMetrics({
-      pe: effectivePe,
+      entries: entriesForCalc,
+      pe: entriesForCalc ? undefined : effectivePe,
       sl: trade.planned_sl,
       exits: normalizedExits,
       oneR: trade.one_r,
@@ -352,7 +522,7 @@ export default function TradeDetail() {
 
       {/* Two Column Layout */}
       <div className="grid gap-6 lg:grid-cols-2">
-        {/* Left Column: Trade Plan (Read-Only) */}
+        {/* Left Column: Trade Plan (Editable) */}
         <div className="space-y-6">
           <Card>
             <CardHeader className="bg-muted/50">
@@ -378,52 +548,159 @@ export default function TradeDetail() {
                 </div>
               </div>
 
-              {/* Entry & Stop Loss */}
+              {/* Planned Entries (Multi-PE) - Editable */}
               <div className="space-y-3">
-                <div className="flex items-center justify-between p-3 border rounded-lg bg-blue-50 dark:bg-blue-950/20">
-                  <div>
-                    <div className="text-xs text-muted-foreground">{t('tradeDetail.plannedEntry')}</div>
-                    <div className="text-lg font-bold">${trade.planned_pe.toFixed(8)}</div>
-                  </div>
-                  <Badge variant="outline">{trade.leverage}x {t('tradeDetail.leverage')}</Badge>
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-semibold">
+                    {t('tradeDetail.plannedEntries') || 'Planned Entries'}
+                  </Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={addPlannedEntry}
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    {t('tradeNew.addEntry') || 'Add Entry'}
+                  </Button>
                 </div>
 
-                <div className="flex items-center justify-between p-3 border rounded-lg bg-red-50 dark:bg-red-950/20">
-                  <div>
-                    <div className="text-xs text-muted-foreground">{t('tradeDetail.stopLoss')}</div>
-                    <div className="text-lg font-bold">${trade.planned_sl.toFixed(8)}</div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-xs text-muted-foreground">{t('calculator.slDistance')}</div>
-                    <div className="text-sm font-semibold">
-                      {Math.abs(((trade.planned_pe - trade.planned_sl) / trade.planned_pe) * 100).toFixed(2)}%
+                {plannedEntries.map((entry, index) => (
+                  <div key={index} className="p-3 border rounded-lg bg-muted/30 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Badge variant="outline">Entry {index + 1}</Badge>
+                      {plannedEntries.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removePlannedEntry(index)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+
+                    <div className="grid gap-3 grid-cols-2">
+                      <div>
+                        <Label htmlFor={`planned-entry${index}-price`} className="text-xs">
+                          {t('calculator.entryShort')} {index === 0 && '*'}
+                        </Label>
+                        <Input
+                          id={`planned-entry${index}-price`}
+                          type="number"
+                          step="0.00000001"
+                          value={entry.price || ''}
+                          onChange={(e) => updatePlannedEntry(index, 'price', Number(e.target.value))}
+                          placeholder="0.00"
+                          className="font-mono text-sm"
+                          required={index === 0}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor={`planned-entry${index}-percent`} className="text-xs">
+                          {t('tradeNew.allocationPercent')}
+                        </Label>
+                        <Input
+                          id={`planned-entry${index}-percent`}
+                          type="number"
+                          min="0"
+                          max="100"
+                          value={entry.percent || ''}
+                          onChange={(e) => updatePlannedEntry(index, 'percent', Number(e.target.value))}
+                          disabled={!entry.price}
+                          placeholder="0"
+                          className="text-sm"
+                        />
+                      </div>
                     </div>
                   </div>
+                ))}
+
+                {/* Weighted Average (only show if multiple entries) */}
+                {plannedEntries.length > 1 && (
+                  <div className="p-3 bg-muted rounded-lg mt-2">
+                    <div className="text-xs text-muted-foreground">
+                      {t('tradeDetail.weightedEntry') || 'Weighted Avg Entry'}
+                    </div>
+                    <div className="text-lg font-bold font-mono text-foreground">
+                      ${calculateWeightedEntry(plannedEntries).toFixed(8)}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Stop Loss & Leverage - Editable */}
+              <div className="grid gap-3 grid-cols-2 pt-3">
+                <div className="space-y-2">
+                  <Label htmlFor="plannedSl" className="text-xs">{t('tradeNew.stopLossRequired')}</Label>
+                  <Input
+                    id="plannedSl"
+                    type="number"
+                    step="0.00000001"
+                    value={plannedSl || ''}
+                    onChange={(e) => setPlannedSl(Number(e.target.value))}
+                    className="font-mono text-sm"
+                    placeholder="0.00"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="leverage" className="text-xs">{t('tradeNew.leverage')}</Label>
+                  <Input
+                    id="leverage"
+                    type="number"
+                    value={leverage}
+                    onChange={(e) => setLeverage(Number(e.target.value))}
+                    className="text-sm"
+                  />
                 </div>
               </div>
 
-              {/* Take Profits */}
-              <div className="space-y-2">
+              {/* Take Profits - Editable */}
+              <div className="space-y-3 pt-3 border-t">
                 <div className="text-sm font-semibold">{t('tradeDetail.plannedTakeProfits')}</div>
-                <div className="space-y-2">
-                  {plannedTps.map((tp: any, index: number) => (
-                    <div key={index} className="flex items-center justify-between p-3 border rounded-lg bg-green-50 dark:bg-green-950/20">
-                      <div className="flex items-center gap-3">
-                        <Badge variant="outline" className="w-12 justify-center">TP{index + 1}</Badge>
-                        <div>
-                          <div className="text-sm font-semibold">${tp.price?.toFixed(8) || '-'}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {tp.percent != null ? `${tp.percent.toFixed(1)}% of position` : '-'}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-xs text-muted-foreground">RR</div>
-                        <div className="text-sm font-semibold">{tp.rr != null ? formatRR(tp.rr) : '-'}</div>
-                      </div>
+                {plannedTps.map((tp, index) => (
+                  <div key={index} className="grid gap-3 grid-cols-2">
+                    <div className="space-y-1">
+                      <Label htmlFor={`tp${index}-price`} className="text-xs">
+                        TP{index + 1} {t('calculator.entryShort')} {index === 0 && '*'}
+                      </Label>
+                      <Input
+                        id={`tp${index}-price`}
+                        type="number"
+                        step="0.00000001"
+                        value={tp.price || ''}
+                        onChange={(e) => {
+                          const newTps = [...plannedTps];
+                          newTps[index].price = Number(e.target.value);
+                          setPlannedTps(newTps);
+                        }}
+                        placeholder="0.00"
+                        className="font-mono text-sm"
+                        required={index === 0}
+                      />
                     </div>
-                  ))}
-                </div>
+                    <div className="space-y-1">
+                      <Label htmlFor={`tp${index}-percent`} className="text-xs">{t('tradeNew.allocationPercent')}</Label>
+                      <Input
+                        id={`tp${index}-percent`}
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={tp.percent || ''}
+                        onChange={(e) => {
+                          const newTps = [...plannedTps];
+                          newTps[index].percent = Number(e.target.value);
+                          setPlannedTps(newTps);
+                        }}
+                        disabled={!tp.price}
+                        placeholder="0"
+                        className="text-sm"
+                      />
+                    </div>
+                  </div>
+                ))}
               </div>
 
               {/* Position Details */}
@@ -474,32 +751,162 @@ export default function TradeDetail() {
               </div>
             </CardHeader>
             <CardContent className="space-y-4 pt-6">
-              {/* Actual Entry & Close Date */}
-              <div className="grid gap-3 grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="effectivePe" className="text-xs font-semibold">{t('tradeDetail.effectiveEntryPrice')}</Label>
-                  <Input
-                    id="effectivePe"
-                    type="number"
-                    step="0.00000001"
-                    value={effectivePe || ''}
-                    onChange={(e) => setEffectivePe(Number(e.target.value))}
-                    className="font-mono"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    {t('tradeNew.plannedSetup')}: ${trade.planned_pe.toFixed(8)}
-                  </p>
+              {/* Effective Entries (Multi-PE) */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-semibold">
+                    {t('tradeDetail.effectiveEntries') || 'Actual Entries'}
+                  </Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={addEffectiveEntry}
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    {t('tradeNew.addEntry') || 'Add Entry'}
+                  </Button>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="closeDate" className="text-xs font-semibold">{t('tradeDetail.closeDate')}</Label>
-                  <Input
-                    id="closeDate"
-                    type="date"
-                    value={closeDate}
-                    onChange={(e) => setCloseDate(e.target.value)}
-                  />
-                  <p className="text-xs text-muted-foreground">{t('tradeNew.optional')}</p>
+
+                <p className="text-xs text-muted-foreground">
+                  {t('tradeNew.actualEntriesHelp') || 'Enter the actual prices and percentages you filled at. Partial fills allowed.'}
+                </p>
+
+                {effectiveEntries.map((entry, index) => (
+                  <div key={index} className="p-3 border rounded-lg bg-muted/30 space-y-2">
+                    {/* Show planned entry as reference */}
+                    {plannedEntries[index]?.price > 0 && (
+                      <div className="text-xs text-muted-foreground">
+                        Planned: {plannedEntries[index].percent}% @ ${plannedEntries[index].price.toFixed(8)}
+                      </div>
+                    )}
+
+                    <div className="flex items-center justify-between">
+                      <Badge variant="outline">Entry {index + 1}</Badge>
+                      {effectiveEntries.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeEffectiveEntry(index)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+
+                    <div className="grid gap-3 grid-cols-2">
+                      <div>
+                        <Label htmlFor={`effective-entry${index}-price`} className="text-xs">
+                          Actual Price
+                        </Label>
+                        <Input
+                          id={`effective-entry${index}-price`}
+                          type="number"
+                          step="0.00000001"
+                          value={entry.price || ''}
+                          onChange={(e) => updateEffectiveEntry(index, 'price', Number(e.target.value))}
+                          placeholder="0.00"
+                          className="font-mono text-sm"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor={`effective-entry${index}-percent`} className="text-xs">
+                          Filled %
+                        </Label>
+                        <Input
+                          id={`effective-entry${index}-percent`}
+                          type="number"
+                          min="0"
+                          max="100"
+                          value={entry.percent || ''}
+                          onChange={(e) => updateEffectiveEntry(index, 'percent', Number(e.target.value))}
+                          disabled={!entry.price}
+                          placeholder="0"
+                          className="text-sm"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                {/* Total filled percentage indicator */}
+                {(() => {
+                  const totalFilled = effectiveEntries
+                    .filter(e => e.price > 0)
+                    .reduce((sum, e) => sum + e.percent, 0);
+
+                  return totalFilled > 0 && (
+                    <div className={cn(
+                      "p-2 rounded text-xs text-center",
+                      totalFilled === 100 ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"
+                    )}>
+                      Position Filled: {totalFilled.toFixed(1)}%
+                    </div>
+                  );
+                })()}
+
+                {/* Weighted Average Display for Effective Entries */}
+                {effectiveEntries.filter(e => e.price > 0).length > 1 && (
+                  <div className="p-3 bg-blue-50 border border-blue-500/50 rounded-lg">
+                    <div className="text-xs text-muted-foreground mb-1">
+                      Weighted Avg Effective Entry
+                    </div>
+                    <div className="text-lg font-bold font-mono text-gray-900">
+                      ${calculateWeightedEntry(effectiveEntries).toFixed(8)}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Legacy Single Entry Field (for backward compatibility) */}
+              <div className="space-y-3 pt-3 border-t">
+                <div className="grid gap-3 grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="effectivePe" className="text-xs font-semibold">
+                      {t('tradeDetail.effectiveEntryPrice')} (Legacy)
+                    </Label>
+                    <Input
+                      id="effectivePe"
+                      type="number"
+                      step="0.00000001"
+                      value={effectivePe || ''}
+                      onChange={(e) => setEffectivePe(Number(e.target.value))}
+                      className="font-mono"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      {t('tradeNew.plannedSetup')}: ${trade.planned_pe.toFixed(8)}
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="closeDate" className="text-xs font-semibold">{t('tradeDetail.closeDate')}</Label>
+                    <Input
+                      id="closeDate"
+                      type="date"
+                      value={closeDate}
+                      onChange={(e) => setCloseDate(e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">{t('tradeNew.optional')}</p>
+                  </div>
                 </div>
+
+                {/* Manual Break-Even Checkbox */}
+                <div className="flex items-center space-x-2 pt-3 border-t">
+                  <Checkbox
+                    id="manualBE"
+                    checked={manualBE}
+                    onCheckedChange={(checked) => setManualBE(checked as boolean)}
+                  />
+                  <Label
+                    htmlFor="manualBE"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                  >
+                    {t('tradeDetail.markAsBreakEven')}
+                  </Label>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {t('tradeDetail.markAsBreakEvenHelp')}
+                </p>
               </div>
 
               {/* Exit Points */}
@@ -522,7 +929,7 @@ export default function TradeDetail() {
 
                     <div className="grid gap-3 grid-cols-2">
                       <div className="space-y-1">
-                        <Label htmlFor={`exit${index}-price`} className="text-xs">{t('tradeDetail.exitPrice', { number: '' })}</Label>
+                        <Label htmlFor={`exit${index}-price`} className="text-xs">{t('tradeDetail.exitPrice', { number: index + 1 })}</Label>
                         <Input
                           id={`exit${index}-price`}
                           type="number"

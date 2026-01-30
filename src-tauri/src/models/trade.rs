@@ -17,6 +17,7 @@ pub struct Trade {
     pub planned_sl: f64,
     pub leverage: i32,
     pub planned_tps: String, // JSON
+    pub planned_entries: Option<String>, // JSON array of {price, percent}
 
     pub position_type: String,
     pub one_r: f64,
@@ -26,6 +27,7 @@ pub struct Trade {
     pub planned_weighted_rr: f64,
 
     pub effective_pe: Option<f64>,
+    pub effective_entries: Option<String>, // JSON array of {price, percent}
     pub close_date: Option<i64>,
     pub exits: Option<String>, // JSON
 
@@ -56,6 +58,7 @@ pub struct CreateTradeInput {
     pub planned_sl: f64,
     pub leverage: i32,
     pub planned_tps: String,
+    pub planned_entries: Option<String>, // JSON array of {price, percent}
 
     pub position_type: String,
     pub one_r: f64,

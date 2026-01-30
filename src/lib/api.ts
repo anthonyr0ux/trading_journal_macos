@@ -25,6 +25,7 @@ export interface Trade {
   planned_sl: number;
   leverage: number;
   planned_tps: string;
+  planned_entries?: string;  // JSON array of {price, percent}
   position_type: string;
   one_r: number;
   margin: number;
@@ -32,6 +33,7 @@ export interface Trade {
   quantity: number;
   planned_weighted_rr: number;
   effective_pe?: number;
+  effective_entries?: string;  // JSON array of {price, percent}
   close_date?: number;
   exits?: string;
   effective_weighted_rr?: number;
@@ -65,6 +67,7 @@ export interface CreateTradeInput {
   planned_sl: number;
   leverage: number;
   planned_tps: string;
+  planned_entries?: string;  // JSON array of {price, percent}
   position_type: string;
   one_r: number;
   margin: number;

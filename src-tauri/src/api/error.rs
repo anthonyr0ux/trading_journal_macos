@@ -24,15 +24,19 @@ pub enum ApiError {
     ExchangeError { code: String, message: String },
 
     #[error("Invalid credentials")]
+    #[allow(dead_code)]
     InvalidCredentials,
 
     #[error("Network error: {0}")]
+    #[allow(dead_code)]
     NetworkError(String),
 
     #[error("Timeout: {0}")]
+    #[allow(dead_code)]
     TimeoutError(String),
 
     #[error("Unknown error: {0}")]
+    #[allow(dead_code)]
     Unknown(String),
 }
 

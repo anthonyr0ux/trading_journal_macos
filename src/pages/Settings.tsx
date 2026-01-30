@@ -38,7 +38,11 @@ export default function Settings() {
   const loadSettings = async () => {
     try {
       const data = await api.getSettings();
-      setSettings(data);
+      // Convert r_percent from decimal to percentage for display
+      setSettings({
+        ...data,
+        current_r_percent: data.current_r_percent * 100
+      });
     } catch (error) {
       console.error('Failed to load settings:', error);
     } finally {
@@ -126,12 +130,16 @@ export default function Settings() {
     try {
       const updated = await api.updateSettings({
         initial_capital: settings.initial_capital,
-        current_r_percent: settings.current_r_percent,
+        current_r_percent: settings.current_r_percent / 100, // Convert from percentage to decimal
         default_min_rr: settings.default_min_rr,
         default_leverage: settings.default_leverage,
         currency: settings.currency,
       });
-      setSettings(updated);
+      // Convert back to percentage for display
+      setSettings({
+        ...updated,
+        current_r_percent: updated.current_r_percent * 100
+      });
       toast.success(t('settings.settingsSaved'));
     } catch (error) {
       console.error('Failed to save settings:', error);

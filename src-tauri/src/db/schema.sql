@@ -29,6 +29,7 @@ CREATE TABLE IF NOT EXISTS trades (
     planned_sl REAL NOT NULL,
     leverage INTEGER NOT NULL,
     planned_tps TEXT NOT NULL,  -- JSON array
+    planned_entries TEXT,  -- JSON array of {price, percent}
 
     -- Calculated values
     position_type TEXT NOT NULL CHECK(position_type IN ('LONG', 'SHORT')),
@@ -40,6 +41,7 @@ CREATE TABLE IF NOT EXISTS trades (
 
     -- Execution data
     effective_pe REAL,
+    effective_entries TEXT,  -- JSON array of {price, percent}
     close_date INTEGER,
     exits TEXT,  -- JSON array
 
