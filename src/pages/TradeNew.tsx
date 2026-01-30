@@ -35,17 +35,42 @@ export default function TradeNew() {
   const [plannedPe, setPlannedPe] = useState(calculatorData?.pe || 0);
   const [plannedSl, setPlannedSl] = useState(calculatorData?.sl || 0);
   const [leverage, setLeverage] = useState(calculatorData?.leverage || 10);
-  const [plannedTps, setPlannedTps] = useState([
-    { price: calculatorData?.tp || 0, percent: 100 },
-    { price: 0, percent: 0 },
-    { price: 0, percent: 0 },
-    { price: 0, percent: 0 },
-  ]);
 
-  // Multi-PE state
-  const [plannedEntries, setPlannedEntries] = useState([
-    { price: calculatorData?.pe || 0, percent: 100 }
-  ]);
+  // Initialize TPs from calculator (supports both old single TP and new multi-TP)
+  const [plannedTps, setPlannedTps] = useState(() => {
+    if (calculatorData?.tps && Array.isArray(calculatorData.tps)) {
+      // New format: multiple TPs from calculator
+      return calculatorData.tps.length > 0 ? calculatorData.tps : [{ price: 0, percent: 0 }];
+    } else if (calculatorData?.tp) {
+      // Old format: single TP (backward compatibility)
+      return [
+        { price: calculatorData.tp, percent: 100 },
+        { price: 0, percent: 0 },
+        { price: 0, percent: 0 },
+        { price: 0, percent: 0 },
+      ];
+    }
+    // Default: empty TPs
+    return [
+      { price: 0, percent: 0 },
+      { price: 0, percent: 0 },
+      { price: 0, percent: 0 },
+      { price: 0, percent: 0 },
+    ];
+  });
+
+  // Initialize entries from calculator (supports both old single PE and new multi-PE)
+  const [plannedEntries, setPlannedEntries] = useState(() => {
+    if (calculatorData?.entries && Array.isArray(calculatorData.entries)) {
+      // New format: multiple entries from calculator
+      return calculatorData.entries.length > 0 ? calculatorData.entries : [{ price: 0, percent: 100 }];
+    } else if (calculatorData?.pe) {
+      // Old format: single PE (backward compatibility)
+      return [{ price: calculatorData.pe, percent: 100 }];
+    }
+    // Default: empty entry
+    return [{ price: 0, percent: 100 }];
+  });
 
   // Form state - EXECUTION SECTION
   const [effectivePe, setEffectivePe] = useState(0);
@@ -782,43 +807,20 @@ export default function TradeNew() {
                 )}
               </div>
 
-              {/* Legacy Single Entry Field (for backward compatibility) */}
-              <div className="space-y-3 pt-3 border-t">
-                <div className="grid gap-3 grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="effectivePe" className="text-xs font-semibold">
-                      {t('tradeNew.actualEntry')} (Legacy)
-                    </Label>
-                    <Input
-                      id="effectivePe"
-                      type="number"
-                      step="0.00000001"
-                      value={effectivePe || ''}
-                      onChange={(e) => setEffectivePe(Number(e.target.value))}
-                      className="font-mono"
-                      placeholder={t('tradeNew.leaveEmptyNotExecuted')}
-                    />
-                    {plannedPe > 0 && (
-                      <p className="text-xs text-muted-foreground">
-                        {t('tradeNew.plannedSetup')}: ${plannedPe.toFixed(8)}
-                      </p>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="closeDate" className="text-xs font-semibold">{t('tradeDetail.closeDate')}</Label>
-                    <Input
-                      id="closeDate"
-                      type="date"
-                      value={closeDate}
-                      onChange={(e) => setCloseDate(e.target.value)}
-                    />
-                    <p className="text-xs text-muted-foreground">{t('tradeDetail.closeDateOptional')}</p>
-                  </div>
-                </div>
+              {/* Close Date */}
+              <div className="space-y-2 pt-3 border-t">
+                <Label htmlFor="closeDate" className="text-xs font-semibold">{t('tradeDetail.closeDate')}</Label>
+                <Input
+                  id="closeDate"
+                  type="date"
+                  value={closeDate}
+                  onChange={(e) => setCloseDate(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">{t('tradeDetail.closeDateOptional')}</p>
               </div>
 
               {/* Actual Exits */}
-              <div className="space-y-3">
+              <div className="space-y-3 pt-3 border-t">
                 <Label className="text-sm font-semibold">{t('tradeNew.actualExits')}</Label>
                 <p className="text-xs text-muted-foreground">
                   {t('tradeDetail.exits')}

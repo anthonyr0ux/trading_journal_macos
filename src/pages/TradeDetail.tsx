@@ -859,58 +859,8 @@ export default function TradeDetail() {
                 )}
               </div>
 
-              {/* Legacy Single Entry Field (for backward compatibility) */}
-              <div className="space-y-3 pt-3 border-t">
-                <div className="grid gap-3 grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="effectivePe" className="text-xs font-semibold">
-                      {t('tradeDetail.effectiveEntryPrice')} (Legacy)
-                    </Label>
-                    <Input
-                      id="effectivePe"
-                      type="number"
-                      step="0.00000001"
-                      value={effectivePe || ''}
-                      onChange={(e) => setEffectivePe(Number(e.target.value))}
-                      className="font-mono"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      {t('tradeNew.plannedSetup')}: ${trade.planned_pe.toFixed(8)}
-                    </p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="closeDate" className="text-xs font-semibold">{t('tradeDetail.closeDate')}</Label>
-                    <Input
-                      id="closeDate"
-                      type="date"
-                      value={closeDate}
-                      onChange={(e) => setCloseDate(e.target.value)}
-                    />
-                    <p className="text-xs text-muted-foreground">{t('tradeNew.optional')}</p>
-                  </div>
-                </div>
-
-                {/* Manual Break-Even Checkbox */}
-                <div className="flex items-center space-x-2 pt-3 border-t">
-                  <Checkbox
-                    id="manualBE"
-                    checked={manualBE}
-                    onCheckedChange={(checked) => setManualBE(checked as boolean)}
-                  />
-                  <Label
-                    htmlFor="manualBE"
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                  >
-                    {t('tradeDetail.markAsBreakEven')}
-                  </Label>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  {t('tradeDetail.markAsBreakEvenHelp')}
-                </p>
-              </div>
-
               {/* Exit Points */}
-              <div className="space-y-3">
+              <div className="space-y-3 pt-3 border-t">
                 <Label className="text-sm font-semibold">{t('tradeNew.actualExits')}</Label>
                 <p className="text-xs text-muted-foreground mb-3">
                   {t('tradeDetail.exits')}
@@ -993,6 +943,38 @@ export default function TradeDetail() {
                   </div>
                 </div>
               )}
+
+              {/* Close Date and Manual BE */}
+              <div className="space-y-3 pt-3 border-t">
+                <div className="space-y-2">
+                  <Label htmlFor="closeDate" className="text-xs font-semibold">{t('tradeDetail.closeDate')}</Label>
+                  <Input
+                    id="closeDate"
+                    type="date"
+                    value={closeDate}
+                    onChange={(e) => setCloseDate(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">{t('tradeNew.optional')}</p>
+                </div>
+
+                {/* Manual Break-Even Checkbox */}
+                <div className="flex items-center space-x-2 pt-3 border-t">
+                  <Checkbox
+                    id="manualBE"
+                    checked={manualBE}
+                    onCheckedChange={(checked) => setManualBE(checked as boolean)}
+                  />
+                  <Label
+                    htmlFor="manualBE"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                  >
+                    {t('tradeDetail.markAsBreakEven')}
+                  </Label>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {t('tradeDetail.markAsBreakEvenHelp')}
+                </p>
+              </div>
             </CardContent>
           </Card>
 

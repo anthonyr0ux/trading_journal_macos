@@ -7,9 +7,9 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
-import { Copy, Check, AlertCircle, Save, HelpCircle, ArrowRight } from 'lucide-react';
-import { calculateTradeMetrics } from '../lib/calculations';
-import { formatCurrency, formatPercent, formatRR } from '../lib/utils';
+import { Copy, Check, AlertCircle, Save, HelpCircle, ArrowRight, Plus, X } from 'lucide-react';
+import { calculateTradeMetrics, calculateWeightedEntry } from '../lib/calculations';
+import { formatCurrency, formatPercent, formatRR, cn } from '../lib/utils';
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
 import { api } from '../lib/api';
 import { HelpBadge } from '../components/HelpBadge';
@@ -48,16 +48,52 @@ export default function Calculator() {
   const [rPercent, setRPercent] = useState(2);
   const [minRR, setMinRR] = useState(2);
 
-  // Step 2: Trade Setup
-  const [pe, setPe] = useState(200);
+  // Step 2: Trade Setup - Multiple Entries
+  const [entries, setEntries] = useState([{ price: 200, percent: 100 }]);
   const [sl, setSl] = useState(185);
-  const [tp, setTp] = useState(230);
+
+  // Multiple Take Profits
+  const [tps, setTps] = useState([{ price: 230, percent: 100 }]);
 
   // Step 3: Leverage
   const [leverage, setLeverage] = useState(10);
 
   const [copied, setCopied] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+
+  // Helper functions for entries
+  const addEntry = () => {
+    setEntries([...entries, { price: 0, percent: 0 }]);
+  };
+
+  const removeEntry = (index: number) => {
+    if (entries.length > 1) {
+      setEntries(entries.filter((_, i) => i !== index));
+    }
+  };
+
+  const updateEntry = (index: number, field: 'price' | 'percent', value: number) => {
+    const newEntries = [...entries];
+    newEntries[index][field] = value;
+    setEntries(newEntries);
+  };
+
+  // Helper functions for TPs
+  const addTp = () => {
+    setTps([...tps, { price: 0, percent: 0 }]);
+  };
+
+  const removeTp = (index: number) => {
+    if (tps.length > 1) {
+      setTps(tps.filter((_, i) => i !== index));
+    }
+  };
+
+  const updateTp = (index: number, field: 'price' | 'percent', value: number) => {
+    const newTps = [...tps];
+    newTps[index][field] = value;
+    setTps(newTps);
+  };
 
   // Load settings on mount
   useEffect(() => {
@@ -81,7 +117,7 @@ export default function Calculator() {
     try {
       await api.updateSettings({
         initial_capital: portfolio,
-        current_r_percent: rPercent,
+        current_r_percent: rPercent / 100, // Convert from percentage to decimal
         default_min_rr: minRR,
         default_leverage: leverage,
       });
@@ -99,30 +135,56 @@ export default function Calculator() {
   let validationErrors: string[] = [];
   let showResults = false;
 
+  // Validate entries and TPs
+  const validEntries = entries.filter(e => e.price > 0);
+  const validTps = tps.filter(tp => tp.price > 0);
+  const totalEntryPercent = validEntries.reduce((sum, e) => sum + e.percent, 0);
+  const totalTpPercent = validTps.reduce((sum, tp) => sum + tp.percent, 0);
+
   try {
-    if (pe && sl && tp && portfolio && rPercent) {
+    if (validEntries.length > 0 && sl && validTps.length > 0 && portfolio && rPercent) {
+      // Check allocations
+      if (Math.abs(totalEntryPercent - 100) > 0.1) {
+        validationErrors.push(`Entry allocation (${totalEntryPercent.toFixed(1)}%) must equal 100%`);
+      }
+      if (Math.abs(totalTpPercent - 100) > 0.1) {
+        validationErrors.push(`TP allocation (${totalTpPercent.toFixed(1)}%) must equal 100%`);
+      }
+
+      // Normalize allocations
+      const normalizedEntries = validEntries.map(e => ({
+        price: e.price,
+        percent: e.percent / totalEntryPercent
+      }));
+
+      const normalizedTps = validTps.map(tp => ({
+        price: tp.price,
+        percent: tp.percent / totalTpPercent
+      }));
+
       metrics = calculateTradeMetrics({
         portfolio,
         rPercent: rPercent / 100,
-        pe,
+        entries: normalizedEntries,
         sl,
-        tps: [{ price: tp, percent: 1 }],
+        tps: normalizedTps,
         leverage,
       });
 
       showResults = true;
 
-      const rrCheck = metrics.tpsWithRR[0].rr >= minRR;
+      const weightedRR = metrics.plannedWeightedRR;
+      const rrCheck = weightedRR >= minRR;
       const leverageCheck = leverage <= metrics.maxLeverage;
 
       if (!rrCheck) {
-        validationErrors.push(`RR ratio (${metrics.tpsWithRR[0].rr.toFixed(2)}) is below minimum (${minRR})`);
+        validationErrors.push(`Weighted RR (${weightedRR.toFixed(2)}) is below minimum (${minRR})`);
       }
       if (!leverageCheck) {
         validationErrors.push(`Leverage (${leverage}x) exceeds max safe leverage (${metrics.maxLeverage}x)`);
       }
 
-      isValid = rrCheck && leverageCheck;
+      isValid = rrCheck && leverageCheck && Math.abs(totalEntryPercent - 100) <= 0.1 && Math.abs(totalTpPercent - 100) <= 0.1;
     }
   } catch (error) {
     console.error('Calculation error:', error);
@@ -152,9 +214,9 @@ export default function Calculator() {
           portfolio,
           rPercent,
           minRR,
-          pe,
+          entries: validEntries,
           sl,
-          tp,
+          tps: validTps,
           leverage,
           metrics,
         },
@@ -284,45 +346,228 @@ export default function Calculator() {
             />
           </div>
         </CardHeader>
-        <CardContent className="space-y-3 pt-0">
-          <div className="grid grid-cols-3 gap-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="pe" className="text-xs">{t('calculator.entry')}</Label>
-              <Input
-                id="pe"
-                type="number"
-                step="0.01"
-                value={pe}
-                onChange={(e) => setPe(Number(e.target.value))}
-                className="h-9 text-sm font-semibold"
-              />
+        <CardContent className="space-y-4 pt-0">
+          {/* Multiple Entries */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-semibold">
+                {t('calculator.entry') || 'Entry Prices'}
+              </Label>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={addEntry}
+                className="h-7 text-xs"
+              >
+                <Plus className="h-3 w-3 mr-1" />
+                Add Entry
+              </Button>
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="sl" className="text-xs">{t('calculator.stopLoss')}</Label>
-              <Input
-                id="sl"
-                type="number"
-                step="0.01"
-                value={sl}
-                onChange={(e) => setSl(Number(e.target.value))}
-                className="h-9 text-sm font-semibold"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="tp" className="text-xs">{t('calculator.takeProfit')}</Label>
-              <Input
-                id="tp"
-                type="number"
-                step="0.01"
-                value={tp}
-                onChange={(e) => setTp(Number(e.target.value))}
-                className="h-9 text-sm font-semibold"
-              />
-            </div>
+
+            {entries.map((entry, index) => (
+              <div key={index} className="p-3 border rounded-lg bg-muted/30 space-y-2">
+                <div className="flex items-center justify-between">
+                  <Badge variant="outline" className="text-xs">Entry {index + 1}</Badge>
+                  {entries.length > 1 && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeEntry(index)}
+                      className="h-6 w-6 p-0"
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  )}
+                </div>
+
+                <div className="grid gap-3 grid-cols-2">
+                  <div>
+                    <Label htmlFor={`entry${index}-price`} className="text-xs">
+                      Price {index === 0 && '*'}
+                    </Label>
+                    <Input
+                      id={`entry${index}-price`}
+                      type="number"
+                      step="0.00000001"
+                      value={entry.price || ''}
+                      onChange={(e) => updateEntry(index, 'price', Number(e.target.value))}
+                      placeholder="0.00"
+                      className="font-mono text-sm h-8"
+                      required={index === 0}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor={`entry${index}-percent`} className="text-xs">
+                      Allocation %
+                    </Label>
+                    <Input
+                      id={`entry${index}-percent`}
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={entry.percent || ''}
+                      onChange={(e) => updateEntry(index, 'percent', Number(e.target.value))}
+                      disabled={!entry.price}
+                      placeholder="0"
+                      className="text-sm h-8"
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            {/* Entry Allocation Summary */}
+            {(() => {
+              const validEntries = entries.filter(e => e.price > 0);
+              const totalPercent = validEntries.reduce((sum, e) => sum + e.percent, 0);
+              const isValid = Math.abs(totalPercent - 100) <= 0.1;
+
+              return validEntries.length > 0 && (
+                <div className={cn(
+                  "p-3 rounded-lg border text-sm",
+                  isValid
+                    ? "bg-green-500/10 border-green-500/30 text-green-700 dark:text-green-400"
+                    : "bg-yellow-500/10 border-yellow-500/30 text-yellow-700 dark:text-yellow-400"
+                )}>
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium">Total Entry Allocation:</span>
+                    <span className="font-bold">{totalPercent.toFixed(1)}%</span>
+                  </div>
+                  {!isValid && (
+                    <p className="text-xs mt-1 opacity-90">Must equal 100%</p>
+                  )}
+                </div>
+              );
+            })()}
+
+            {/* Weighted Average Entry */}
+            {validEntries.length > 1 && (
+              <div className="p-3 bg-blue-50 border border-blue-500/50 rounded-lg">
+                <div className="text-xs text-muted-foreground mb-1">
+                  Weighted Average Entry
+                </div>
+                <div className="text-lg font-bold font-mono">
+                  ${calculateWeightedEntry(validEntries).toFixed(8)}
+                </div>
+              </div>
+            )}
           </div>
 
+          {/* Stop Loss */}
+          <div className="space-y-1.5 pt-3 border-t">
+            <Label htmlFor="sl" className="text-sm font-semibold">{t('calculator.stopLoss')}</Label>
+            <Input
+              id="sl"
+              type="number"
+              step="0.00000001"
+              value={sl}
+              onChange={(e) => setSl(Number(e.target.value))}
+              className="font-mono text-sm h-9"
+              placeholder="0.00"
+            />
+          </div>
+
+          {/* Multiple Take Profits */}
+          <div className="space-y-3 pt-3 border-t">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-semibold">
+                {t('calculator.takeProfit') || 'Take Profit Levels'}
+              </Label>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={addTp}
+                className="h-7 text-xs"
+              >
+                <Plus className="h-3 w-3 mr-1" />
+                Add TP
+              </Button>
+            </div>
+
+            {tps.map((tp, index) => (
+              <div key={index} className="p-3 border rounded-lg bg-muted/30 space-y-2">
+                <div className="flex items-center justify-between">
+                  <Badge variant="outline" className="text-xs">TP {index + 1}</Badge>
+                  {tps.length > 1 && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeTp(index)}
+                      className="h-6 w-6 p-0"
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  )}
+                </div>
+
+                <div className="grid gap-3 grid-cols-2">
+                  <div>
+                    <Label htmlFor={`tp${index}-price`} className="text-xs">
+                      Price {index === 0 && '*'}
+                    </Label>
+                    <Input
+                      id={`tp${index}-price`}
+                      type="number"
+                      step="0.00000001"
+                      value={tp.price || ''}
+                      onChange={(e) => updateTp(index, 'price', Number(e.target.value))}
+                      placeholder="0.00"
+                      className="font-mono text-sm h-8"
+                      required={index === 0}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor={`tp${index}-percent`} className="text-xs">
+                      Allocation %
+                    </Label>
+                    <Input
+                      id={`tp${index}-percent`}
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={tp.percent || ''}
+                      onChange={(e) => updateTp(index, 'percent', Number(e.target.value))}
+                      disabled={!tp.price}
+                      placeholder="0"
+                      className="text-sm h-8"
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            {/* TP Allocation Summary */}
+            {(() => {
+              const validTps = tps.filter(tp => tp.price > 0);
+              const totalPercent = validTps.reduce((sum, tp) => sum + tp.percent, 0);
+              const isValid = Math.abs(totalPercent - 100) <= 0.1;
+
+              return validTps.length > 0 && (
+                <div className={cn(
+                  "p-3 rounded-lg border text-sm",
+                  isValid
+                    ? "bg-green-500/10 border-green-500/30 text-green-700 dark:text-green-400"
+                    : "bg-yellow-500/10 border-yellow-500/30 text-yellow-700 dark:text-yellow-400"
+                )}>
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium">Total TP Allocation:</span>
+                    <span className="font-bold">{totalPercent.toFixed(1)}%</span>
+                  </div>
+                  {!isValid && (
+                    <p className="text-xs mt-1 opacity-90">Must equal 100%</p>
+                  )}
+                </div>
+              );
+            })()}
+          </div>
+
+          {/* Position Info */}
           {metrics && (
-            <div className="flex items-center gap-4 pt-2">
+            <div className="flex items-center gap-4 pt-3 border-t">
               <div className="flex items-center gap-2">
                 <span className="text-xs text-muted-foreground">{t('calculator.positionType')}:</span>
                 <Badge variant={metrics.type === 'LONG' ? 'default' : 'destructive'}>
@@ -488,8 +733,10 @@ export default function Calculator() {
                 </div>
 
                 <div className="space-y-1">
-                  <div className="text-xs text-muted-foreground">RR Ratio</div>
-                  <div className="text-lg font-semibold">{formatRR(metrics.tpsWithRR[0].rr)}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {validTps.length > 1 ? 'Weighted RR' : 'RR Ratio'}
+                  </div>
+                  <div className="text-lg font-semibold">{formatRR(metrics.plannedWeightedRR)}</div>
                 </div>
 
                 <div className="space-y-1">
