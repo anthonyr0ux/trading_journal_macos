@@ -249,9 +249,17 @@ export default function TradeDetail() {
         : undefined;
 
       // Calculate weighted planned PE
-      const weightedPlannedPE = validPlannedEntries.length > 0
-        ? calculateWeightedEntry(validPlannedEntries)
-        : trade.planned_pe;
+      let weightedPlannedPE = trade.planned_pe;
+      if (validPlannedEntries.length > 0) {
+        try {
+          weightedPlannedPE = calculateWeightedEntry(validPlannedEntries);
+        } catch (error) {
+          console.error('Failed to calculate weighted planned PE:', error);
+          toast.error('Invalid planned entry configuration. Please check your entry allocations.');
+          setSaving(false);
+          return;
+        }
+      }
 
       // Prepare planned TPs
       const plannedTpsJson = JSON.stringify(plannedTps);
@@ -263,9 +271,17 @@ export default function TradeDetail() {
         : undefined;
 
       // Calculate weighted effective PE
-      const weightedEffectivePE = validEffectiveEntries.length > 0
-        ? calculateWeightedEntry(validEffectiveEntries)
-        : effectivePe;
+      let weightedEffectivePE = effectivePe;
+      if (validEffectiveEntries.length > 0) {
+        try {
+          weightedEffectivePE = calculateWeightedEntry(validEffectiveEntries);
+        } catch (error) {
+          console.error('Failed to calculate weighted effective PE:', error);
+          toast.error('Invalid effective entry configuration. Please check your filled entry allocations.');
+          setSaving(false);
+          return;
+        }
+      }
 
       // Calculate P&L in R multiples
       const pnlInR = totalPnl !== null && trade.one_r > 0

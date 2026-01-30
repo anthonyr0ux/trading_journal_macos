@@ -126,10 +126,15 @@ export default function TradeNew() {
 
   // Sync plannedPe with weighted entry price for backward compatibility
   useEffect(() => {
-    const validEntries = plannedEntries.filter(e => e.price > 0);
+    const validEntries = plannedEntries.filter(e => e.price > 0 && e.percent > 0);
     if (validEntries.length > 0) {
-      const weighted = calculateWeightedEntry(validEntries);
-      setPlannedPe(weighted);
+      try {
+        const weighted = calculateWeightedEntry(validEntries);
+        setPlannedPe(weighted);
+      } catch (error) {
+        console.error('Failed to calculate weighted entry:', error);
+        // Keep existing plannedPe value on error
+      }
     }
   }, [plannedEntries]);
 
@@ -239,9 +244,17 @@ export default function TradeNew() {
         : undefined;
 
       // Calculate weighted PE for backward compatibility
-      const weightedPE = validEntries.length > 0
-        ? calculateWeightedEntry(validEntries)
-        : plannedPe;
+      let weightedPE = plannedPe;
+      if (validEntries.length > 0) {
+        try {
+          weightedPE = calculateWeightedEntry(validEntries);
+        } catch (error) {
+          console.error('Failed to calculate weighted entry:', error);
+          toast.error('Invalid entry configuration. Please check your entry allocations.');
+          setSaving(false);
+          return;
+        }
+      }
 
       await api.createTrade({
         pair: pair.toUpperCase(),
