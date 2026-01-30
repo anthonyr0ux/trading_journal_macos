@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
@@ -9,11 +9,18 @@ import { Button } from '../components/ui/button';
 import { Textarea } from '../components/ui/textarea';
 import { Badge } from '../components/ui/badge';
 import { api } from '../lib/api';
-import { calculateTradeMetrics } from '../lib/calculations';
+import { calculateTradeMetrics, calculateWeightedEntry } from '../lib/calculations';
 import { formatCurrency, formatRR, cn } from '../lib/utils';
+import { validateAllocation } from '../lib/validations';
 import { ArrowLeft, AlertCircle, Calendar, TrendingUp, Copy, Plus, X } from 'lucide-react';
 import { HelpBadge } from '../components/HelpBadge';
-import { calculateWeightedEntry } from '../lib/calculations';
+import { useEntryManager } from '../hooks/useEntryManager';
+import { WeightedEntryDisplay } from '../components/WeightedEntryDisplay';
+
+type TakeProfit = {
+  price: number;
+  percent: number;
+};
 
 export default function TradeNew() {
   const navigate = useNavigate();
@@ -59,21 +66,35 @@ export default function TradeNew() {
     ];
   });
 
-  // Initialize entries from calculator (supports both old single PE and new multi-PE)
-  const [plannedEntries, setPlannedEntries] = useState(() => {
+  // Initialize entries from calculator (using custom hook)
+  const initialPlannedEntries = (() => {
     if (calculatorData?.entries && Array.isArray(calculatorData.entries)) {
-      // New format: multiple entries from calculator
       return calculatorData.entries.length > 0 ? calculatorData.entries : [{ price: 0, percent: 100 }];
     } else if (calculatorData?.pe) {
-      // Old format: single PE (backward compatibility)
       return [{ price: calculatorData.pe, percent: 100 }];
     }
-    // Default: empty entry
     return [{ price: 0, percent: 100 }];
-  });
+  })();
+
+  const plannedEntriesManager = useEntryManager(initialPlannedEntries);
+  const {
+    entries: plannedEntries,
+    add: addPlannedEntry,
+    remove: removePlannedEntry,
+    update: updatePlannedEntry
+  } = plannedEntriesManager;
+
+  // Effective entries (using custom hook)
+  const effectiveEntriesManager = useEntryManager([{ price: 0, percent: 0 }]);
+  const {
+    entries: effectiveEntries,
+    setEntries: setEffectiveEntries,
+    add: addEffectiveEntry,
+    remove: removeEffectiveEntry,
+    update: updateEffectiveEntry
+  } = effectiveEntriesManager;
 
   // Form state - EXECUTION SECTION
-  const [effectivePe, setEffectivePe] = useState(0);
   const [closeDate, setCloseDate] = useState('');
   const [exits, setExits] = useState([
     { price: 0, percent: 0 },
@@ -82,45 +103,8 @@ export default function TradeNew() {
     { price: 0, percent: 0 },
   ]);
 
-  const [effectiveEntries, setEffectiveEntries] = useState([
-    { price: 0, percent: 0 }
-  ]);
-
   // Unified notes
   const [notes, setNotes] = useState('');
-
-  // Helper functions for managing entries
-  const addPlannedEntry = () => {
-    setPlannedEntries([...plannedEntries, { price: 0, percent: 0 }]);
-  };
-
-  const removePlannedEntry = (index: number) => {
-    if (plannedEntries.length > 1) {
-      setPlannedEntries(plannedEntries.filter((_, i) => i !== index));
-    }
-  };
-
-  const updatePlannedEntry = (index: number, field: 'price' | 'percent', value: number) => {
-    const newEntries = [...plannedEntries];
-    newEntries[index][field] = value;
-    setPlannedEntries(newEntries);
-  };
-
-  const addEffectiveEntry = () => {
-    setEffectiveEntries([...effectiveEntries, { price: 0, percent: 0 }]);
-  };
-
-  const removeEffectiveEntry = (index: number) => {
-    if (effectiveEntries.length > 1) {
-      setEffectiveEntries(effectiveEntries.filter((_, i) => i !== index));
-    }
-  };
-
-  const updateEffectiveEntry = (index: number, field: 'price' | 'percent', value: number) => {
-    const newEntries = [...effectiveEntries];
-    newEntries[index][field] = value;
-    setEffectiveEntries(newEntries);
-  };
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -149,72 +133,70 @@ export default function TradeNew() {
     }
   }, [plannedEntries]);
 
-  // Calculate metrics for plan
-  let planMetrics = null;
-  let planValidation = { valid: false, errors: [] as string[] };
+  // Calculate metrics for plan (memoized for performance)
+  const planCalculation = useMemo(() => {
+    let planMetrics = null;
+    let planValidation = { valid: false, errors: [] as string[] };
 
-  try {
-    // Validate planned entries
-    const validEntries = plannedEntries.filter(e => e.price > 0);
-    const totalEntryPercent = validEntries.reduce((sum, e) => sum + e.percent, 0);
+    try {
+      // Validate planned entries
+      const validEntries = plannedEntries.filter(e => e.price > 0);
+      const entryValidation = validateAllocation(plannedEntries);
 
-    if ((validEntries.length > 0 || plannedPe) && plannedSl && plannedTps.some(tp => tp.price > 0)) {
-      const validTps = plannedTps.filter(tp => tp.price > 0);
-      const totalPercent = validTps.reduce((sum, tp) => sum + tp.percent, 0);
+      if ((validEntries.length > 0 || plannedPe) && plannedSl && plannedTps.some((tp: TakeProfit) => tp.price > 0)) {
+        const validTps = plannedTps.filter((tp: TakeProfit) => tp.price > 0);
+        const tpValidation = validateAllocation(plannedTps);
 
-      planValidation.errors = [];
+        planValidation.errors = [];
 
-      // Validate entries
-      if (validEntries.length === 0 && !plannedPe) {
-        planValidation.errors.push('At least one entry is required');
-      }
-
-      if (validEntries.length > 0 && Math.abs(totalEntryPercent - 100) > 0.1) {
-        planValidation.errors.push(`Entry allocation (${totalEntryPercent.toFixed(1)}%) must equal 100%`);
-      }
-
-      // Validate TPs
-      if (Math.abs(totalPercent - 100) > 0.1) {
-        planValidation.errors.push(`TP allocation (${totalPercent.toFixed(1)}%) must equal 100%`);
-      }
-
-      if (Math.abs(totalPercent - 100) <= 0.1 && (validEntries.length === 0 || Math.abs(totalEntryPercent - 100) <= 0.1)) {
-        const normalizedTps = validTps.map(tp => ({
-          price: tp.price,
-          percent: tp.percent / totalPercent
-        }));
-
-        // Use entries if available, otherwise fall back to single PE
-        const entriesForCalc = validEntries.length > 0 ? validEntries : undefined;
-        const peForCalc = validEntries.length === 0 ? plannedPe : undefined;
-
-        planMetrics = calculateTradeMetrics({
-          portfolio,
-          rPercent: rPercent / 100,
-          entries: entriesForCalc,
-          pe: peForCalc,
-          sl: plannedSl,
-          tps: normalizedTps,
-          leverage,
-        });
-
-        if (planMetrics.plannedWeightedRR < minRR) {
-          planValidation.errors.push(`RR (${planMetrics.plannedWeightedRR.toFixed(2)}) is below minimum (${minRR})`);
+        // Validate entries
+        if (validEntries.length === 0 && !plannedPe) {
+          planValidation.errors.push('At least one entry is required');
         }
-        if (leverage > planMetrics.maxLeverage) {
-          planValidation.errors.push(`Leverage (${leverage}x) exceeds max (${planMetrics.maxLeverage}x)`);
-        }
-      }
 
-      planValidation.valid = planValidation.errors.length === 0;
+        // Add allocation errors from utility
+        planValidation.errors.push(...entryValidation.errors, ...tpValidation.errors);
+
+        if (entryValidation.valid && tpValidation.valid) {
+          const normalizedTps = validTps.map((tp: TakeProfit) => ({
+            price: tp.price,
+            percent: tp.percent / tpValidation.total
+          }));
+
+          // Use entries if available, otherwise fall back to single PE
+          const entriesForCalc = validEntries.length > 0 ? validEntries : undefined;
+          const peForCalc = validEntries.length === 0 ? plannedPe : undefined;
+
+          planMetrics = calculateTradeMetrics({
+            portfolio,
+            rPercent: rPercent / 100,
+            entries: entriesForCalc,
+            pe: peForCalc,
+            sl: plannedSl,
+            tps: normalizedTps,
+            leverage,
+          });
+
+          if (planMetrics.plannedWeightedRR < minRR) {
+            planValidation.errors.push(`RR (${planMetrics.plannedWeightedRR.toFixed(2)}) is below minimum (${minRR})`);
+          }
+          if (leverage > planMetrics.maxLeverage) {
+            planValidation.errors.push(`Leverage (${leverage}x) exceeds max (${planMetrics.maxLeverage}x)`);
+          }
+        }
+
+        planValidation.valid = planValidation.errors.length === 0;
+      }
+    } catch (error) {
+      console.error('Calculation error:', error);
     }
-  } catch (error) {
-    console.error('Calculation error:', error);
-  }
+
+    return { planMetrics, planValidation };
+  }, [plannedEntries, plannedPe, plannedSl, plannedTps, portfolio, rPercent, minRR, leverage]);
+
+  const { planMetrics, planValidation } = planCalculation;
 
   const handleCopyPlanToExecution = () => {
-    setEffectivePe(plannedPe);
-
     // Copy entries
     const copiedEntries = plannedEntries.map(e => ({
       price: e.price,
@@ -223,7 +205,7 @@ export default function TradeNew() {
     setEffectiveEntries(copiedEntries);
 
     // Copy TPs to exits with same structure
-    const copiedExits = plannedTps.map(tp => ({
+    const copiedExits = plannedTps.map((tp: TakeProfit) => ({
       price: tp.price,
       percent: tp.percent
     }));
@@ -516,16 +498,10 @@ export default function TradeNew() {
                   })()}
 
                   {/* Weighted Average Display */}
-                  {plannedEntries.filter(e => e.price > 0).length > 1 && (
-                    <div className="p-3 bg-blue-50 border border-blue-500/50 rounded-lg">
-                      <div className="text-xs text-muted-foreground mb-1">
-                        {t('tradeNew.weightedAverageEntry')}
-                      </div>
-                      <div className="text-lg font-bold font-mono text-gray-900">
-                        ${calculateWeightedEntry(plannedEntries).toFixed(8)}
-                      </div>
-                    </div>
-                  )}
+                  <WeightedEntryDisplay
+                    entries={plannedEntries}
+                    label={t('tradeNew.weightedAverageEntry')}
+                  />
                 </div>
 
                 {/* Stop Loss & Leverage */}
@@ -588,7 +564,7 @@ export default function TradeNew() {
               {/* Planned Take Profits */}
               <div className="space-y-3 pt-3 border-t">
                 <div className="text-sm font-semibold">{t('tradeNew.plannedTakeProfits')}</div>
-                {plannedTps.map((tp, index) => (
+                {plannedTps.map((tp: TakeProfit, index: number) => (
                   <div key={index} className="grid gap-3 grid-cols-2">
                     <div className="space-y-1">
                       <Label htmlFor={`tp${index}-price`} className="text-xs">
@@ -795,16 +771,10 @@ export default function TradeNew() {
                 })()}
 
                 {/* Weighted Average Display for Effective Entries */}
-                {effectiveEntries.filter(e => e.price > 0).length > 1 && (
-                  <div className="p-3 bg-blue-50 border border-blue-500/50 rounded-lg">
-                    <div className="text-xs text-muted-foreground mb-1">
-                      Weighted Avg Effective Entry
-                    </div>
-                    <div className="text-lg font-bold font-mono text-gray-900">
-                      ${calculateWeightedEntry(effectiveEntries).toFixed(8)}
-                    </div>
-                  </div>
-                )}
+                <WeightedEntryDisplay
+                  entries={effectiveEntries}
+                  label="Weighted Avg Effective Entry"
+                />
               </div>
 
               {/* Close Date */}

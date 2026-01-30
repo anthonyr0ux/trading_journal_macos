@@ -7,7 +7,7 @@ import { Card, CardContent } from '../components/ui/card';
 import { Input } from '../components/ui/input';
 import { Badge } from '../components/ui/badge';
 import { formatCurrency, formatRR, getDateRangeTimestamp, type DateRange } from '../lib/utils';
-import { calculateExecutionMetrics, calculateWeightedEntry } from '../lib/calculations';
+import { calculateExecutionMetrics } from '../lib/calculations';
 import { Plus, Eye, Calendar, Search } from 'lucide-react';
 import { HelpBadge } from '../components/HelpBadge';
 
@@ -297,7 +297,7 @@ export default function Journal() {
 
                     {/* P&L in R (calculated live) */}
                     {(() => {
-                      const pnlInR = trade.status !== 'OPEN' && trade.total_pnl !== null && trade.one_r > 0
+                      const pnlInR = trade.status !== 'OPEN' && trade.total_pnl != null && trade.one_r > 0
                         ? trade.total_pnl / trade.one_r
                         : null;
 

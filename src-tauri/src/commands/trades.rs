@@ -3,6 +3,43 @@ use crate::db::Database;
 use crate::models::{Trade, CreateTradeInput, TradeFilters};
 use chrono::Utc;
 
+/// Helper function to map a database row to a Trade struct
+fn map_row_to_trade(row: &rusqlite::Row) -> rusqlite::Result<Trade> {
+    Ok(Trade {
+        id: row.get(0)?,
+        pair: row.get(1)?,
+        exchange: row.get(2)?,
+        analysis_date: row.get(3)?,
+        trade_date: row.get(4)?,
+        status: row.get(5)?,
+        portfolio_value: row.get(6)?,
+        r_percent: row.get(7)?,
+        min_rr: row.get(8)?,
+        planned_pe: row.get(9)?,
+        planned_sl: row.get(10)?,
+        leverage: row.get(11)?,
+        planned_tps: row.get(12)?,
+        planned_entries: row.get(13)?,
+        position_type: row.get(14)?,
+        one_r: row.get(15)?,
+        margin: row.get(16)?,
+        position_size: row.get(17)?,
+        quantity: row.get(18)?,
+        planned_weighted_rr: row.get(19)?,
+        effective_pe: row.get(20)?,
+        effective_entries: row.get(21)?,
+        close_date: row.get(22)?,
+        exits: row.get(23)?,
+        effective_weighted_rr: row.get(24)?,
+        total_pnl: row.get(25)?,
+        pnl_in_r: row.get(26)?,
+        notes: row.get(27)?,
+        import_fingerprint: row.get(28)?,
+        created_at: row.get(29)?,
+        updated_at: row.get(30)?,
+    })
+}
+
 #[tauri::command]
 pub async fn get_trades(
     db: State<'_, Database>,
@@ -52,41 +89,8 @@ pub async fn get_trades(
 
     let param_refs: Vec<&dyn rusqlite::ToSql> = params.iter().map(|p| p.as_ref()).collect();
     let mut stmt = conn.prepare(&query).map_err(|e| e.to_string())?;
-    let trades_iter = stmt.query_map(param_refs.as_slice(), |row| {
-        Ok(Trade {
-            id: row.get(0)?,
-            pair: row.get(1)?,
-            exchange: row.get(2)?,
-            analysis_date: row.get(3)?,
-            trade_date: row.get(4)?,
-            status: row.get(5)?,
-            portfolio_value: row.get(6)?,
-            r_percent: row.get(7)?,
-            min_rr: row.get(8)?,
-            planned_pe: row.get(9)?,
-            planned_sl: row.get(10)?,
-            leverage: row.get(11)?,
-            planned_tps: row.get(12)?,
-            planned_entries: row.get(13)?,
-            position_type: row.get(14)?,
-            one_r: row.get(15)?,
-            margin: row.get(16)?,
-            position_size: row.get(17)?,
-            quantity: row.get(18)?,
-            planned_weighted_rr: row.get(19)?,
-            effective_pe: row.get(20)?,
-            effective_entries: row.get(21)?,
-            close_date: row.get(22)?,
-            exits: row.get(23)?,
-            effective_weighted_rr: row.get(24)?,
-            total_pnl: row.get(25)?,
-            pnl_in_r: row.get(26)?,
-            notes: row.get(27)?,
-            import_fingerprint: row.get(28)?,
-            created_at: row.get(29)?,
-            updated_at: row.get(30)?,
-        })
-    }).map_err(|e| e.to_string())?;
+    let trades_iter = stmt.query_map(param_refs.as_slice(), map_row_to_trade)
+        .map_err(|e| e.to_string())?;
 
     let trades: Result<Vec<Trade>, _> = trades_iter.collect();
     trades.map_err(|e| e.to_string())
@@ -102,41 +106,7 @@ pub async fn get_trade(
     let trade = conn.query_row(
         "SELECT * FROM trades WHERE id = ?",
         [&id],
-        |row| {
-            Ok(Trade {
-                id: row.get(0)?,
-                pair: row.get(1)?,
-                exchange: row.get(2)?,
-                analysis_date: row.get(3)?,
-                trade_date: row.get(4)?,
-                status: row.get(5)?,
-                portfolio_value: row.get(6)?,
-                r_percent: row.get(7)?,
-                min_rr: row.get(8)?,
-                planned_pe: row.get(9)?,
-                planned_sl: row.get(10)?,
-                leverage: row.get(11)?,
-                planned_tps: row.get(12)?,
-                planned_entries: row.get(13)?,
-                position_type: row.get(14)?,
-                one_r: row.get(15)?,
-                margin: row.get(16)?,
-                position_size: row.get(17)?,
-                quantity: row.get(18)?,
-                planned_weighted_rr: row.get(19)?,
-                effective_pe: row.get(20)?,
-                effective_entries: row.get(21)?,
-                close_date: row.get(22)?,
-                exits: row.get(23)?,
-                effective_weighted_rr: row.get(24)?,
-                total_pnl: row.get(25)?,
-                pnl_in_r: row.get(26)?,
-                notes: row.get(27)?,
-                import_fingerprint: row.get(28)?,
-                created_at: row.get(29)?,
-                updated_at: row.get(30)?,
-            })
-        },
+        map_row_to_trade,
     ).map_err(|e| e.to_string())?;
 
     Ok(trade)
@@ -228,9 +198,9 @@ pub async fn update_trade(
             updates.push("pnl_in_r = ?");
             values.push(Box::new(pnl_in_r));
         }
-        if let Some(effective_rr) = trade_update.get("effective_rr").and_then(|v| v.as_f64()) {
+        if let Some(effective_weighted_rr) = trade_update.get("effective_weighted_rr").and_then(|v| v.as_f64()) {
             updates.push("effective_weighted_rr = ?");
-            values.push(Box::new(effective_rr));
+            values.push(Box::new(effective_weighted_rr));
         }
         if let Some(notes) = trade_update.get("notes").and_then(|v| v.as_str()) {
             updates.push("notes = ?");

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
@@ -8,11 +8,14 @@ import { Label } from '../components/ui/label';
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
 import { Copy, Check, AlertCircle, Save, HelpCircle, ArrowRight, Plus, X } from 'lucide-react';
-import { calculateTradeMetrics, calculateWeightedEntry } from '../lib/calculations';
+import { calculateTradeMetrics } from '../lib/calculations';
 import { formatCurrency, formatPercent, formatRR, cn } from '../lib/utils';
+import { validateAllocation } from '../lib/validations';
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
 import { api } from '../lib/api';
 import { HelpBadge } from '../components/HelpBadge';
+import { useEntryManager } from '../hooks/useEntryManager';
+import { WeightedEntryDisplay } from '../components/WeightedEntryDisplay';
 
 // Help tooltips component
 const HelpTooltip = ({ title, content }: { title: string; content: string | React.ReactNode }) => {
@@ -48,52 +51,21 @@ export default function Calculator() {
   const [rPercent, setRPercent] = useState(2);
   const [minRR, setMinRR] = useState(2);
 
-  // Step 2: Trade Setup - Multiple Entries
-  const [entries, setEntries] = useState([{ price: 200, percent: 100 }]);
+  // Step 2: Trade Setup - Multiple Entries (using custom hook)
+  const entriesManager = useEntryManager([{ price: 200, percent: 100 }]);
+  const { entries, add: addEntry, remove: removeEntry, update: updateEntry } = entriesManager;
+
   const [sl, setSl] = useState(185);
 
-  // Multiple Take Profits
-  const [tps, setTps] = useState([{ price: 230, percent: 100 }]);
+  // Multiple Take Profits (using custom hook)
+  const tpsManager = useEntryManager([{ price: 230, percent: 100 }]);
+  const { entries: tps, add: addTp, remove: removeTp, update: updateTp } = tpsManager;
 
   // Step 3: Leverage
   const [leverage, setLeverage] = useState(10);
 
   const [copied, setCopied] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-
-  // Helper functions for entries
-  const addEntry = () => {
-    setEntries([...entries, { price: 0, percent: 0 }]);
-  };
-
-  const removeEntry = (index: number) => {
-    if (entries.length > 1) {
-      setEntries(entries.filter((_, i) => i !== index));
-    }
-  };
-
-  const updateEntry = (index: number, field: 'price' | 'percent', value: number) => {
-    const newEntries = [...entries];
-    newEntries[index][field] = value;
-    setEntries(newEntries);
-  };
-
-  // Helper functions for TPs
-  const addTp = () => {
-    setTps([...tps, { price: 0, percent: 0 }]);
-  };
-
-  const removeTp = (index: number) => {
-    if (tps.length > 1) {
-      setTps(tps.filter((_, i) => i !== index));
-    }
-  };
-
-  const updateTp = (index: number, field: 'price' | 'percent', value: number) => {
-    const newTps = [...tps];
-    newTps[index][field] = value;
-    setTps(newTps);
-  };
 
   // Load settings on mount
   useEffect(() => {
@@ -130,65 +102,68 @@ export default function Calculator() {
     }
   };
 
-  let metrics = null;
-  let isValid = false;
-  let validationErrors: string[] = [];
-  let showResults = false;
+  // Memoized calculations for performance
+  const calculationResult = useMemo(() => {
+    let metrics = null;
+    let isValid = false;
+    let validationErrors: string[] = [];
+    let showResults = false;
 
-  // Validate entries and TPs
-  const validEntries = entries.filter(e => e.price > 0);
-  const validTps = tps.filter(tp => tp.price > 0);
-  const totalEntryPercent = validEntries.reduce((sum, e) => sum + e.percent, 0);
-  const totalTpPercent = validTps.reduce((sum, tp) => sum + tp.percent, 0);
+    // Validate entries and TPs using utility function
+    const validEntries = entries.filter(e => e.price > 0);
+    const validTps = tps.filter(tp => tp.price > 0);
 
-  try {
-    if (validEntries.length > 0 && sl && validTps.length > 0 && portfolio && rPercent) {
-      // Check allocations
-      if (Math.abs(totalEntryPercent - 100) > 0.1) {
-        validationErrors.push(`Entry allocation (${totalEntryPercent.toFixed(1)}%) must equal 100%`);
+    const entryValidation = validateAllocation(entries);
+    const tpValidation = validateAllocation(tps);
+
+    try {
+      if (validEntries.length > 0 && sl && validTps.length > 0 && portfolio && rPercent) {
+        // Add validation errors
+        validationErrors.push(...entryValidation.errors, ...tpValidation.errors);
+
+        // Normalize allocations
+        const normalizedEntries = validEntries.map(e => ({
+          price: e.price,
+          percent: e.percent / entryValidation.total
+        }));
+
+        const normalizedTps = validTps.map(tp => ({
+          price: tp.price,
+          percent: tp.percent / tpValidation.total
+        }));
+
+        metrics = calculateTradeMetrics({
+          portfolio,
+          rPercent: rPercent / 100,
+          entries: normalizedEntries,
+          sl,
+          tps: normalizedTps,
+          leverage,
+        });
+
+        showResults = true;
+
+        const weightedRR = metrics.plannedWeightedRR;
+        const rrCheck = weightedRR >= minRR;
+        const leverageCheck = leverage <= metrics.maxLeverage;
+
+        if (!rrCheck) {
+          validationErrors.push(`Weighted RR (${weightedRR.toFixed(2)}) is below minimum (${minRR})`);
+        }
+        if (!leverageCheck) {
+          validationErrors.push(`Leverage (${leverage}x) exceeds max safe leverage (${metrics.maxLeverage}x)`);
+        }
+
+        isValid = rrCheck && leverageCheck && entryValidation.valid && tpValidation.valid;
       }
-      if (Math.abs(totalTpPercent - 100) > 0.1) {
-        validationErrors.push(`TP allocation (${totalTpPercent.toFixed(1)}%) must equal 100%`);
-      }
-
-      // Normalize allocations
-      const normalizedEntries = validEntries.map(e => ({
-        price: e.price,
-        percent: e.percent / totalEntryPercent
-      }));
-
-      const normalizedTps = validTps.map(tp => ({
-        price: tp.price,
-        percent: tp.percent / totalTpPercent
-      }));
-
-      metrics = calculateTradeMetrics({
-        portfolio,
-        rPercent: rPercent / 100,
-        entries: normalizedEntries,
-        sl,
-        tps: normalizedTps,
-        leverage,
-      });
-
-      showResults = true;
-
-      const weightedRR = metrics.plannedWeightedRR;
-      const rrCheck = weightedRR >= minRR;
-      const leverageCheck = leverage <= metrics.maxLeverage;
-
-      if (!rrCheck) {
-        validationErrors.push(`Weighted RR (${weightedRR.toFixed(2)}) is below minimum (${minRR})`);
-      }
-      if (!leverageCheck) {
-        validationErrors.push(`Leverage (${leverage}x) exceeds max safe leverage (${metrics.maxLeverage}x)`);
-      }
-
-      isValid = rrCheck && leverageCheck && Math.abs(totalEntryPercent - 100) <= 0.1 && Math.abs(totalTpPercent - 100) <= 0.1;
+    } catch (error) {
+      console.error('Calculation error:', error);
     }
-  } catch (error) {
-    console.error('Calculation error:', error);
-  }
+
+    return { metrics, isValid, validationErrors, showResults, validEntries, validTps };
+  }, [entries, tps, sl, portfolio, rPercent, minRR, leverage]);
+
+  const { metrics, isValid, validationErrors, showResults, validEntries, validTps } = calculationResult;
 
   const handleCopy = async (text: string, field: string) => {
     try {
@@ -443,16 +418,7 @@ export default function Calculator() {
             })()}
 
             {/* Weighted Average Entry */}
-            {validEntries.length > 1 && (
-              <div className="p-3 bg-blue-50 border border-blue-500/50 rounded-lg">
-                <div className="text-xs text-muted-foreground mb-1">
-                  Weighted Average Entry
-                </div>
-                <div className="text-lg font-bold font-mono">
-                  ${calculateWeightedEntry(validEntries).toFixed(8)}
-                </div>
-              </div>
-            )}
+            <WeightedEntryDisplay entries={validEntries} />
           </div>
 
           {/* Stop Loss */}

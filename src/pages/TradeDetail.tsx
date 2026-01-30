@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
@@ -14,13 +14,10 @@ import { calculateExecutionMetrics, calculateWeightedEntry } from '../lib/calcul
 import { formatCurrency, formatRR, formatPercent, cn } from '../lib/utils';
 import { ArrowLeft, Copy, Trash2, AlertCircle, TrendingUp, TrendingDown, Calendar, DollarSign, Plus, X } from 'lucide-react';
 import { HelpBadge } from '../components/HelpBadge';
+import { useEntryManager } from '../hooks/useEntryManager';
+import { WeightedEntryDisplay } from '../components/WeightedEntryDisplay';
 
 type Exit = {
-  price: number;
-  percent: number;
-};
-
-type Entry = {
   price: number;
   percent: number;
 };
@@ -33,9 +30,24 @@ export default function TradeDetail() {
   const [saving, setSaving] = useState(false);
   const [trade, setTrade] = useState<Trade | null>(null);
 
-  // Entry states
-  const [plannedEntries, setPlannedEntries] = useState<Entry[]>([]);
-  const [effectiveEntries, setEffectiveEntries] = useState<Entry[]>([]);
+  // Entry states (using custom hooks)
+  const plannedEntriesManager = useEntryManager([]);
+  const {
+    entries: plannedEntries,
+    setEntries: setPlannedEntries,
+    add: addPlannedEntry,
+    remove: removePlannedEntry,
+    update: updatePlannedEntry
+  } = plannedEntriesManager;
+
+  const effectiveEntriesManager = useEntryManager([]);
+  const {
+    entries: effectiveEntries,
+    setEntries: setEffectiveEntries,
+    add: addEffectiveEntry,
+    remove: removeEffectiveEntry,
+    update: updateEffectiveEntry
+  } = effectiveEntriesManager;
 
   // Editable plan fields
   const [plannedSl, setPlannedSl] = useState(0);
@@ -48,40 +60,6 @@ export default function TradeDetail() {
   const [closeDate, setCloseDate] = useState('');
   const [notes, setNotes] = useState('');
   const [manualBE, setManualBE] = useState(false);
-
-  // Helper functions for managing planned entries
-  const addPlannedEntry = () => {
-    setPlannedEntries([...plannedEntries, { price: 0, percent: 0 }]);
-  };
-
-  const removePlannedEntry = (index: number) => {
-    if (plannedEntries.length > 1) {
-      setPlannedEntries(plannedEntries.filter((_, i) => i !== index));
-    }
-  };
-
-  const updatePlannedEntry = (index: number, field: 'price' | 'percent', value: number) => {
-    const newEntries = [...plannedEntries];
-    newEntries[index][field] = value;
-    setPlannedEntries(newEntries);
-  };
-
-  // Helper functions for managing effective entries
-  const addEffectiveEntry = () => {
-    setEffectiveEntries([...effectiveEntries, { price: 0, percent: 0 }]);
-  };
-
-  const removeEffectiveEntry = (index: number) => {
-    if (effectiveEntries.length > 1) {
-      setEffectiveEntries(effectiveEntries.filter((_, i) => i !== index));
-    }
-  };
-
-  const updateEffectiveEntry = (index: number, field: 'price' | 'percent', value: number) => {
-    const newEntries = [...effectiveEntries];
-    newEntries[index][field] = value;
-    setEffectiveEntries(newEntries);
-  };
 
   useEffect(() => {
     if (id) {
@@ -385,34 +363,38 @@ export default function TradeDetail() {
     return <div className="text-destructive">{t('tradeDetail.notFound')}</div>;
   }
 
-  // Calculate current metrics
-  const validExits = exits.filter(e => e.price > 0);
-  const totalExitPercent = validExits.reduce((sum, e) => sum + e.percent, 0);
-  let executionMetrics = null;
-  let executionValid = false;
+  // Calculate current metrics (memoized)
+  const { executionMetrics, executionValid, validExits, totalExitPercent } = useMemo(() => {
+    const validExits = exits.filter(e => e.price > 0);
+    const totalExitPercent = validExits.reduce((sum, e) => sum + e.percent, 0);
+    let executionMetrics = null;
+    let executionValid = false;
 
-  if (validExits.length > 0 && totalExitPercent > 0) {
-    const normalizedExits = validExits.map(e => ({
-      price: e.price,
-      percent: e.percent / 100,
-    }));
+    if (validExits.length > 0 && totalExitPercent > 0) {
+      const normalizedExits = validExits.map(e => ({
+        price: e.price,
+        percent: e.percent / 100,
+      }));
 
-    // Use effective entries if available (multi-PE), otherwise fall back to single PE
-    const validEffectiveEntries = effectiveEntries.filter(e => e.price > 0);
-    const entriesForCalc = validEffectiveEntries.length > 0 ? validEffectiveEntries : undefined;
+      // Use effective entries if available (multi-PE), otherwise fall back to single PE
+      const validEffectiveEntries = effectiveEntries.filter(e => e.price > 0);
+      const entriesForCalc = validEffectiveEntries.length > 0 ? validEffectiveEntries : undefined;
 
-    executionMetrics = calculateExecutionMetrics({
-      entries: entriesForCalc,
-      pe: entriesForCalc ? undefined : effectivePe,
-      sl: trade.planned_sl,
-      exits: normalizedExits,
-      oneR: trade.one_r,
-      positionSize: trade.position_size,
-      type: trade.position_type,
-    });
+      executionMetrics = calculateExecutionMetrics({
+        entries: entriesForCalc,
+        pe: entriesForCalc ? undefined : effectivePe,
+        sl: trade.planned_sl,
+        exits: normalizedExits,
+        oneR: trade.one_r,
+        positionSize: trade.position_size,
+        type: trade.position_type,
+      });
 
-    executionValid = true;
-  }
+      executionValid = true;
+    }
+
+    return { executionMetrics, executionValid, validExits, totalExitPercent };
+  }, [exits, effectiveEntries, effectivePe, trade.planned_sl, trade.one_r, trade.position_size, trade.position_type]);
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
@@ -618,16 +600,10 @@ export default function TradeDetail() {
                 ))}
 
                 {/* Weighted Average (only show if multiple entries) */}
-                {plannedEntries.length > 1 && (
-                  <div className="p-3 bg-muted rounded-lg mt-2">
-                    <div className="text-xs text-muted-foreground">
-                      {t('tradeDetail.weightedEntry') || 'Weighted Avg Entry'}
-                    </div>
-                    <div className="text-lg font-bold font-mono text-foreground">
-                      ${calculateWeightedEntry(plannedEntries).toFixed(8)}
-                    </div>
-                  </div>
-                )}
+                <WeightedEntryDisplay
+                  entries={plannedEntries}
+                  label={t('tradeDetail.weightedEntry') || 'Weighted Avg Entry'}
+                />
               </div>
 
               {/* Stop Loss & Leverage - Editable */}
@@ -847,16 +823,10 @@ export default function TradeDetail() {
                 })()}
 
                 {/* Weighted Average Display for Effective Entries */}
-                {effectiveEntries.filter(e => e.price > 0).length > 1 && (
-                  <div className="p-3 bg-blue-50 border border-blue-500/50 rounded-lg">
-                    <div className="text-xs text-muted-foreground mb-1">
-                      Weighted Avg Effective Entry
-                    </div>
-                    <div className="text-lg font-bold font-mono text-gray-900">
-                      ${calculateWeightedEntry(effectiveEntries).toFixed(8)}
-                    </div>
-                  </div>
-                )}
+                <WeightedEntryDisplay
+                  entries={effectiveEntries}
+                  label="Weighted Avg Effective Entry"
+                />
               </div>
 
               {/* Exit Points */}

@@ -91,6 +91,25 @@ export type CalculatorFormValues = z.infer<typeof calculatorFormSchema>;
 export type SettingsFormValues = z.infer<typeof settingsSchema>;
 
 /**
+ * Validate entry or TP allocations sum to 100%
+ */
+export function validateAllocation(
+  entries: Array<{ price: number; percent: number }>,
+  tolerance = 0.1
+): { valid: boolean; total: number; errors: string[] } {
+  const validEntries = entries.filter(e => e.price > 0);
+  const total = validEntries.reduce((sum, e) => sum + e.percent, 0);
+  const valid = Math.abs(total - 100) <= tolerance;
+
+  const errors: string[] = [];
+  if (!valid && validEntries.length > 0) {
+    errors.push(`Allocation (${total.toFixed(1)}%) must equal 100%`);
+  }
+
+  return { valid, total, errors };
+}
+
+/**
  * Validate trade before submission
  */
 export function validateTrade(trade: {
