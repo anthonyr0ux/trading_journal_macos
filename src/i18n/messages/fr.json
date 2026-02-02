@@ -630,6 +630,6 @@
     "privacyNoteContent": "Vos données sont 100% privées et sécurisées.\n• Toutes les données stockées localement sur votre appareil\n• Pas de sync cloud ou serveurs externes\n• Identifiants API stockés dans le trousseau système (Keychain sur macOS, Credential Manager sur Windows)\n• Utilisez des clés API en lecture seule pour les exchanges\n• Sauvegardes régulières recommandées",
 
     "contactNote": "Contact & Support",
-    "contactNoteContent": "Besoin d'aide ou vous avez une question ?\n• Pour toute question ou signalement d'erreur\n• Contactez-nous sur Telegram : @N0mad832\n• Nous sommes là pour vous aider !"
+    "contactNoteContent": "Besoin d'aide ou vous avez une question ?\n• Pour toute question ou signalement d'erreur\n• Contactez-moi sur Telegram : @N0mad832\n• Je suis là pour vous aider !"
   }
 }

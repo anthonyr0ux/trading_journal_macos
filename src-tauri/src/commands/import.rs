@@ -397,8 +397,9 @@ pub async fn export_all_data(db: State<'_, Database>) -> Result<String, String> 
                 pnl_in_r: row.get(26).ok(),
                 notes: row.get(27)?,
                 import_fingerprint: row.get(28).ok(),
-                created_at: row.get(29)?,
-                updated_at: row.get(30)?,
+                import_source: row.get(29)?,
+                created_at: row.get(30)?,
+                updated_at: row.get(31)?,
             })
         })
         .map_err(|e| e.to_string())?

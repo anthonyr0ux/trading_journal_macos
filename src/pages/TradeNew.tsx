@@ -338,6 +338,7 @@ export default function TradeNew() {
                       value={pair}
                       onChange={(e) => setPair(e.target.value)}
                       placeholder={t('tradeNew.pairPlaceholder')}
+                      className={!pair ? 'field-required' : ''}
                       required
                     />
                   </div>
@@ -348,6 +349,7 @@ export default function TradeNew() {
                       value={exchange}
                       onChange={(e) => setExchange(e.target.value)}
                       placeholder={t('tradeNew.exchangePlaceholder')}
+                      className={!exchange ? 'field-required' : ''}
                       required
                     />
                   </div>
@@ -463,7 +465,7 @@ export default function TradeNew() {
                             value={entry.price || ''}
                             onChange={(e) => updatePlannedEntry(index, 'price', Number(e.target.value))}
                             placeholder="0.00"
-                            className="font-mono text-sm"
+                            className={`font-mono text-sm ${index === 0 && !entry.price ? 'field-required' : ''}`}
                             required={index === 0}
                           />
                         </div>
@@ -527,7 +529,7 @@ export default function TradeNew() {
                       step="0.00000001"
                       value={plannedSl || ''}
                       onChange={(e) => setPlannedSl(Number(e.target.value))}
-                      className="font-mono text-sm"
+                      className={`font-mono text-sm ${!plannedSl ? 'field-required' : ''}`}
                       placeholder={t('tradeNew.pricePlaceholder')}
                       required
                     />
@@ -594,7 +596,7 @@ export default function TradeNew() {
                           setPlannedTps(newTps);
                         }}
                         placeholder={t('tradeNew.pricePlaceholder')}
-                        className="font-mono text-sm"
+                        className={`font-mono text-sm ${index === 0 && !tp.price ? 'field-required' : ''}`}
                         required={index === 0}
                       />
                     </div>

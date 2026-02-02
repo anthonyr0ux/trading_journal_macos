@@ -200,7 +200,7 @@ export default function Calculator() {
   };
 
   return (
-    <div className="space-y-4 max-w-4xl mx-auto">
+    <div className="space-y-4 max-w-7xl">
       <div>
         <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
           {t('calculator.title') || 'Position Calculator'}
@@ -369,7 +369,7 @@ export default function Calculator() {
                       value={entry.price || ''}
                       onChange={(e) => updateEntry(index, 'price', Number(e.target.value))}
                       placeholder="0.00"
-                      className="font-mono text-sm h-8"
+                      className={`font-mono text-sm h-8 ${index === 0 && !entry.price ? 'field-required' : ''}`}
                       required={index === 0}
                     />
                   </div>
@@ -430,7 +430,7 @@ export default function Calculator() {
               step="0.00000001"
               value={sl}
               onChange={(e) => setSl(Number(e.target.value))}
-              className="font-mono text-sm h-9"
+              className={`font-mono text-sm h-9 ${!sl ? 'field-required' : ''}`}
               placeholder="0.00"
             />
           </div>
@@ -482,7 +482,7 @@ export default function Calculator() {
                       value={tp.price || ''}
                       onChange={(e) => updateTp(index, 'price', Number(e.target.value))}
                       placeholder="0.00"
-                      className="font-mono text-sm h-8"
+                      className={`font-mono text-sm h-8 ${index === 0 && !tp.price ? 'field-required' : ''}`}
                       required={index === 0}
                     />
                   </div>
