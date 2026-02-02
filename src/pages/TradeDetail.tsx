@@ -180,8 +180,9 @@ export default function TradeDetail() {
           const validEffectiveEntries = effectiveEntries.filter(e => e.price > 0);
           const entriesForCalc = validEffectiveEntries.length > 0 ? validEffectiveEntries : undefined;
 
+          let metrics;
           try {
-            const metrics = calculateExecutionMetrics({
+            metrics = calculateExecutionMetrics({
               entries: entriesForCalc,
               pe: entriesForCalc ? undefined : effectivePe,
               sl: trade.planned_sl,
@@ -193,32 +194,32 @@ export default function TradeDetail() {
 
             totalPnl = metrics.totalPnl;
             effectiveRR = metrics.effectiveRR;
+
+            // Auto-uncheck BE if P&L is not near zero (has significant profit/loss)
+            if (manualBE && Math.abs(metrics.totalPnl) >= 1.0) {
+              setManualBE(false);
+            }
+
+            // Determine status based on P&L (with manual BE override for edge cases)
+            // Status is ALWAYS recalculated based on current execution data
+            if (Math.abs(metrics.totalPnl) < 0.5) {
+              // P&L is near zero - this is break-even
+              newStatus = 'BE';
+            } else if (metrics.totalPnl > 0) {
+              newStatus = 'WIN';
+            } else {
+              newStatus = 'LOSS';
+            }
+
+            // Manual BE override: only if user explicitly wants BE despite small profit/loss
+            if (manualBE && Math.abs(metrics.totalPnl) < 1.0) {
+              newStatus = 'BE';
+            }
           } catch (error) {
             console.error('Failed to calculate execution metrics:', error);
             toast.error('Failed to calculate execution metrics. Please check your entry and exit configuration.');
             setSaving(false);
             return;
-          }
-
-          // Auto-uncheck BE if P&L is not near zero (has significant profit/loss)
-          if (manualBE && Math.abs(metrics.totalPnl) >= 1.0) {
-            setManualBE(false);
-          }
-
-          // Determine status based on P&L (with manual BE override for edge cases)
-          // Status is ALWAYS recalculated based on current execution data
-          if (Math.abs(metrics.totalPnl) < 0.5) {
-            // P&L is near zero - this is break-even
-            newStatus = 'BE';
-          } else if (metrics.totalPnl > 0) {
-            newStatus = 'WIN';
-          } else {
-            newStatus = 'LOSS';
-          }
-
-          // Manual BE override: only if user explicitly wants BE despite small profit/loss
-          if (manualBE && Math.abs(metrics.totalPnl) < 1.0) {
-            newStatus = 'BE';
           }
         } else if (totalExitPercent > 0) {
           // Partial exit
