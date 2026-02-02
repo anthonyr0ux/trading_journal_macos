@@ -624,17 +624,17 @@ fn insert_trade_in_tx(tx: &rusqlite::Transaction, trade: &Trade) -> Result<(), r
         "INSERT INTO trades (
             id, pair, exchange, analysis_date, trade_date, status,
             portfolio_value, r_percent, min_rr,
-            planned_pe, planned_sl, leverage, planned_tps,
+            planned_pe, planned_sl, leverage, planned_tps, planned_entries,
             position_type, one_r, margin, position_size, quantity, planned_weighted_rr,
-            effective_pe, close_date, exits,
+            effective_pe, effective_entries, close_date, exits,
             effective_weighted_rr, total_pnl, pnl_in_r,
             notes, import_fingerprint, import_source, created_at, updated_at
         ) VALUES (
             ?, ?, ?, ?, ?, ?,
             ?, ?, ?,
-            ?, ?, ?, ?,
+            ?, ?, ?, ?, ?,
             ?, ?, ?, ?, ?, ?,
-            ?, ?, ?,
+            ?, ?, ?, ?,
             ?, ?, ?,
             ?, ?, ?, ?, ?
         )",
@@ -652,6 +652,7 @@ fn insert_trade_in_tx(tx: &rusqlite::Transaction, trade: &Trade) -> Result<(), r
             trade.planned_sl,
             trade.leverage,
             trade.planned_tps,
+            trade.planned_entries,
             trade.position_type,
             trade.one_r,
             trade.margin,
@@ -659,6 +660,7 @@ fn insert_trade_in_tx(tx: &rusqlite::Transaction, trade: &Trade) -> Result<(), r
             trade.quantity,
             trade.planned_weighted_rr,
             trade.effective_pe,
+            trade.effective_entries,
             trade.close_date,
             trade.exits,
             trade.effective_weighted_rr,
