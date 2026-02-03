@@ -13,8 +13,7 @@ dist-ssr
 *.local
 
 # Editor directories and files
-.vscode/*
-!.vscode/extensions.json
+.vscode
 .idea
 .claude
 .DS_Store
@@ -29,6 +28,19 @@ src-tauri/target
 
 # Build temporary files
 .build-temp-unused
+
+# GitHub workflows and CI/CD
+.github
+
+# Internal documentation
+BUILD.md
+CLAUDE.md
+IMPLEMENTATION_STATUS.md
+INSTALLATION.md
+PROGRESS_UPDATE.md
+QUICK_START.md
+RELEASE_SUMMARY.md
+TESTING_CHECKLIST.md
 
 # Test files
 test-*.js
