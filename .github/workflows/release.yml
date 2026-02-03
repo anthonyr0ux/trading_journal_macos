@@ -131,28 +131,30 @@ jobs:
             openssl \
             curl \
             wget \
-            file
+            file \
+            zip
 
       - uses: actions/checkout@v4
 
       - name: Install npm dependencies
         run: npm ci
 
-      - name: Build for Arch Linux
-        run: npm run tauri build
-
-      - name: Rename artifacts for Arch
+      - name: Build for Arch Linux (binary only, skip AppImage)
         run: |
-          cd src-tauri/target/release/bundle/appimage
-          for file in *.AppImage; do
-            mv "$file" "${file%.AppImage}-arch.AppImage"
-          done
+          # Build only the binary, not the bundles (AppImage doesn't work well in containers)
+          npm run tauri build -- --bundles none
 
-      - name: Upload Arch AppImage
+      - name: Create Arch tarball
+        run: |
+          cd src-tauri/target/release
+          tar -czf trading-journal-arch-linux.tar.gz trading-journal
+          mv trading-journal-arch-linux.tar.gz ../../../
+
+      - name: Upload Arch Binary Tarball
         uses: actions/upload-artifact@v4
         with:
-          name: linux-arch-appimage
-          path: src-tauri/target/release/bundle/appimage/*-arch.AppImage
+          name: linux-arch-binary
+          path: trading-journal-arch-linux.tar.gz
           if-no-files-found: error
 
   create-release:
@@ -174,7 +176,7 @@ jobs:
             artifacts/windows-nsis/*.exe
             artifacts/linux-ubuntu-deb/*.deb
             artifacts/linux-ubuntu-appimage/*.AppImage
-            artifacts/linux-arch-appimage/*.AppImage
+            artifacts/linux-arch-binary/*.tar.gz
           draft: true
           body: |
             ## Trading Journal v${{ github.ref_name }}
@@ -183,8 +185,10 @@ jobs:
             - **macOS**: Download the `.dmg` file (Universal - Intel + Apple Silicon)
             - **Windows**: Download either `.msi` or `.exe` installer
             - **Linux**:
-              - **Ubuntu/Debian**: Download `-ubuntu.deb` or `-ubuntu.AppImage`
-              - **Arch/Manjaro**: Download `-arch.AppImage` (built natively for Arch)
+              - **Ubuntu/Debian**: Download `.deb` or `.AppImage`
+              - **Arch/Manjaro**: Download `trading-journal-arch-linux.tar.gz` (built natively for Arch)
+                - Extract: `tar -xzf trading-journal-arch-linux.tar.gz`
+                - Run: `./trading-journal`
               - **Other distros**: Try Ubuntu AppImage first, or build from source
 
             ### What's New
