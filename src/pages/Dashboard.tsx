@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { api, type Trade, type DashboardStats, type EquityCurvePoint } from '../lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
@@ -10,6 +11,7 @@ import { HelpBadge } from '../components/HelpBadge';
 import { PositionMonitor } from '../components/PositionMonitor';
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const { t } = useTranslation();
   const [trades, setTrades] = useState<Trade[]>([]);
   const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -308,7 +310,11 @@ export default function Dashboard() {
           ) : (
             <div className="space-y-2">
               {trades.slice(0, 5).map(trade => (
-                <div key={trade.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent/50 transition-colors">
+                <div
+                  key={trade.id}
+                  onClick={() => navigate(`/journal/${trade.id}`)}
+                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent/50 transition-colors cursor-pointer"
+                >
                   <div className="flex-1">
                     <div className="flex items-center gap-3">
                       <div className="font-medium">{trade.pair}</div>
