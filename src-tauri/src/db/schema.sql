@@ -55,7 +55,7 @@ CREATE TABLE IF NOT EXISTS trades (
 
     -- Import tracking
     import_fingerprint TEXT,
-    import_source TEXT NOT NULL DEFAULT 'USER_CREATED' CHECK(import_source IN ('USER_CREATED', 'API_IMPORT', 'CSV_IMPORT')),
+    import_source TEXT NOT NULL DEFAULT 'USER_CREATED' CHECK(import_source IN ('USER_CREATED', 'API_IMPORT', 'CSV_IMPORT', 'LIVE_MIRROR')),
 
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL
@@ -80,6 +80,8 @@ CREATE TABLE IF NOT EXISTS api_credentials (
     passphrase TEXT,
     is_active INTEGER NOT NULL DEFAULT 1,
     last_sync_timestamp INTEGER,
+    auto_sync_enabled INTEGER NOT NULL DEFAULT 0,
+    auto_sync_interval INTEGER NOT NULL DEFAULT 3600,
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL
 );

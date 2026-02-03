@@ -41,7 +41,7 @@ export interface Trade {
   pnl_in_r?: number;
   notes: string;
   import_fingerprint?: string;
-  import_source: string; // USER_CREATED | API_IMPORT | CSV_IMPORT
+  import_source: string; // USER_CREATED | API_IMPORT | CSV_IMPORT | LIVE_MIRROR
   created_at: number;
   updated_at: number;
 }
@@ -127,6 +127,9 @@ export interface ApiCredentialSafe {
   api_key_preview: string;
   is_active: boolean;
   last_sync_timestamp?: number;
+  auto_sync_enabled: boolean;
+  auto_sync_interval: number; // Interval in seconds
+  live_mirror_enabled: boolean;
   created_at: number;
   updated_at: number;
 }
@@ -139,6 +142,8 @@ export interface ApiCredentialInput {
   api_secret: string;
   passphrase?: string;
   is_active?: boolean;
+  auto_sync_enabled?: boolean;
+  auto_sync_interval?: number;
 }
 
 export interface ApiSyncHistory {
@@ -160,6 +165,7 @@ export interface SyncConfig {
   start_date?: number;
   end_date?: number;
   skip_duplicates: boolean;
+  is_auto_sync?: boolean;
 }
 
 export interface SyncResult {
@@ -167,6 +173,53 @@ export interface SyncResult {
   duplicates: number;
   errors: string[];
   total_pnl?: number;
+}
+
+export interface Position {
+  position_id: string;
+  symbol: string;
+  exchange: string;
+  position_side: string;
+  entry_price: number;
+  current_price: number;
+  quantity: number;
+  leverage: number;
+  unrealized_pnl: number;
+  unrealized_pnl_percent: number;
+  liquidation_price: number;
+  margin: number;
+  margin_mode: string;
+  price_distance_to_liquidation_percent: number;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface OpenOrder {
+  order_id: string;
+  symbol: string;
+  side: string;
+  order_type: string;
+  price: string;
+  size: string;
+  filled_size: string;
+  status: string;
+  pos_side?: string;
+  trade_side?: string;
+  leverage?: string;
+  created_at: number;
+  updated_at?: number;
+}
+
+export interface FetchOpenOrdersRequest {
+  credential_id: string;
+  symbol?: string;
+}
+
+export interface LiveMirrorStatus {
+  credential_id: string;
+  exchange: string;
+  label: string;
+  enabled: boolean;
 }
 
 // API functions
@@ -214,4 +267,28 @@ export const api = {
     invoke<ApiSyncHistory[]>('get_sync_history', { credentialId }),
   syncExchangeTrades: (config: SyncConfig) =>
     invoke<SyncResult>('sync_exchange_trades', { config }),
+  updateAutoSyncSettings: (credentialId: string, autoSyncEnabled: boolean, autoSyncInterval: number) =>
+    invoke<void>('update_auto_sync_settings', { credentialId, autoSyncEnabled, autoSyncInterval }),
+  reloadSyncScheduler: () =>
+    invoke<void>('reload_sync_scheduler'),
+
+  // Positions
+  fetchCurrentPositions: (credentialId: string) =>
+    invoke<Position[]>('fetch_current_positions', { credentialId }),
+
+  // Open Orders
+  fetchOpenOrders: (request: FetchOpenOrdersRequest) =>
+    invoke<OpenOrder[]>('fetch_open_orders', { request }),
+
+  // Live Mirroring
+  startLiveMirroring: (credentialId: string) =>
+    invoke<void>('start_live_mirroring', { credentialId }),
+  stopLiveMirroring: (credentialId: string) =>
+    invoke<void>('stop_live_mirroring', { credentialId }),
+  isLiveMirroringActive: (credentialId: string) =>
+    invoke<boolean>('is_live_mirroring_active', { credentialId }),
+  toggleLiveMirroring: (credentialId: string, enabled: boolean) =>
+    invoke<void>('toggle_live_mirroring', { credentialId, enabled }),
+  getLiveMirroringStatus: () =>
+    invoke<LiveMirrorStatus[]>('get_live_mirroring_status'),
 };

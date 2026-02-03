@@ -143,3 +143,206 @@ pub struct FillHistoryRequest {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub limit: Option<String>,
 }
+
+/// BitGet all positions data wrapper
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AllPositionsData {
+    #[serde(default)]
+    pub list: Vec<BitgetPosition>,
+}
+
+/// BitGet position information
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BitgetPosition {
+    /// Position ID
+    #[serde(rename = "posId")]
+    pub pos_id: String,
+
+    /// Symbol (e.g., "BTCUSDT")
+    pub symbol: String,
+
+    /// Product type: "USDT-FUTURES", "COIN-FUTURES", "USDC-FUTURES"
+    #[serde(rename = "productType")]
+    pub product_type: String,
+
+    /// Margin coin (e.g., "USDT")
+    #[serde(rename = "marginCoin")]
+    pub margin_coin: String,
+
+    /// Margin size
+    #[serde(rename = "marginSize")]
+    pub margin_size: String,
+
+    /// Position side: "long", "short", "net"
+    #[serde(rename = "holdSide")]
+    pub hold_side: String,
+
+    /// Opening average price
+    #[serde(rename = "openAvgPrice", alias = "openPriceAvg")]
+    pub open_avg_price: String,
+
+    /// Position quantity (in contracts/coins)
+    #[serde(rename = "total")]
+    pub total: String,
+
+    /// Available quantity to close
+    pub available: String,
+
+    /// Locked quantity
+    pub locked: String,
+
+    /// Leverage
+    pub leverage: String,
+
+    /// Liquidation price
+    #[serde(rename = "liquidationPrice")]
+    pub liquidation_price: String,
+
+    /// Mark price (current market price)
+    #[serde(rename = "markPrice")]
+    pub mark_price: String,
+
+    /// Unrealized PnL
+    #[serde(rename = "unrealizedPL", alias = "unrealizedPnL")]
+    pub unrealized_pnl: String,
+
+    /// Realized PnL
+    #[serde(rename = "achievedProfits", skip_serializing_if = "Option::is_none")]
+    pub achieved_profits: Option<String>,
+
+    /// Margin mode: "crossed", "isolated"
+    #[serde(rename = "marginMode")]
+    pub margin_mode: String,
+
+    /// Position mode: "hedge_mode", "one_way_mode"
+    #[serde(rename = "posMode", skip_serializing_if = "Option::is_none")]
+    pub pos_mode: Option<String>,
+
+    /// Creation time (Unix milliseconds)
+    #[serde(rename = "cTime")]
+    pub c_time: String,
+
+    /// Update time (Unix milliseconds)
+    #[serde(rename = "uTime")]
+    pub u_time: String,
+}
+
+/// Request for all positions
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AllPositionsRequest {
+    /// Product type (required)
+    #[serde(rename = "productType")]
+    pub product_type: String,
+
+    /// Margin coin (optional, e.g. "USDT")
+    #[serde(rename = "marginCoin", skip_serializing_if = "Option::is_none")]
+    pub margin_coin: Option<String>,
+}
+
+/// Request for pending orders
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PendingOrdersRequest {
+    /// Product type (required)
+    #[serde(rename = "productType")]
+    pub product_type: String,
+
+    /// Symbol (optional)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub symbol: Option<String>,
+
+    /// Order ID (optional)
+    #[serde(rename = "orderId", skip_serializing_if = "Option::is_none")]
+    pub order_id: Option<String>,
+}
+
+/// BitGet pending orders data wrapper
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PendingOrdersData {
+    #[serde(rename = "entrustedList", default)]
+    pub entrusted_list: Option<Vec<BitgetPendingOrder>>,
+    #[serde(rename = "endId")]
+    pub end_id: Option<String>,
+}
+
+/// BitGet pending order
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BitgetPendingOrder {
+    /// User ID
+    #[serde(rename = "userId", skip_serializing_if = "Option::is_none")]
+    pub user_id: Option<String>,
+
+    /// Symbol (e.g., "BTCUSDT")
+    pub symbol: String,
+
+    /// Product type: "USDT-FUTURES", "COIN-FUTURES", "USDC-FUTURES"
+    #[serde(rename = "productType", skip_serializing_if = "Option::is_none")]
+    pub product_type: Option<String>,
+
+    /// Margin coin
+    #[serde(rename = "marginCoin", skip_serializing_if = "Option::is_none")]
+    pub margin_coin: Option<String>,
+
+    /// Order ID
+    #[serde(rename = "orderId")]
+    pub order_id: String,
+
+    /// Client order ID
+    #[serde(rename = "clientOid", skip_serializing_if = "Option::is_none")]
+    pub client_oid: Option<String>,
+
+    /// Order type: "limit", "market"
+    #[serde(rename = "orderType")]
+    pub order_type: String,
+
+    /// Force type: "normal", "only_maker", "fok", "ioc"
+    #[serde(rename = "force", skip_serializing_if = "Option::is_none")]
+    pub force: Option<String>,
+
+    /// Price
+    pub price: String,
+
+    /// Order size
+    pub size: String,
+
+    /// Side: "buy", "sell"
+    pub side: String,
+
+    /// Position side: "long", "short", "net"
+    #[serde(rename = "posSide", skip_serializing_if = "Option::is_none")]
+    pub pos_side: Option<String>,
+
+    /// Trade side: "open", "close"
+    #[serde(rename = "tradeSide", skip_serializing_if = "Option::is_none")]
+    pub trade_side: Option<String>,
+
+    /// Filled size
+    #[serde(rename = "baseVolume", skip_serializing_if = "Option::is_none")]
+    pub base_volume: Option<String>,
+
+    /// Leverage
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub leverage: Option<String>,
+
+    /// Margin mode: "crossed", "isolated"
+    #[serde(rename = "marginMode", skip_serializing_if = "Option::is_none")]
+    pub margin_mode: Option<String>,
+
+    /// Reduce only
+    #[serde(rename = "reduceOnly", skip_serializing_if = "Option::is_none")]
+    pub reduce_only: Option<String>,
+
+    /// Order status: "new", "partial_fill", "full_fill", "cancelled"
+    pub status: String,
+
+    /// Price average (for filled portion)
+    #[serde(rename = "priceAvg", skip_serializing_if = "Option::is_none")]
+    pub price_avg: Option<String>,
+
+    /// Creation time (Unix milliseconds)
+    #[serde(rename = "cTime")]
+    pub c_time: String,
+
+    /// Update time (Unix milliseconds)
+    #[serde(rename = "uTime", skip_serializing_if = "Option::is_none")]
+    pub u_time: Option<String>,
+}

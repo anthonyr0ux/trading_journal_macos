@@ -24,6 +24,8 @@ pub async fn save_api_credentials(
     let now = Utc::now().timestamp();
     let id = input.id.unwrap_or_else(|| Uuid::new_v4().to_string());
     let is_active = input.is_active.unwrap_or(true);
+    let auto_sync_enabled = input.auto_sync_enabled.unwrap_or(false);
+    let auto_sync_interval = input.auto_sync_interval.unwrap_or(3600); // Default 1 hour
 
     // Store credentials in system keychain
     store_api_key(&id, &input.api_key).map_err(|e| e.to_string())?;
@@ -52,7 +54,7 @@ pub async fn save_api_credentials(
         conn.execute(
             "UPDATE api_credentials SET
                 exchange = ?, label = ?, api_key = ?, api_secret = ?,
-                passphrase = ?, is_active = ?, updated_at = ?
+                passphrase = ?, is_active = ?, auto_sync_enabled = ?, auto_sync_interval = ?, updated_at = ?
              WHERE id = ?",
             rusqlite::params![
                 &input.exchange,
@@ -61,6 +63,8 @@ pub async fn save_api_credentials(
                 &placeholder_secret,
                 &placeholder_passphrase,
                 is_active as i32,
+                auto_sync_enabled as i32,
+                auto_sync_interval,
                 now,
                 &id,
             ],
@@ -70,8 +74,8 @@ pub async fn save_api_credentials(
         // Insert
         conn.execute(
             "INSERT INTO api_credentials
-                (id, exchange, label, api_key, api_secret, passphrase, is_active, created_at, updated_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (id, exchange, label, api_key, api_secret, passphrase, is_active, auto_sync_enabled, auto_sync_interval, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             rusqlite::params![
                 &id,
                 &input.exchange,
@@ -80,6 +84,8 @@ pub async fn save_api_credentials(
                 &placeholder_secret,
                 &placeholder_passphrase,
                 is_active as i32,
+                auto_sync_enabled as i32,
+                auto_sync_interval,
                 now,
                 now,
             ],
@@ -98,6 +104,9 @@ pub async fn save_api_credentials(
         passphrase: input.passphrase.clone(),
         is_active,
         last_sync_timestamp: None,
+        auto_sync_enabled,
+        auto_sync_interval,
+        live_mirror_enabled: false, // Default to disabled
         created_at: now,
         updated_at: now,
     };
@@ -113,7 +122,7 @@ pub async fn list_api_credentials(
     let conn = db.conn.lock().map_err(|e| e.to_string())?;
 
     let mut stmt = conn
-        .prepare("SELECT id, exchange, label, api_key, is_active, last_sync_timestamp, created_at, updated_at FROM api_credentials ORDER BY created_at DESC")
+        .prepare("SELECT id, exchange, label, api_key, is_active, last_sync_timestamp, auto_sync_enabled, auto_sync_interval, live_mirror_enabled, created_at, updated_at FROM api_credentials ORDER BY created_at DESC")
         .map_err(|e| e.to_string())?;
 
     let credentials_iter = stmt
@@ -129,8 +138,11 @@ pub async fn list_api_credentials(
                 api_key_preview: ApiCredential::create_preview(&api_key),
                 is_active: row.get::<_, i32>(4)? == 1,
                 last_sync_timestamp: row.get(5)?,
-                created_at: row.get(6)?,
-                updated_at: row.get(7)?,
+                auto_sync_enabled: row.get::<_, i32>(6)? == 1,
+                auto_sync_interval: row.get(7)?,
+                live_mirror_enabled: row.get::<_, i32>(8)? == 1,
+                created_at: row.get(9)?,
+                updated_at: row.get(10)?,
             })
         })
         .map_err(|e| e.to_string())?;
@@ -223,6 +235,27 @@ pub async fn update_api_credentials_status(
     Ok(())
 }
 
+/// Update auto-sync settings for a credential
+#[tauri::command]
+pub async fn update_auto_sync_settings(
+    db: State<'_, Database>,
+    credential_id: String,
+    auto_sync_enabled: bool,
+    auto_sync_interval: i64,
+) -> Result<(), String> {
+    let conn = db.conn.lock().map_err(|e| e.to_string())?;
+
+    let now = Utc::now().timestamp();
+
+    conn.execute(
+        "UPDATE api_credentials SET auto_sync_enabled = ?, auto_sync_interval = ?, updated_at = ? WHERE id = ?",
+        rusqlite::params![auto_sync_enabled as i32, auto_sync_interval, now, &credential_id],
+    )
+    .map_err(|e| e.to_string())?;
+
+    Ok(())
+}
+
 /// Get sync history for a credential
 #[tauri::command]
 pub async fn get_sync_history(
@@ -272,15 +305,15 @@ pub async fn sync_exchange_trades(
     use crate::api::client::FetchTradesRequest;
 
     // Fetch and decrypt credentials
-    let (exchange, api_key, api_secret, passphrase, portfolio_value, r_percent) = {
+    let (exchange, api_key, api_secret, passphrase, portfolio_value, r_percent, last_sync) = {
         let conn = db.conn.lock().map_err(|e| e.to_string())?;
 
-        // Get credential
-        let exchange: String = conn
+        // Get credential and last sync timestamp
+        let (exchange, last_sync_timestamp): (String, Option<i64>) = conn
             .query_row(
-                "SELECT exchange FROM api_credentials WHERE id = ?",
+                "SELECT exchange, last_sync_timestamp FROM api_credentials WHERE id = ?",
                 [&config.credential_id],
-                |row| row.get(0),
+                |row| Ok((row.get(0)?, row.get(1)?)),
             )
             .map_err(|e| format!("Credential not found: {}", e))?;
 
@@ -298,12 +331,17 @@ pub async fn sync_exchange_trades(
         let api_secret = retrieve_api_secret(&config.credential_id).map_err(|e| e.to_string())?;
         let passphrase = retrieve_passphrase(&config.credential_id).unwrap_or_default();
 
-        (exchange, api_key, api_secret, passphrase, portfolio, r)
+        (exchange, api_key, api_secret, passphrase, portfolio, r, last_sync_timestamp)
     };
 
     // Create exchange client
+    // Smart sync: use last_sync_timestamp if no start_date specified and last_sync exists
+    let start_time = config.start_date.or_else(|| {
+        last_sync.map(|ts| ts * 1000) // Convert seconds to milliseconds
+    });
+
     let fetch_request = FetchTradesRequest {
-        start_time: config.start_date,
+        start_time,
         end_time: config.end_date,
         symbol: None,
         limit: None,
@@ -394,6 +432,7 @@ pub async fn sync_exchange_trades(
     let sync_id = Uuid::new_v4().to_string();
     // Status is always "success" here since we rollback on any error
     let status = "success";
+    let sync_type = if config.is_auto_sync { "automatic" } else { "manual" };
 
     tx.execute(
         "INSERT INTO api_sync_history (id, credential_id, exchange, sync_type, last_sync_timestamp, trades_imported, trades_duplicated, status, error_message, created_at)
@@ -402,7 +441,7 @@ pub async fn sync_exchange_trades(
             &sync_id,
             &config.credential_id,
             &exchange,
-            "manual",
+            sync_type,
             now,
             imported,
             duplicates,

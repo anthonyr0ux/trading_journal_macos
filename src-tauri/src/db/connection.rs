@@ -52,6 +52,29 @@ impl Database {
             println!("Migration: Added import_source column");
         }
 
+        // Migration: Add auto_sync_enabled and auto_sync_interval columns
+        let has_auto_sync_enabled: bool = conn
+            .prepare("SELECT COUNT(*) FROM pragma_table_info('api_credentials') WHERE name='auto_sync_enabled'")?
+            .query_row([], |row| row.get::<_, i32>(0))
+            .map(|count| count > 0)?;
+
+        if !has_auto_sync_enabled {
+            conn.execute("ALTER TABLE api_credentials ADD COLUMN auto_sync_enabled INTEGER NOT NULL DEFAULT 0", [])?;
+            conn.execute("ALTER TABLE api_credentials ADD COLUMN auto_sync_interval INTEGER NOT NULL DEFAULT 3600", [])?;
+            println!("Migration: Added auto_sync_enabled and auto_sync_interval columns");
+        }
+
+        // Migration: Add live_mirror_enabled column
+        let has_live_mirror_enabled: bool = conn
+            .prepare("SELECT COUNT(*) FROM pragma_table_info('api_credentials') WHERE name='live_mirror_enabled'")?
+            .query_row([], |row| row.get::<_, i32>(0))
+            .map(|count| count > 0)?;
+
+        if !has_live_mirror_enabled {
+            conn.execute("ALTER TABLE api_credentials ADD COLUMN live_mirror_enabled INTEGER NOT NULL DEFAULT 0", [])?;
+            println!("Migration: Added live_mirror_enabled column");
+        }
+
         Ok(())
     }
 }

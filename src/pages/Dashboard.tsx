@@ -7,6 +7,7 @@ import { formatCurrency, formatPercent, getDateRangeTimestamp, type DateRange } 
 import { TrendingUp, DollarSign, BarChart3, Calendar } from 'lucide-react';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { HelpBadge } from '../components/HelpBadge';
+import { PositionMonitor } from '../components/PositionMonitor';
 
 export default function Dashboard() {
   const { t } = useTranslation();
@@ -97,6 +98,9 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* Position Monitor Widget */}
+      <PositionMonitor />
 
       {stats && (
         <>

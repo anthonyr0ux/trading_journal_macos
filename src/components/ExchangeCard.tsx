@@ -4,8 +4,11 @@ import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
 import { ApiCredentialSafe } from '@/lib/api';
-import { CheckCircle2, XCircle, Loader2, Trash2, Power, RefreshCw } from 'lucide-react';
+import { CheckCircle2, XCircle, Loader2, Trash2, Power, RefreshCw, Clock } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 interface ExchangeCardProps {
@@ -14,6 +17,7 @@ interface ExchangeCardProps {
   onSync: (id: string) => void;
   onDelete: (id: string) => Promise<void>;
   onToggleActive: (id: string, isActive: boolean) => Promise<void>;
+  onAutoSyncChange?: (id: string, enabled: boolean, interval: number) => Promise<void>;
   isTesting: boolean;
 }
 
@@ -23,11 +27,15 @@ export function ExchangeCard({
   onSync,
   onDelete,
   onToggleActive,
+  onAutoSyncChange,
   isTesting
 }: ExchangeCardProps) {
   const { t } = useTranslation();
   const [isDeleting, setIsDeleting] = useState(false);
   const [isToggling, setIsToggling] = useState(false);
+  const [autoSyncEnabled, setAutoSyncEnabled] = useState(credential.auto_sync_enabled);
+  const [autoSyncInterval, setAutoSyncInterval] = useState(credential.auto_sync_interval.toString());
+  const [isUpdatingAutoSync, setIsUpdatingAutoSync] = useState(false);
 
   const handleDelete = async () => {
     if (!confirm(t('api.confirmDelete'))) return;
@@ -60,6 +68,52 @@ export function ExchangeCard({
     };
     return names[exchange] || exchange.toUpperCase();
   };
+
+  const handleAutoSyncToggle = async (checked: boolean) => {
+    if (!onAutoSyncChange) return;
+
+    setIsUpdatingAutoSync(true);
+    try {
+      await onAutoSyncChange(credential.id, checked, parseInt(autoSyncInterval));
+      setAutoSyncEnabled(checked);
+    } finally {
+      setIsUpdatingAutoSync(false);
+    }
+  };
+
+  const handleIntervalChange = async (value: string) => {
+    if (!onAutoSyncChange) return;
+
+    setIsUpdatingAutoSync(true);
+    try {
+      await onAutoSyncChange(credential.id, autoSyncEnabled, parseInt(value));
+      setAutoSyncInterval(value);
+    } finally {
+      setIsUpdatingAutoSync(false);
+    }
+  };
+
+  const getNextSyncTime = () => {
+    if (!credential.auto_sync_enabled || !credential.last_sync_timestamp) {
+      return t('api.notScheduled') || 'Not scheduled';
+    }
+
+    const nextSync = new Date((credential.last_sync_timestamp + credential.auto_sync_interval) * 1000);
+    const now = new Date();
+
+    if (nextSync < now) {
+      return t('api.syncingSoon') || 'Syncing soon...';
+    }
+
+    return nextSync.toLocaleString();
+  };
+
+  const intervalOptions = [
+    { value: '900', label: '15 minutes' },
+    { value: '3600', label: '1 hour' },
+    { value: '14400', label: '4 hours' },
+    { value: '86400', label: 'Daily' },
+  ];
 
   return (
     <Card className={!credential.is_active ? 'opacity-60' : ''}>
@@ -110,7 +164,54 @@ export function ExchangeCard({
             </div>
           </div>
 
-          <div className="flex gap-2">
+          {/* Auto-Sync Settings */}
+          <div className="pt-3 border-t space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Clock className="h-4 w-4 text-muted-foreground" />
+                <Label htmlFor={`auto-sync-${credential.id}`} className="text-sm font-medium">
+                  {t('api.autoSync') || 'Auto-Sync'}
+                </Label>
+              </div>
+              <Switch
+                id={`auto-sync-${credential.id}`}
+                checked={autoSyncEnabled}
+                onCheckedChange={handleAutoSyncToggle}
+                disabled={isUpdatingAutoSync || !credential.is_active}
+              />
+            </div>
+
+            {autoSyncEnabled && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Label htmlFor={`interval-${credential.id}`} className="text-xs text-muted-foreground">
+                    {t('api.syncInterval') || 'Sync Interval'}
+                  </Label>
+                  <Select
+                    value={autoSyncInterval}
+                    onValueChange={handleIntervalChange}
+                    disabled={isUpdatingAutoSync || !credential.is_active}
+                  >
+                    <SelectTrigger id={`interval-${credential.id}`} className="h-8 w-32 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {intervalOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value} className="text-xs">
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {t('api.nextSync') || 'Next sync'}: {getNextSyncTime()}
+                </p>
+              </div>
+            )}
+          </div>
+
+          <div className="flex gap-2 pt-2">
             <Button
               variant="outline"
               size="sm"

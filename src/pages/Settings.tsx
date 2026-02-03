@@ -123,6 +123,19 @@ export default function Settings() {
     }
   };
 
+  const handleAutoSyncChange = async (id: string, enabled: boolean, interval: number) => {
+    try {
+      await api.updateAutoSyncSettings(id, enabled, interval);
+      // Reload the sync scheduler to pick up changes
+      await api.reloadSyncScheduler();
+      await loadCredentials();
+      toast.success(t('settings.autoSyncUpdated') || 'Auto-sync settings updated');
+    } catch (error) {
+      console.error('Failed to update auto-sync settings:', error);
+      toast.error(t('settings.failedToUpdateAutoSync') + ': ' + error);
+    }
+  };
+
   const handleSave = async () => {
     if (!settings) return;
 
@@ -409,6 +422,7 @@ export default function Settings() {
                   onSync={handleSync}
                   onDelete={handleDeleteCredentials}
                   onToggleActive={handleToggleActive}
+                  onAutoSyncChange={handleAutoSyncChange}
                   isTesting={testingCredentialId === cred.id}
                 />
               ))}

@@ -12,13 +12,15 @@ use crate::api::{
 
 use super::{
     mapper::map_fill_to_raw_trade,
-    types::{BitgetResponse, FillHistoryData, FillHistoryRequest},
+    types::{BitgetResponse, FillHistoryData, FillHistoryRequest, AllPositionsData, AllPositionsRequest, PendingOrdersData, PendingOrdersRequest},
 };
 
 type HmacSha256 = Hmac<Sha256>;
 
 const BASE_URL: &str = "https://api.bitget.com";
 const FILL_HISTORY_ENDPOINT: &str = "/api/v2/mix/order/fill-history";
+const ALL_POSITIONS_ENDPOINT: &str = "/api/v2/mix/position/all-position";
+const PENDING_ORDERS_ENDPOINT: &str = "/api/v2/mix/order/orders-pending";
 
 pub struct BitgetClient {
     api_key: String,
@@ -149,6 +151,137 @@ impl BitgetClient {
         // Parse response
         let response_text = response.text().await?;
         let api_response: BitgetResponse<FillHistoryData> = serde_json::from_str(&response_text)
+            .map_err(|e| ApiError::ParseError(format!("Failed to parse response: {} - Body: {}", e, response_text)))?;
+
+        // Check response code
+        if api_response.code != "00000" {
+            return Err(ApiError::ExchangeError {
+                code: api_response.code,
+                message: api_response.msg,
+            });
+        }
+
+        api_response.data.ok_or_else(|| {
+            ApiError::ParseError("Response data is empty".to_string())
+        })
+    }
+
+    /// Fetch all current positions
+    pub async fn fetch_all_positions(&self, request: &AllPositionsRequest) -> Result<AllPositionsData, ApiError> {
+        // Rate limit
+        self.rate_limiter.acquire().await;
+
+        // Current timestamp in milliseconds
+        let timestamp = chrono::Utc::now().timestamp_millis().to_string();
+
+        // Build query string
+        let mut query_params = vec![format!("productType={}", request.product_type)];
+        if let Some(ref margin_coin) = request.margin_coin {
+            query_params.push(format!("marginCoin={}", margin_coin));
+        }
+
+        let query_string = query_params.join("&");
+        let request_path = format!("{}?{}", ALL_POSITIONS_ENDPOINT, query_string);
+
+        // Generate signature (GET request, empty body)
+        let signature = self.generate_signature(&timestamp, "GET", &request_path, "");
+
+        // Build headers
+        let headers = self.build_headers(&timestamp, &signature)?;
+
+        // Make request
+        let url = format!("{}{}", BASE_URL, request_path);
+        let response = self
+            .http_client
+            .get(&url)
+            .headers(headers)
+            .send()
+            .await?;
+
+        // Check status code
+        let status = response.status();
+        if status == 429 {
+            return Err(ApiError::RateLimitError(
+                "Rate limit exceeded. Please wait before retrying.".to_string(),
+            ));
+        }
+
+        if status == 401 || status == 403 {
+            return Err(ApiError::AuthenticationError(
+                "Invalid API credentials or permissions".to_string(),
+            ));
+        }
+
+        // Parse response
+        let response_text = response.text().await?;
+        let api_response: BitgetResponse<AllPositionsData> = serde_json::from_str(&response_text)
+            .map_err(|e| ApiError::ParseError(format!("Failed to parse response: {} - Body: {}", e, response_text)))?;
+
+        // Check response code
+        if api_response.code != "00000" {
+            return Err(ApiError::ExchangeError {
+                code: api_response.code,
+                message: api_response.msg,
+            });
+        }
+
+        api_response.data.ok_or_else(|| {
+            ApiError::ParseError("Response data is empty".to_string())
+        })
+    }
+
+    /// Fetch pending orders
+    pub async fn fetch_pending_orders(&self, request: &PendingOrdersRequest) -> Result<PendingOrdersData, ApiError> {
+        // Rate limit
+        self.rate_limiter.acquire().await;
+
+        // Current timestamp in milliseconds
+        let timestamp = chrono::Utc::now().timestamp_millis().to_string();
+
+        // Build query string
+        let mut query_params = vec![format!("productType={}", request.product_type)];
+        if let Some(ref symbol) = request.symbol {
+            query_params.push(format!("symbol={}", symbol));
+        }
+        if let Some(ref order_id) = request.order_id {
+            query_params.push(format!("orderId={}", order_id));
+        }
+
+        let query_string = query_params.join("&");
+        let request_path = format!("{}?{}", PENDING_ORDERS_ENDPOINT, query_string);
+
+        // Generate signature (GET request, empty body)
+        let signature = self.generate_signature(&timestamp, "GET", &request_path, "");
+
+        // Build headers
+        let headers = self.build_headers(&timestamp, &signature)?;
+
+        // Make request
+        let url = format!("{}{}", BASE_URL, request_path);
+        let response = self
+            .http_client
+            .get(&url)
+            .headers(headers)
+            .send()
+            .await?;
+
+        // Check status code
+        let status = response.status();
+        if status == 429 {
+            return Err(ApiError::RateLimitError(
+                "Rate limit exceeded. Please wait before retrying.".to_string(),
+            ));
+        }
+
+        if status == 401 || status == 403 {
+            return Err(ApiError::AuthenticationError(
+                "Invalid API credentials or permissions".to_string(),
+            ));
+        }
+
+        // Parse response
+        let response_text = response.text().await?;
+        let api_response: BitgetResponse<PendingOrdersData> = serde_json::from_str(&response_text)
             .map_err(|e| ApiError::ParseError(format!("Failed to parse response: {} - Body: {}", e, response_text)))?;
 
         // Check response code

@@ -17,6 +17,9 @@ pub struct ApiCredential {
     pub passphrase: Option<String>, // Never send to frontend
     pub is_active: bool,
     pub last_sync_timestamp: Option<i64>,
+    pub auto_sync_enabled: bool,
+    pub auto_sync_interval: i64, // Interval in seconds
+    pub live_mirror_enabled: bool,
     pub created_at: i64,
     pub updated_at: i64,
 }
@@ -41,6 +44,9 @@ impl ApiCredential {
             api_key_preview: self.api_key_preview.clone(),
             is_active: self.is_active,
             last_sync_timestamp: self.last_sync_timestamp,
+            auto_sync_enabled: self.auto_sync_enabled,
+            auto_sync_interval: self.auto_sync_interval,
+            live_mirror_enabled: self.live_mirror_enabled,
             created_at: self.created_at,
             updated_at: self.updated_at,
         }
@@ -56,6 +62,9 @@ pub struct ApiCredentialSafe {
     pub api_key_preview: String,
     pub is_active: bool,
     pub last_sync_timestamp: Option<i64>,
+    pub auto_sync_enabled: bool,
+    pub auto_sync_interval: i64, // Interval in seconds
+    pub live_mirror_enabled: bool,
     pub created_at: i64,
     pub updated_at: i64,
 }
@@ -70,6 +79,8 @@ pub struct ApiCredentialInput {
     pub api_secret: String,
     pub passphrase: Option<String>,
     pub is_active: Option<bool>,
+    pub auto_sync_enabled: Option<bool>,
+    pub auto_sync_interval: Option<i64>,
 }
 
 /// API Sync History record
@@ -95,6 +106,8 @@ pub struct SyncConfig {
     pub start_date: Option<i64>,
     pub end_date: Option<i64>,
     pub skip_duplicates: bool,
+    #[serde(default)]
+    pub is_auto_sync: bool,
 }
 
 /// Sync result returned to frontend

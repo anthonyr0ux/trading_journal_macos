@@ -2,7 +2,9 @@ mod api;
 mod commands;
 mod db;
 mod models;
+mod sync;
 
+use std::sync::Arc;
 use tauri::Manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -31,6 +33,22 @@ pub fn run() {
             // Store database in app state
             app.manage(database);
 
+            // Initialize sync scheduler
+            let scheduler = sync::SyncScheduler::new(app.handle().clone());
+
+            // Start scheduler in background
+            let scheduler_clone = scheduler.clone();
+            tauri::async_runtime::spawn(async move {
+                scheduler_clone.start().await;
+            });
+
+            // Store scheduler in app state
+            app.manage(scheduler);
+
+            // Initialize live mirror manager
+            let mirror_manager = Arc::new(api::LiveMirrorManager::new());
+            app.manage(mirror_manager);
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -55,8 +73,17 @@ pub fn run() {
             commands::test_api_credentials,
             commands::delete_api_credentials,
             commands::update_api_credentials_status,
+            commands::update_auto_sync_settings,
             commands::get_sync_history,
             commands::sync_exchange_trades,
+            commands::reload_sync_scheduler,
+            commands::fetch_current_positions,
+            commands::fetch_open_orders,
+            commands::start_live_mirroring,
+            commands::stop_live_mirroring,
+            commands::is_live_mirroring_active,
+            commands::toggle_live_mirroring,
+            commands::get_live_mirroring_status,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
