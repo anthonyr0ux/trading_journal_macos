@@ -82,6 +82,7 @@ CREATE TABLE IF NOT EXISTS api_credentials (
     last_sync_timestamp INTEGER,
     auto_sync_enabled INTEGER NOT NULL DEFAULT 0,
     auto_sync_interval INTEGER NOT NULL DEFAULT 3600,
+    live_mirror_enabled INTEGER NOT NULL DEFAULT 0,
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL
 );

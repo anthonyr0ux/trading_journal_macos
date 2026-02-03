@@ -26,6 +26,7 @@ pub async fn save_api_credentials(
     let is_active = input.is_active.unwrap_or(true);
     let auto_sync_enabled = input.auto_sync_enabled.unwrap_or(false);
     let auto_sync_interval = input.auto_sync_interval.unwrap_or(3600); // Default 1 hour
+    let live_mirror_enabled = input.live_mirror_enabled.unwrap_or(false);
 
     // Store credentials in system keychain
     store_api_key(&id, &input.api_key).map_err(|e| e.to_string())?;
@@ -54,7 +55,7 @@ pub async fn save_api_credentials(
         conn.execute(
             "UPDATE api_credentials SET
                 exchange = ?, label = ?, api_key = ?, api_secret = ?,
-                passphrase = ?, is_active = ?, auto_sync_enabled = ?, auto_sync_interval = ?, updated_at = ?
+                passphrase = ?, is_active = ?, auto_sync_enabled = ?, auto_sync_interval = ?, live_mirror_enabled = ?, updated_at = ?
              WHERE id = ?",
             rusqlite::params![
                 &input.exchange,
@@ -65,6 +66,7 @@ pub async fn save_api_credentials(
                 is_active as i32,
                 auto_sync_enabled as i32,
                 auto_sync_interval,
+                live_mirror_enabled as i32,
                 now,
                 &id,
             ],
@@ -74,8 +76,8 @@ pub async fn save_api_credentials(
         // Insert
         conn.execute(
             "INSERT INTO api_credentials
-                (id, exchange, label, api_key, api_secret, passphrase, is_active, auto_sync_enabled, auto_sync_interval, created_at, updated_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (id, exchange, label, api_key, api_secret, passphrase, is_active, auto_sync_enabled, auto_sync_interval, live_mirror_enabled, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             rusqlite::params![
                 &id,
                 &input.exchange,
@@ -86,6 +88,7 @@ pub async fn save_api_credentials(
                 is_active as i32,
                 auto_sync_enabled as i32,
                 auto_sync_interval,
+                live_mirror_enabled as i32,
                 now,
                 now,
             ],
