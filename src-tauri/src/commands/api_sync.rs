@@ -199,28 +199,53 @@ pub async fn test_api_credentials(
     db: State<'_, Database>,
     credential_id: String,
 ) -> Result<bool, String> {
+    println!("=== Testing API credentials ===");
+    println!("Credential ID: {}", credential_id);
+
     // Fetch and decrypt credentials (in scope block to drop conn before await)
     let (exchange, api_key, api_secret, passphrase) = {
-        let conn = db.conn.lock().map_err(|e| e.to_string())?;
+        let conn = db.conn.lock().map_err(|e| {
+            let error_msg = format!("Failed to lock database: {}", e);
+            eprintln!("ERROR: {}", error_msg);
+            error_msg
+        })?;
 
         // Fetch exchange type
+        println!("Fetching exchange type from database...");
         let exchange: String = conn
             .query_row(
                 "SELECT exchange FROM api_credentials WHERE id = ?",
                 [&credential_id],
                 |row| row.get(0),
             )
-            .map_err(|e| format!("Credential not found: {}", e))?;
+            .map_err(|e| {
+                let error_msg = format!("Credential not found: {}", e);
+                eprintln!("ERROR: {}", error_msg);
+                error_msg
+            })?;
+
+        println!("Exchange: {}", exchange);
+        println!("Retrieving credentials from keychain...");
 
         // Retrieve credentials from system keychain
-        let api_key = retrieve_api_key(&credential_id).map_err(|e| e.to_string())?;
-        let api_secret = retrieve_api_secret(&credential_id).map_err(|e| e.to_string())?;
+        let api_key = retrieve_api_key(&credential_id).map_err(|e| {
+            let error_msg = format!("Failed to retrieve API key: {}", e);
+            eprintln!("ERROR: {}", error_msg);
+            error_msg
+        })?;
+        let api_secret = retrieve_api_secret(&credential_id).map_err(|e| {
+            let error_msg = format!("Failed to retrieve API secret: {}", e);
+            eprintln!("ERROR: {}", error_msg);
+            error_msg
+        })?;
         let passphrase = retrieve_passphrase(&credential_id).unwrap_or_default();
 
+        println!("Successfully retrieved credentials from keychain");
         (exchange, api_key, api_secret, passphrase)
     }; // conn is dropped here
 
     // Create client and test
+    println!("Creating {} client and testing credentials...", exchange);
     let result = match exchange.as_str() {
         "bitget" => {
             let client = BitgetClient::new(api_key, api_secret, passphrase);
@@ -230,8 +255,18 @@ pub async fn test_api_credentials(
             let client = BlofinClient::new(api_key, api_secret, passphrase);
             client.test_credentials().await
         }
-        _ => return Err(format!("Unsupported exchange: {}", exchange)),
+        _ => {
+            let error_msg = format!("Unsupported exchange: {}", exchange);
+            eprintln!("ERROR: {}", error_msg);
+            return Err(error_msg);
+        }
     };
+
+    match &result {
+        Ok(true) => println!("=== Credentials test PASSED ===\n"),
+        Ok(false) => println!("=== Credentials test FAILED (invalid credentials) ===\n"),
+        Err(e) => eprintln!("ERROR: Credentials test failed with error: {}\n", e),
+    }
 
     result.map_err(|e| e.to_string())
 }
