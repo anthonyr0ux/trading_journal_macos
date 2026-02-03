@@ -33,6 +33,10 @@ pub fn run() {
             // Store database in app state
             app.manage(database);
 
+            // Initialize secure credential storage
+            api::credentials::init_storage(app_dir.clone())
+                .expect("Failed to initialize secure storage");
+
             // Initialize sync scheduler
             let scheduler = sync::SyncScheduler::new(app.handle().clone());
 

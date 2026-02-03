@@ -1,163 +1,123 @@
-use keyring::Entry;
 use super::error::ApiError;
+use super::secure_storage::SecureStorage;
+use std::sync::{Mutex, OnceLock};
+use std::path::PathBuf;
 
-const SERVICE_NAME: &str = "trading-journal-macos";
+static STORAGE: OnceLock<Mutex<SecureStorage>> = OnceLock::new();
 
-/// Store an API key in the system keychain
-///
-/// Uses platform-specific secure storage:
-/// - macOS: Keychain
-/// - Windows: Credential Manager
-/// - Linux: Secret Service
+/// Initialize secure storage with app data directory
+pub fn init_storage(app_data_dir: PathBuf) -> Result<(), ApiError> {
+    let storage = SecureStorage::new(app_data_dir)?;
+    STORAGE.set(Mutex::new(storage)).map_err(|_| {
+        ApiError::EncryptionError("Storage already initialized".to_string())
+    })?;
+    println!("Secure credential storage initialized");
+    Ok(())
+}
+
+/// Get the storage instance
+fn get_storage() -> Result<std::sync::MutexGuard<'static, SecureStorage>, ApiError> {
+    STORAGE
+        .get()
+        .ok_or_else(|| ApiError::EncryptionError("Storage not initialized".to_string()))?
+        .lock()
+        .map_err(|e| ApiError::EncryptionError(format!("Failed to lock storage: {}", e)))
+}
+
+/// Store an API key in secure storage
 pub fn store_api_key(credential_id: &str, api_key: &str) -> Result<(), ApiError> {
-    let account_name = format!("{}-api-key", credential_id);
-    println!("Storing to keychain - Service: {}, Account: {}", SERVICE_NAME, account_name);
+    let key = format!("{}-api-key", credential_id);
+    println!("Storing API key: {}", key);
 
-    let entry = Entry::new(SERVICE_NAME, &account_name)
-        .map_err(|e| ApiError::EncryptionError(format!("Failed to create keyring entry: {}", e)))?;
-
-    entry
-        .set_password(api_key)
-        .map_err(|e| ApiError::EncryptionError(format!("Failed to store API key: {}", e)))?;
+    let storage = get_storage()?;
+    storage.store(&key, api_key)?;
 
     // Verify it was stored
-    match entry.get_password() {
-        Ok(_) => println!("✓ Verified API key stored successfully"),
+    match storage.retrieve(&key) {
+        Ok(_) => {
+            println!("✓ Verified API key stored successfully");
+            Ok(())
+        }
         Err(e) => {
             eprintln!("✗ WARNING: Stored but cannot retrieve immediately: {}", e);
+            Err(e)
         }
     }
-
-    Ok(())
 }
 
-/// Retrieve an API key from the system keychain
+/// Retrieve an API key from secure storage
 pub fn retrieve_api_key(credential_id: &str) -> Result<String, ApiError> {
-    let account_name = format!("{}-api-key", credential_id);
-    println!("Retrieving from keychain - Service: {}, Account: {}", SERVICE_NAME, account_name);
+    let key = format!("{}-api-key", credential_id);
+    println!("Retrieving API key: {}", key);
 
-    let entry = Entry::new(SERVICE_NAME, &account_name)
-        .map_err(|e| ApiError::EncryptionError(format!("Failed to create keyring entry: {}", e)))?;
-
-    entry
-        .get_password()
-        .map_err(|e| {
-            eprintln!("✗ Failed to retrieve - Service: {}, Account: {}, Error: {}", SERVICE_NAME, account_name, e);
-            ApiError::EncryptionError(format!("Failed to retrieve API key: {}", e))
-        })
+    let storage = get_storage()?;
+    storage.retrieve(&key).map_err(|e| {
+        eprintln!("✗ Failed to retrieve API key for {}: {}", key, e);
+        e
+    })
 }
 
-/// Store an API secret in the system keychain
+/// Store an API secret in secure storage
 pub fn store_api_secret(credential_id: &str, api_secret: &str) -> Result<(), ApiError> {
-    let entry = Entry::new(SERVICE_NAME, &format!("{}-api-secret", credential_id))
-        .map_err(|e| ApiError::EncryptionError(format!("Failed to create keyring entry: {}", e)))?;
-
-    entry
-        .set_password(api_secret)
-        .map_err(|e| ApiError::EncryptionError(format!("Failed to store API secret: {}", e)))?;
-
-    Ok(())
+    let key = format!("{}-api-secret", credential_id);
+    let storage = get_storage()?;
+    storage.store(&key, api_secret)
 }
 
-/// Retrieve an API secret from the system keychain
+/// Retrieve an API secret from secure storage
 pub fn retrieve_api_secret(credential_id: &str) -> Result<String, ApiError> {
-    let entry = Entry::new(SERVICE_NAME, &format!("{}-api-secret", credential_id))
-        .map_err(|e| ApiError::EncryptionError(format!("Failed to create keyring entry: {}", e)))?;
-
-    entry
-        .get_password()
-        .map_err(|e| ApiError::EncryptionError(format!("Failed to retrieve API secret: {}", e)))
+    let key = format!("{}-api-secret", credential_id);
+    let storage = get_storage()?;
+    storage.retrieve(&key)
 }
 
-/// Store an API passphrase in the system keychain
+/// Store an API passphrase in secure storage
 pub fn store_passphrase(credential_id: &str, passphrase: &str) -> Result<(), ApiError> {
-    let entry = Entry::new(SERVICE_NAME, &format!("{}-passphrase", credential_id))
-        .map_err(|e| ApiError::EncryptionError(format!("Failed to create keyring entry: {}", e)))?;
-
-    entry
-        .set_password(passphrase)
-        .map_err(|e| ApiError::EncryptionError(format!("Failed to store passphrase: {}", e)))?;
-
-    Ok(())
+    let key = format!("{}-passphrase", credential_id);
+    let storage = get_storage()?;
+    storage.store(&key, passphrase)
 }
 
-/// Retrieve an API passphrase from the system keychain
+/// Retrieve an API passphrase from secure storage
 pub fn retrieve_passphrase(credential_id: &str) -> Result<String, ApiError> {
-    let entry = Entry::new(SERVICE_NAME, &format!("{}-passphrase", credential_id))
-        .map_err(|e| ApiError::EncryptionError(format!("Failed to create keyring entry: {}", e)))?;
-
-    entry
-        .get_password()
-        .map_err(|e| ApiError::EncryptionError(format!("Failed to retrieve passphrase: {}", e)))
+    let key = format!("{}-passphrase", credential_id);
+    let storage = get_storage()?;
+    storage.retrieve(&key)
 }
 
-/// Delete all credentials for a given credential_id from the system keychain
+/// Delete all credentials for a given credential_id
 pub fn delete_credentials(credential_id: &str) -> Result<(), ApiError> {
-    // Delete API key
-    let entry = Entry::new(SERVICE_NAME, &format!("{}-api-key", credential_id))
-        .map_err(|e| ApiError::EncryptionError(format!("Failed to create keyring entry: {}", e)))?;
-    let _ = entry.delete_credential(); // Ignore error if doesn't exist
-
-    // Delete API secret
-    let entry = Entry::new(SERVICE_NAME, &format!("{}-api-secret", credential_id))
-        .map_err(|e| ApiError::EncryptionError(format!("Failed to create keyring entry: {}", e)))?;
-    let _ = entry.delete_credential();
-
-    // Delete passphrase
-    let entry = Entry::new(SERVICE_NAME, &format!("{}-passphrase", credential_id))
-        .map_err(|e| ApiError::EncryptionError(format!("Failed to create keyring entry: {}", e)))?;
-    let _ = entry.delete_credential();
-
+    let storage = get_storage()?;
+    storage.delete_all_with_prefix(credential_id)?;
     Ok(())
-}
-
-/// Legacy compatibility: encrypt_credential now stores in keychain
-/// This maintains API compatibility while using secure storage
-#[deprecated(note = "Use store_api_key, store_api_secret, or store_passphrase instead")]
-#[allow(dead_code)]
-pub fn encrypt_credential(plaintext: &str) -> Result<String, ApiError> {
-    // Return the plaintext as a marker that it should be stored in keychain
-    // This is used for backward compatibility during migration
-    Ok(format!("KEYCHAIN:{}", plaintext))
-}
-
-/// Legacy compatibility: decrypt_credential now retrieves from keychain
-#[deprecated(note = "Use retrieve_api_key, retrieve_api_secret, or retrieve_passphrase instead")]
-#[allow(dead_code)]
-pub fn decrypt_credential(encrypted: &str) -> Result<String, ApiError> {
-    // If it's a keychain marker, extract the credential ID
-    if let Some(cred_id) = encrypted.strip_prefix("KEYCHAIN:") {
-        Ok(cred_id.to_string())
-    } else {
-        // Legacy encrypted data - return error to trigger re-save
-        Err(ApiError::EncryptionError(
-            "Legacy encrypted credentials detected. Please re-save credentials.".to_string(),
-        ))
-    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::env;
+
+    fn setup_test_storage() {
+        let temp_dir = env::temp_dir().join("trading-journal-test-creds");
+        let _ = init_storage(temp_dir);
+    }
 
     #[test]
     fn test_store_retrieve_api_key() {
+        setup_test_storage();
         let test_id = "test-credential-001";
         let test_key = "my-test-api-key-12345";
 
-        // Store
         store_api_key(test_id, test_key).unwrap();
-
-        // Retrieve
         let retrieved = retrieve_api_key(test_id).unwrap();
         assert_eq!(retrieved, test_key);
 
-        // Cleanup
         delete_credentials(test_id).unwrap();
     }
 
     #[test]
     fn test_store_retrieve_api_secret() {
+        setup_test_storage();
         let test_id = "test-credential-002";
         let test_secret = "my-secret-value-xyz";
 
@@ -170,17 +130,15 @@ mod tests {
 
     #[test]
     fn test_delete_credentials() {
+        setup_test_storage();
         let test_id = "test-credential-003";
 
-        // Store multiple credentials
         store_api_key(test_id, "key123").unwrap();
         store_api_secret(test_id, "secret456").unwrap();
         store_passphrase(test_id, "pass789").unwrap();
 
-        // Delete all
         delete_credentials(test_id).unwrap();
 
-        // Verify they're gone
         assert!(retrieve_api_key(test_id).is_err());
         assert!(retrieve_api_secret(test_id).is_err());
         assert!(retrieve_passphrase(test_id).is_err());
