@@ -10,24 +10,41 @@ const SERVICE_NAME: &str = "trading-journal-macos";
 /// - Windows: Credential Manager
 /// - Linux: Secret Service
 pub fn store_api_key(credential_id: &str, api_key: &str) -> Result<(), ApiError> {
-    let entry = Entry::new(SERVICE_NAME, &format!("{}-api-key", credential_id))
+    let account_name = format!("{}-api-key", credential_id);
+    println!("Storing to keychain - Service: {}, Account: {}", SERVICE_NAME, account_name);
+
+    let entry = Entry::new(SERVICE_NAME, &account_name)
         .map_err(|e| ApiError::EncryptionError(format!("Failed to create keyring entry: {}", e)))?;
 
     entry
         .set_password(api_key)
         .map_err(|e| ApiError::EncryptionError(format!("Failed to store API key: {}", e)))?;
 
+    // Verify it was stored
+    match entry.get_password() {
+        Ok(_) => println!("✓ Verified API key stored successfully"),
+        Err(e) => {
+            eprintln!("✗ WARNING: Stored but cannot retrieve immediately: {}", e);
+        }
+    }
+
     Ok(())
 }
 
 /// Retrieve an API key from the system keychain
 pub fn retrieve_api_key(credential_id: &str) -> Result<String, ApiError> {
-    let entry = Entry::new(SERVICE_NAME, &format!("{}-api-key", credential_id))
+    let account_name = format!("{}-api-key", credential_id);
+    println!("Retrieving from keychain - Service: {}, Account: {}", SERVICE_NAME, account_name);
+
+    let entry = Entry::new(SERVICE_NAME, &account_name)
         .map_err(|e| ApiError::EncryptionError(format!("Failed to create keyring entry: {}", e)))?;
 
     entry
         .get_password()
-        .map_err(|e| ApiError::EncryptionError(format!("Failed to retrieve API key: {}", e)))
+        .map_err(|e| {
+            eprintln!("✗ Failed to retrieve - Service: {}, Account: {}, Error: {}", SERVICE_NAME, account_name, e);
+            ApiError::EncryptionError(format!("Failed to retrieve API key: {}", e))
+        })
 }
 
 /// Store an API secret in the system keychain
