@@ -1,4 +1,5 @@
 pub mod api_sync;
+pub mod debug;
 pub mod import;
 pub mod live_mirror;
 pub mod open_orders;
@@ -9,6 +10,7 @@ pub mod sync_scheduler;
 pub mod trades;
 
 pub use api_sync::*;
+pub use debug::*;
 pub use import::*;
 pub use live_mirror::*;
 pub use open_orders::*;

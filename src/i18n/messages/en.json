@@ -52,6 +52,7 @@
     "manageTrades": "Manage your trades",
     "import": "Import",
     "newTrade": "New Trade",
+    "trash": "Trash",
     "noTrades": "No trades found. Create your first trade!",
     "noTradesMessage": "No trades yet. Create your first trade to get started!",
     "noTradesFound": "No trades found matching your search. Try a different query.",
@@ -78,6 +79,12 @@
     "statusFilter": "Status",
     "search": "Search",
     "searchPairPlaceholder": "Search by pair (e.g. BTC, ETH, BTCUSDT...)"
+  },
+  "trash": {
+    "title": "Trash",
+    "description": "Deleted trades can be restored from here",
+    "empty": "No deleted trades",
+    "restore": "Restore"
   },
   "import": {
     "title": "Import Trades",
@@ -402,6 +409,7 @@
     "plannedEntries": "Planned Entries",
     "actualEntries": "Actual Entries",
     "addEntry": "Add Entry",
+    "addExit": "Add Exit",
     "removeEntry": "Remove Entry",
     "weightedAverageEntry": "Weighted Average Entry",
     "entryAllocation": "Entry Allocation",

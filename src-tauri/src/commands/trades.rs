@@ -48,7 +48,7 @@ pub async fn get_trades(
 ) -> Result<Vec<Trade>, String> {
     let conn = db.conn.lock().map_err(|e| e.to_string())?;
 
-    let mut query = String::from("SELECT * FROM trades WHERE 1=1");
+    let mut query = String::from("SELECT * FROM trades WHERE deleted_at IS NULL");
     let mut conditions = Vec::new();
     let mut params: Vec<Box<dyn rusqlite::ToSql>> = Vec::new();
 
@@ -151,8 +151,41 @@ pub async fn delete_trade(
     id: String,
 ) -> Result<(), String> {
     let conn = db.conn.lock().map_err(|e| e.to_string())?;
-    conn.execute("DELETE FROM trades WHERE id = ?", [&id])
+    let now = Utc::now().timestamp();
+    conn.execute(
+        "UPDATE trades SET deleted_at = ? WHERE id = ?",
+        rusqlite::params![now, &id]
+    ).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn get_deleted_trades(
+    db: State<'_, Database>,
+) -> Result<Vec<Trade>, String> {
+    let conn = db.conn.lock().map_err(|e| e.to_string())?;
+
+    let mut stmt = conn.prepare(
+        "SELECT * FROM trades WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC"
+    ).map_err(|e| e.to_string())?;
+
+    let trades_iter = stmt.query_map([], map_row_to_trade)
         .map_err(|e| e.to_string())?;
+
+    let trades: Result<Vec<Trade>, _> = trades_iter.collect();
+    trades.map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn restore_trade(
+    db: State<'_, Database>,
+    id: String,
+) -> Result<(), String> {
+    let conn = db.conn.lock().map_err(|e| e.to_string())?;
+    conn.execute(
+        "UPDATE trades SET deleted_at = NULL WHERE id = ?",
+        [&id]
+    ).map_err(|e| e.to_string())?;
     Ok(())
 }
 

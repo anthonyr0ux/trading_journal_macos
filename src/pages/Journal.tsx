@@ -8,8 +8,9 @@ import { Input } from '../components/ui/input';
 import { Badge } from '../components/ui/badge';
 import { formatCurrency, formatRR, getDateRangeTimestamp, type DateRange } from '../lib/utils';
 import { calculateExecutionMetrics } from '../lib/calculations';
-import { Plus, Eye, Calendar, Search } from 'lucide-react';
+import { Plus, Eye, Calendar, Search, Trash2 } from 'lucide-react';
 import { HelpBadge } from '../components/HelpBadge';
+import { TrashDialog } from '../components/TrashDialog';
 
 type StatusFilter = 'all' | 'OPEN' | 'WIN' | 'LOSS' | 'BE';
 
@@ -21,6 +22,7 @@ export default function Journal() {
   const [dateRange, setDateRange] = useState<DateRange>('all');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [trashOpen, setTrashOpen] = useState(false);
 
   useEffect(() => {
     loadTrades();
@@ -99,10 +101,16 @@ export default function Journal() {
             {t('journal.manageTrades') || 'Manage your trades'}
           </p>
         </div>
-        <Button onClick={() => navigate('/journal/new')}>
-          <Plus className="h-4 w-4 mr-2" />
-          {t('journal.newTrade') || 'New Trade'}
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setTrashOpen(true)}>
+            <Trash2 className="h-4 w-4 mr-2" />
+            {t('journal.trash') || 'Trash'}
+          </Button>
+          <Button onClick={() => navigate('/journal/new')}>
+            <Plus className="h-4 w-4 mr-2" />
+            {t('journal.newTrade') || 'New Trade'}
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -308,18 +316,22 @@ export default function Journal() {
 
                     {/* P&L in R (calculated live) */}
                     {(() => {
-                      const pnlInR = trade.status !== 'OPEN' && trade.total_pnl != null && trade.one_r > 0
-                        ? trade.total_pnl / trade.one_r
-                        : null;
+                      // For BE trades, show 0 even if total_pnl is null
+                      let pnlInR = null;
+                      if (trade.status === 'BE') {
+                        pnlInR = 0;
+                      } else if (trade.status !== 'OPEN' && trade.total_pnl != null && trade.one_r > 0) {
+                        pnlInR = trade.total_pnl / trade.one_r;
+                      }
 
                       return (
                         <div className={`font-semibold min-w-[100px] text-right ${
                           pnlInR !== null
-                            ? (pnlInR >= 0 ? 'text-success' : 'text-destructive')
+                            ? (pnlInR > 0 ? 'text-success' : pnlInR < 0 ? 'text-destructive' : 'text-muted-foreground')
                             : 'text-muted-foreground'
                         }`}>
                           {pnlInR !== null
-                            ? `${pnlInR >= 0 ? '+' : ''}${pnlInR.toFixed(2)}R`
+                            ? `${pnlInR > 0 ? '+' : ''}${pnlInR.toFixed(2)}R`
                             : '-'}
                         </div>
                       );
@@ -327,11 +339,11 @@ export default function Journal() {
 
                     {/* P&L in Currency */}
                     <div className={`font-semibold min-w-[120px] text-right ml-auto ${
-                      trade.total_pnl
-                        ? (trade.total_pnl >= 0 ? 'text-success' : 'text-destructive')
+                      (trade.total_pnl != null || trade.status === 'BE')
+                        ? ((trade.total_pnl ?? 0) > 0 ? 'text-success' : (trade.total_pnl ?? 0) < 0 ? 'text-destructive' : 'text-muted-foreground')
                         : 'text-muted-foreground'
                     }`}>
-                      {trade.total_pnl ? formatCurrency(trade.total_pnl) : '-'}
+                      {(trade.total_pnl != null || trade.status === 'BE') ? formatCurrency(trade.total_pnl ?? 0) : '-'}
                     </div>
 
                     {/* View Button */}
@@ -353,6 +365,13 @@ export default function Journal() {
           </Card>
         )}
       </div>
+
+      {/* Trash Dialog */}
+      <TrashDialog
+        open={trashOpen}
+        onOpenChange={setTrashOpen}
+        onTradeRestored={loadTrades}
+      />
     </div>
   );
 }

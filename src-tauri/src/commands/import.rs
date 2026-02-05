@@ -442,23 +442,10 @@ pub async fn import_all_data(
 
     let mut imported_trades = 0;
 
-    // Import trades
+    // Import trades (use REPLACE to overwrite existing trades)
     for trade in backup.trades {
-        // Check if trade already exists
-        let exists: bool = conn
-            .query_row(
-                "SELECT EXISTS(SELECT 1 FROM trades WHERE id = ?)",
-                [&trade.id],
-                |row| row.get(0),
-            )
-            .unwrap_or(false);
-
-        if exists {
-            continue; // Skip duplicates
-        }
-
         conn.execute(
-            "INSERT INTO trades (id, pair, exchange, analysis_date, trade_date, close_date, status, portfolio_value, r_percent, min_rr, planned_pe, planned_sl, leverage, planned_tps, planned_entries, position_type, one_r, margin, position_size, quantity, planned_weighted_rr, effective_pe, effective_entries, exits, effective_weighted_rr, total_pnl, pnl_in_r, notes, import_fingerprint, import_source, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "REPLACE INTO trades (id, pair, exchange, analysis_date, trade_date, close_date, status, portfolio_value, r_percent, min_rr, planned_pe, planned_sl, leverage, planned_tps, planned_entries, position_type, one_r, margin, position_size, quantity, planned_weighted_rr, effective_pe, effective_entries, exits, effective_weighted_rr, total_pnl, pnl_in_r, notes, import_fingerprint, import_source, created_at, updated_at, deleted_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             rusqlite::params![
                 trade.id,
                 trade.pair,
@@ -492,6 +479,7 @@ pub async fn import_all_data(
                 trade.import_source,
                 trade.created_at,
                 trade.updated_at,
+                None::<i64>, // deleted_at is NULL for imported trades
             ],
         )
         .map_err(|e| e.to_string())?;

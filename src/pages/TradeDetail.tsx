@@ -8,7 +8,6 @@ import { Label } from '../components/ui/label';
 import { Button } from '../components/ui/button';
 import { Textarea } from '../components/ui/textarea';
 import { Badge } from '../components/ui/badge';
-import { Checkbox } from '../components/ui/checkbox';
 import { api, type Trade } from '../lib/api';
 import { calculateExecutionMetrics, calculateWeightedEntry } from '../lib/calculations';
 import { formatCurrency, formatRR, formatPercent, cn } from '../lib/utils';
@@ -49,6 +48,10 @@ export default function TradeDetail() {
     update: updateEffectiveEntry
   } = effectiveEntriesManager;
 
+  // Editable basic fields
+  const [pair, setPair] = useState('');
+  const [exchange, setExchange] = useState('');
+
   // Editable plan fields
   const [plannedSl, setPlannedSl] = useState(0);
   const [leverage, setLeverage] = useState(10);
@@ -59,7 +62,6 @@ export default function TradeDetail() {
   const [exits, setExits] = useState<Exit[]>([]);
   const [closeDate, setCloseDate] = useState('');
   const [notes, setNotes] = useState('');
-  const [manualBE, setManualBE] = useState(false);
 
   // Calculate current metrics (memoized) - must be before early returns
   const { executionMetrics, executionValid, validExits, totalExitPercent } = useMemo(() => {
@@ -120,6 +122,10 @@ export default function TradeDetail() {
       const data = await api.getTrade(tradeId);
       setTrade(data);
 
+      // Initialize basic fields
+      setPair(data.pair);
+      setExchange(data.exchange);
+
       // Parse planned entries
       if (data.planned_entries) {
         try {
@@ -170,13 +176,13 @@ export default function TradeDetail() {
           const parsedExits = typeof data.exits === 'string'
             ? JSON.parse(data.exits)
             : data.exits;
-          setExits(parsedExits);
+          setExits(parsedExits.length > 0 ? parsedExits : [{ price: 0, percent: 0 }]);
         } catch {
-          setExits([]);
+          setExits([{ price: 0, percent: 0 }]);
         }
       } else {
-        // Initialize with empty exits matching TPs
-        setExits(parsedPlannedTps.map(() => ({ price: 0, percent: 0 })));
+        // Initialize with one empty exit
+        setExits([{ price: 0, percent: 0 }]);
       }
 
       if (data.close_date) {
@@ -184,9 +190,6 @@ export default function TradeDetail() {
       }
 
       setNotes(data.notes || '');
-
-      // Initialize manual BE checkbox if trade is marked as BE
-      setManualBE(data.status === 'BE');
     } catch (error) {
       console.error('Failed to load trade:', error);
       toast.error(t('tradeDetail.failedToLoad'));
@@ -213,7 +216,6 @@ export default function TradeDetail() {
         newStatus = 'OPEN';
         totalPnl = null;
         effectiveRR = null;
-        setManualBE(false); // Reset BE checkbox when no exits
       } else if (validExits.length > 0) {
         const totalExitPercent = validExits.reduce((sum, e) => sum + e.percent, 0);
 
@@ -243,13 +245,7 @@ export default function TradeDetail() {
             totalPnl = metrics.totalPnl;
             effectiveRR = metrics.effectiveRR;
 
-            // Auto-uncheck BE if P&L is not near zero (has significant profit/loss)
-            if (manualBE && Math.abs(metrics.totalPnl) >= 1.0) {
-              setManualBE(false);
-            }
-
-            // Determine status based on P&L (with manual BE override for edge cases)
-            // Status is ALWAYS recalculated based on current execution data
+            // Determine status based on P&L
             if (Math.abs(metrics.totalPnl) < 0.5) {
               // P&L is near zero - this is break-even
               newStatus = 'BE';
@@ -257,11 +253,6 @@ export default function TradeDetail() {
               newStatus = 'WIN';
             } else {
               newStatus = 'LOSS';
-            }
-
-            // Manual BE override: only if user explicitly wants BE despite small profit/loss
-            if (manualBE && Math.abs(metrics.totalPnl) < 1.0) {
-              newStatus = 'BE';
             }
           } catch (error) {
             console.error('Failed to calculate execution metrics:', error);
@@ -352,6 +343,9 @@ export default function TradeDetail() {
         : null;
 
       await api.updateTrade(trade.id, {
+        // Basic fields
+        pair: pair.toUpperCase(),
+        exchange: exchange,
         // Plan fields
         planned_pe: weightedPlannedPE,
         planned_sl: plannedSl,
@@ -362,10 +356,10 @@ export default function TradeDetail() {
         effective_pe: weightedEffectivePE,
         effective_entries: effectiveEntriesJson,
         exits: exitsJson,
-        close_date: closeDateTimestamp || undefined,
-        total_pnl: totalPnl || undefined,
-        pnl_in_r: pnlInR || undefined,
-        effective_weighted_rr: effectiveRR || undefined,
+        close_date: closeDateTimestamp ?? undefined,
+        total_pnl: totalPnl ?? undefined,
+        pnl_in_r: pnlInR ?? undefined,
+        effective_weighted_rr: effectiveRR ?? undefined,
         status: newStatus,
         notes: notes,
       });
@@ -444,32 +438,42 @@ export default function TradeDetail() {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      {/* Header - Linear Design */}
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3 flex-1">
           <Button variant="ghost" size="icon" onClick={() => navigate('/journal')}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-3xl font-bold">{trade.pair}</h1>
-              <HelpBadge section="journal" />
-              <Badge variant={
-                trade.position_type === 'LONG' ? 'default' : 'destructive'
-              } className="text-sm px-3 py-1">
-                {trade.position_type}
-              </Badge>
-              <Badge variant={
-                trade.status === 'WIN' ? 'default' :
-                trade.status === 'LOSS' ? 'destructive' :
-                trade.status === 'BE' ? 'secondary' :
-                'outline'
-              } className="text-sm px-3 py-1">
-                {trade.status}
-              </Badge>
-            </div>
-            <p className="text-muted-foreground mt-1">{trade.exchange}</p>
-          </div>
+          <HelpBadge section="journal" />
+          <Badge variant={
+            trade.position_type === 'LONG' ? 'default' : 'destructive'
+          } className="text-sm px-3 py-1">
+            {trade.position_type}
+          </Badge>
+          <Badge variant={
+            trade.status === 'WIN' ? 'default' :
+            trade.status === 'LOSS' ? 'destructive' :
+            trade.status === 'BE' ? 'secondary' :
+            'outline'
+          } className="text-sm px-3 py-1">
+            {trade.status}
+          </Badge>
+          <div className="h-6 w-px bg-border" />
+          <input
+            value={pair}
+            onChange={(e) => setPair(e.target.value)}
+            placeholder={t('tradeNew.pairPlaceholder')}
+            className="text-xl font-bold bg-transparent border-none outline-none focus:outline-none focus:ring-0 px-0 w-auto min-w-[100px] placeholder:text-muted-foreground/40"
+            style={{ width: `${Math.max(pair.length * 12 + 20, 100)}px` }}
+          />
+          <span className="text-muted-foreground text-sm">on</span>
+          <input
+            value={exchange}
+            onChange={(e) => setExchange(e.target.value)}
+            placeholder={t('tradeNew.exchangePlaceholder')}
+            className="text-lg bg-transparent border-none outline-none focus:outline-none focus:ring-0 px-0 w-auto min-w-[80px] placeholder:text-muted-foreground/40"
+            style={{ width: `${Math.max(exchange.length * 10 + 20, 80)}px` }}
+          />
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={handleDuplicate}>
@@ -484,19 +488,7 @@ export default function TradeDetail() {
       </div>
 
       {/* Key Metrics Summary */}
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-muted-foreground">{t('tradeDetail.portfolioValue')}</p>
-                <p className="text-2xl font-bold">{formatCurrency(trade.portfolio_value)}</p>
-              </div>
-              <DollarSign className="h-8 w-8 text-muted-foreground" />
-            </div>
-          </CardContent>
-        </Card>
-
+      <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
@@ -881,7 +873,18 @@ export default function TradeDetail() {
 
               {/* Exit Points */}
               <div className="space-y-3 pt-3 border-t">
-                <Label className="text-sm font-semibold">{t('tradeNew.actualExits')}</Label>
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-semibold">{t('tradeNew.actualExits')}</Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setExits([...exits, { price: 0, percent: 0 }])}
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    {t('tradeNew.addExit') || 'Ajouter Sortie'}
+                  </Button>
+                </div>
                 <p className="text-xs text-muted-foreground mb-3">
                   {t('tradeDetail.exits')}
                 </p>
@@ -890,11 +893,26 @@ export default function TradeDetail() {
                   <div key={index} className="p-3 border rounded-lg space-y-3 bg-muted/30">
                     <div className="flex items-center justify-between">
                       <Badge variant="outline">{t('import.exit')} {index + 1}</Badge>
-                      {plannedTps[index]?.percent != null && (
-                        <span className="text-xs text-muted-foreground">
-                          {t('tradeNew.plannedSetup')}: {plannedTps[index]?.percent?.toFixed(1)}% @ ${plannedTps[index]?.price?.toFixed(8)}
-                        </span>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {plannedTps[index]?.percent != null && (
+                          <span className="text-xs text-muted-foreground">
+                            {t('tradeNew.plannedSetup')}: {plannedTps[index]?.percent?.toFixed(1)}% @ ${plannedTps[index]?.price?.toFixed(8)}
+                          </span>
+                        )}
+                        {exits.length > 1 && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              const newExits = exits.filter((_, i) => i !== index);
+                              setExits(newExits.length > 0 ? newExits : [{ price: 0, percent: 0 }]);
+                            }}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
                     </div>
 
                     <div className="grid gap-3 grid-cols-2">
@@ -931,7 +949,6 @@ export default function TradeDetail() {
                               setExits(newExits);
                             }
                           }}
-                          disabled={!exit.price}
                           placeholder={t('tradeNew.percentPlaceholder')}
                           className="text-sm"
                         />
@@ -968,7 +985,7 @@ export default function TradeDetail() {
                 </div>
               )}
 
-              {/* Close Date and Manual BE */}
+              {/* Close Date */}
               <div className="space-y-3 pt-3 border-t">
                 <div className="space-y-2">
                   <Label htmlFor="closeDate" className="text-xs font-semibold">{t('tradeDetail.closeDate')}</Label>
@@ -980,24 +997,6 @@ export default function TradeDetail() {
                   />
                   <p className="text-xs text-muted-foreground">{t('tradeNew.optional')}</p>
                 </div>
-
-                {/* Manual Break-Even Checkbox */}
-                <div className="flex items-center space-x-2 pt-3 border-t">
-                  <Checkbox
-                    id="manualBE"
-                    checked={manualBE}
-                    onCheckedChange={(checked) => setManualBE(checked as boolean)}
-                  />
-                  <Label
-                    htmlFor="manualBE"
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                  >
-                    {t('tradeDetail.markAsBreakEven')}
-                  </Label>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  {t('tradeDetail.markAsBreakEvenHelp')}
-                </p>
               </div>
             </CardContent>
           </Card>

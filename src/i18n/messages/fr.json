@@ -52,6 +52,7 @@
     "manageTrades": "Gérez vos trades",
     "import": "Importer",
     "newTrade": "Nouveau Trade",
+    "trash": "Corbeille",
     "noTrades": "Aucun trade trouvé. Créez votre premier trade !",
     "noTradesMessage": "Aucun trade pour l'instant. Créez votre premier trade pour commencer !",
     "noTradesFound": "Aucun trade correspondant à votre recherche. Essayez une autre requête.",
@@ -78,6 +79,12 @@
     "statusFilter": "Statut",
     "search": "Rechercher",
     "searchPairPlaceholder": "Rechercher par paire (ex: BTC, ETH, BTCUSDT...)"
+  },
+  "trash": {
+    "title": "Corbeille",
+    "description": "Les trades supprimés peuvent être restaurés ici",
+    "empty": "Aucun trade supprimé",
+    "restore": "Restaurer"
   },
   "import": {
     "title": "Importer des Trades",
@@ -388,6 +395,7 @@
     "plannedEntries": "Entrées Prévues",
     "actualEntries": "Entrées Réelles",
     "addEntry": "Ajouter Entrée",
+    "addExit": "Ajouter Sortie",
     "removeEntry": "Retirer Entrée",
     "weightedAverageEntry": "Prix d'Entrée Moyen Pondéré",
     "entryAllocation": "Allocation d'Entrée",

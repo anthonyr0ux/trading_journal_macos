@@ -235,7 +235,13 @@ export const api = {
   createTrade: (trade: CreateTradeInput) => invoke<Trade>('create_trade', { trade }),
   updateTrade: (id: string, tradeUpdate: Partial<Trade>) => invoke<Trade>('update_trade', { id, tradeUpdate }),
   deleteTrade: (id: string) => invoke<void>('delete_trade', { id }),
+  getDeletedTrades: () => invoke<Trade[]>('get_deleted_trades'),
+  restoreTrade: (id: string) => invoke<void>('restore_trade', { id }),
   duplicateTrade: (id: string) => invoke<Trade>('duplicate_trade', { id }),
+
+  // Debug commands
+  getAllTradesIncludingDeleted: () => invoke<{ total: number; deleted: number; active: number }>('get_all_trades_including_deleted'),
+  restoreAllTrades: () => invoke<number>('restore_all_trades'),
   deleteAllTrades: () => invoke<number>('delete_all_trades'),
 
   // Stats
