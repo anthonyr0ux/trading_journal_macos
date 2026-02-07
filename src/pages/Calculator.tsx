@@ -251,7 +251,7 @@ export default function Calculator() {
                 id="portfolio"
                 type="number"
                 value={portfolio}
-                onChange={(e) => setPortfolio(Number(e.target.value))}
+                onChange={(e) => setPortfolio(parseFloat(e.target.value) || 0)}
                 className="h-8 text-sm font-semibold"
               />
             </div>
@@ -264,7 +264,7 @@ export default function Calculator() {
                 type="number"
                 step="0.1"
                 value={rPercent}
-                onChange={(e) => setRPercent(Number(e.target.value))}
+                onChange={(e) => setRPercent(parseFloat(e.target.value) || 0)}
                 className="h-8 text-sm font-semibold"
               />
             </div>
@@ -277,7 +277,7 @@ export default function Calculator() {
                 type="number"
                 step="0.1"
                 value={minRR}
-                onChange={(e) => setMinRR(Number(e.target.value))}
+                onChange={(e) => setMinRR(parseFloat(e.target.value) || 0)}
                 className="h-8 text-sm font-semibold"
               />
             </div>
@@ -361,7 +361,7 @@ export default function Calculator() {
                       type="number"
                       step="0.00000001"
                       value={entry.price || ''}
-                      onChange={(e) => updateEntry(index, 'price', Number(e.target.value))}
+                      onChange={(e) => updateEntry(index, 'price', parseFloat(e.target.value) || 0)}
                       placeholder="Price"
                       className={`font-mono text-xs h-6 ${index === 0 && !entry.price ? 'field-required' : ''}`}
                     />
@@ -370,7 +370,7 @@ export default function Calculator() {
                       min="0"
                       max="100"
                       value={entry.percent || ''}
-                      onChange={(e) => updateEntry(index, 'percent', Number(e.target.value))}
+                      onChange={(e) => updateEntry(index, 'percent', parseFloat(e.target.value) || 0)}
                       disabled={!entry.price}
                       placeholder="%"
                       className="text-xs h-6"
@@ -410,7 +410,7 @@ export default function Calculator() {
                 type="number"
                 step="0.00000001"
                 value={sl}
-                onChange={(e) => setSl(Number(e.target.value))}
+                onChange={(e) => setSl(parseFloat(e.target.value) || 0)}
                 className={`font-mono text-xs h-7 ${!sl ? 'field-required' : ''}`}
                 placeholder="0.00"
               />
@@ -452,7 +452,7 @@ export default function Calculator() {
                       type="number"
                       step="0.00000001"
                       value={tp.price || ''}
-                      onChange={(e) => updateTp(index, 'price', Number(e.target.value))}
+                      onChange={(e) => updateTp(index, 'price', parseFloat(e.target.value) || 0)}
                       placeholder="Price"
                       className={`font-mono text-xs h-6 ${index === 0 && !tp.price ? 'field-required' : ''}`}
                     />
@@ -461,7 +461,7 @@ export default function Calculator() {
                       min="0"
                       max="100"
                       value={tp.percent || ''}
-                      onChange={(e) => updateTp(index, 'percent', Number(e.target.value))}
+                      onChange={(e) => updateTp(index, 'percent', parseFloat(e.target.value) || 0)}
                       disabled={!tp.price}
                       placeholder="%"
                       className="text-xs h-6"
@@ -558,7 +558,7 @@ export default function Calculator() {
                 min="1"
                 max="125"
                 value={leverage}
-                onChange={(e) => setLeverage(Number(e.target.value))}
+                onChange={(e) => setLeverage(parseFloat(e.target.value) || 0)}
                 className="h-7 text-sm font-semibold"
               />
             </div>
