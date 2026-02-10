@@ -140,7 +140,7 @@ pub async fn create_trade(
                 planned_weighted_rr, notes, execution_portfolio, execution_r_percent, execution_margin,
                 execution_position_size, execution_quantity, execution_one_r, execution_potential_profit,
                 import_source, created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             rusqlite::params![
                 id, trade.pair, trade.exchange, trade.analysis_date, trade.trade_date, trade.status,
                 trade.portfolio_value, trade.r_percent, trade.min_rr, trade.planned_pe, trade.planned_sl, trade.leverage,
