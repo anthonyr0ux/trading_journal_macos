@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslation } from 'react-i18next';
 import {
   Dialog,
   DialogContent,
@@ -28,12 +29,17 @@ export function ConfirmDialog({
   onOpenChange,
   title,
   description,
-  confirmLabel = 'Confirm',
-  cancelLabel = 'Cancel',
+  confirmLabel,
+  cancelLabel,
   variant = 'default',
   onConfirm,
   loading = false,
 }: ConfirmDialogProps) {
+  const { t } = useTranslation();
+
+  const defaultConfirmLabel = confirmLabel || t('dialogs.confirm.confirm');
+  const defaultCancelLabel = cancelLabel || t('dialogs.confirm.cancel');
+
   const handleConfirm = () => {
     onConfirm();
   };
@@ -59,14 +65,14 @@ export function ConfirmDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={handleClose} disabled={loading}>
-            {cancelLabel}
+            {defaultCancelLabel}
           </Button>
           <Button
             variant={variant}
             onClick={handleConfirm}
             disabled={loading}
           >
-            {loading ? 'Processing...' : confirmLabel}
+            {loading ? t('dialogs.confirm.processing') : defaultConfirmLabel}
           </Button>
         </DialogFooter>
       </DialogContent>

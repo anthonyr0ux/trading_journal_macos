@@ -109,10 +109,10 @@ export function ExchangeCard({
   };
 
   const intervalOptions = [
-    { value: '900', label: '15 minutes' },
-    { value: '3600', label: '1 hour' },
-    { value: '14400', label: '4 hours' },
-    { value: '86400', label: 'Daily' },
+    { value: '900', label: t('api.interval.15min') },
+    { value: '3600', label: t('api.interval.1hour') },
+    { value: '14400', label: t('api.interval.4hours') },
+    { value: '86400', label: t('api.interval.daily') },
   ];
 
   return (

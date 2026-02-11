@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslation } from 'react-i18next';
 import {
   Dialog,
   DialogContent,
@@ -21,10 +22,14 @@ interface ErrorDialogProps {
 export function ErrorDialog({
   open,
   onOpenChange,
-  title = 'Error',
+  title,
   error,
 }: ErrorDialogProps) {
+  const { t } = useTranslation();
+
   if (!error) return null;
+
+  const dialogTitle = title || t('dialogs.error.title');
 
   const handleClose = () => {
     onOpenChange(false);
@@ -36,7 +41,7 @@ export function ErrorDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <XCircle className="h-5 w-5 text-destructive" />
-            {title}
+            {dialogTitle}
           </DialogTitle>
           <DialogDescription className="text-destructive">
             {error}
@@ -44,7 +49,7 @@ export function ErrorDialog({
         </DialogHeader>
 
         <DialogFooter>
-          <Button onClick={handleClose}>Close</Button>
+          <Button onClick={handleClose}>{t('dialogs.error.close')}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

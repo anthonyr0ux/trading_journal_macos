@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { api, type Position, type ApiCredentialSafe } from '../lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
@@ -8,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { CurrencyDisplay } from './CurrencyDisplay';
 
 export function PositionMonitor() {
+  const { t } = useTranslation();
   const [positions, setPositions] = useState<Position[]>([]);
   const [credentials, setCredentials] = useState<ApiCredentialSafe[]>([]);
   const [selectedCredentialId, setSelectedCredentialId] = useState<string>('');
@@ -96,12 +98,12 @@ export function PositionMonitor() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Activity className="h-5 w-5" />
-            <CardTitle>Position Monitor</CardTitle>
+            <CardTitle>{t('positionMonitor.title')}</CardTitle>
           </div>
           <div className="flex items-center gap-2">
             {lastUpdate && (
               <span className="text-xs text-muted-foreground">
-                Last update: {lastUpdate.toLocaleTimeString()}
+                {t('positionMonitor.lastUpdate', { time: lastUpdate.toLocaleTimeString() })}
               </span>
             )}
             <Button
@@ -122,7 +124,7 @@ export function PositionMonitor() {
             <div className="flex-1 min-w-[200px]">
               <Select value={selectedCredentialId} onValueChange={handleCredentialChange}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select API credential" />
+                  <SelectValue placeholder={t('positionMonitor.selectCredential')} />
                 </SelectTrigger>
                 <SelectContent>
                   {credentials.map((cred) => (
@@ -135,7 +137,7 @@ export function PositionMonitor() {
             </div>
 
             <div className="flex items-center gap-2">
-              <label className="text-sm text-muted-foreground">Auto-refresh:</label>
+              <label className="text-sm text-muted-foreground">{t('positionMonitor.autoRefresh')}</label>
               <div className="flex gap-1">
                 {refreshIntervalOptions.map((seconds) => (
                   <Button
@@ -147,7 +149,7 @@ export function PositionMonitor() {
                       setAutoRefresh(true);
                     }}
                   >
-                    {seconds}s
+                    {seconds}{t('positionMonitor.seconds')}
                   </Button>
                 ))}
                 <Button
@@ -155,7 +157,7 @@ export function PositionMonitor() {
                   size="sm"
                   onClick={() => setAutoRefresh(false)}
                 >
-                  Off
+                  {t('positionMonitor.off')}
                 </Button>
               </div>
             </div>
@@ -166,7 +168,7 @@ export function PositionMonitor() {
               onClick={() => loadPositions(true)}
               disabled={!selectedCredentialId}
             >
-              Load Positions
+              {t('positionMonitor.loadPositions')}
             </Button>
           </div>
 
@@ -181,7 +183,7 @@ export function PositionMonitor() {
           {loading && positions.length === 0 && (
             <div className="text-center py-8">
               <RefreshCw className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
-              <p className="text-sm text-muted-foreground mt-2">Loading positions...</p>
+              <p className="text-sm text-muted-foreground mt-2">{t('positionMonitor.loading')}</p>
             </div>
           )}
 
@@ -189,9 +191,9 @@ export function PositionMonitor() {
           {!loading && !error && positions.length === 0 && selectedCredentialId && (
             <div className="text-center py-8">
               <Activity className="h-12 w-12 mx-auto text-muted-foreground opacity-50" />
-              <p className="text-muted-foreground mt-2">No open positions</p>
+              <p className="text-muted-foreground mt-2">{t('positionMonitor.noPositions')}</p>
               <p className="text-xs text-muted-foreground mt-1">
-                Your active positions will appear here
+                {t('positionMonitor.noPositionsHelp')}
               </p>
             </div>
           )}
@@ -199,9 +201,9 @@ export function PositionMonitor() {
           {/* No Credential Selected */}
           {!selectedCredentialId && credentials.length === 0 && (
             <div className="text-center py-8">
-              <p className="text-muted-foreground">No active API credentials found</p>
+              <p className="text-muted-foreground">{t('positionMonitor.noCredentials')}</p>
               <p className="text-xs text-muted-foreground mt-1">
-                Add API credentials in Settings to monitor positions
+                {t('positionMonitor.noCredentialsHelp')}
               </p>
             </div>
           )}
@@ -237,19 +239,19 @@ export function PositionMonitor() {
                         {/* Price Information */}
                         <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
                           <div className="flex justify-between">
-                            <span className="text-muted-foreground">Entry:</span>
+                            <span className="text-muted-foreground">{t('positionMonitor.entry')}</span>
                             <span className="font-medium">${position.entry_price.toFixed(4)}</span>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-muted-foreground">Current:</span>
+                            <span className="text-muted-foreground">{t('positionMonitor.current')}</span>
                             <span className="font-medium">${position.current_price.toFixed(4)}</span>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-muted-foreground">Quantity:</span>
+                            <span className="text-muted-foreground">{t('positionMonitor.quantity')}</span>
                             <span className="font-medium">{position.quantity.toFixed(4)}</span>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-muted-foreground">Margin:</span>
+                            <span className="text-muted-foreground">{t('positionMonitor.margin')}</span>
                             <span className="font-medium"><CurrencyDisplay value={position.margin} /></span>
                           </div>
                         </div>
@@ -270,7 +272,7 @@ export function PositionMonitor() {
 
                         {/* Liquidation Warning */}
                         <div>
-                          <div className="text-xs text-muted-foreground">Liquidation</div>
+                          <div className="text-xs text-muted-foreground">{t('positionMonitor.liquidation')}</div>
                           <div className="text-sm font-medium">
                             ${position.liquidation_price.toFixed(4)}
                           </div>
@@ -282,7 +284,7 @@ export function PositionMonitor() {
                               <AlertTriangle className="h-3 w-3 mr-1" />
                             )}
                             <span className={getLiquidationWarningColor(position.price_distance_to_liquidation_percent)}>
-                              {position.price_distance_to_liquidation_percent.toFixed(2)}% away
+                              {position.price_distance_to_liquidation_percent.toFixed(2)}{t('positionMonitor.percentAway')}
                             </span>
                           </Badge>
                         </div>
@@ -299,10 +301,10 @@ export function PositionMonitor() {
             <div className="pt-4 border-t">
               <div className="flex justify-between items-center">
                 <span className="text-sm text-muted-foreground">
-                  Total positions: {positions.length}
+                  {t('positionMonitor.totalPositions', { count: positions.length })}
                 </span>
                 <div className="text-right">
-                  <div className="text-sm text-muted-foreground">Total Unrealized PnL</div>
+                  <div className="text-sm text-muted-foreground">{t('positionMonitor.totalUnrealizedPnL')}</div>
                   <div className={`text-lg font-bold ${
                     positions.reduce((sum, p) => sum + p.unrealized_pnl, 0) >= 0
                       ? 'text-success'

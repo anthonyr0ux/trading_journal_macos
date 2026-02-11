@@ -536,7 +536,34 @@
     "incremental": "Incrémentale",
     "success": "Succès",
     "failed": "Échec",
-    "partial": "Partielle"
+    "partial": "Partielle",
+    "notScheduled": "Non programmé",
+    "syncingSoon": "Synchronisation prochaine...",
+    "autoSync": "Synchro Auto",
+    "syncInterval": "Intervalle de Synchro",
+    "nextSync": "Prochaine synchro",
+    "interval": {
+      "15min": "15 minutes",
+      "1hour": "1 heure",
+      "4hours": "4 heures",
+      "daily": "Quotidien",
+      "off": "Désactivé"
+    },
+    "syncDialog": {
+      "title": "Synchroniser les trades depuis {{exchange}}",
+      "description": "Cela importera les nouveaux trades de l'historique disponible (jusqu'à {{limit}} selon la limite API de {{exchange}}).",
+      "syncing": "Synchronisation...",
+      "syncNow": "Synchroniser Maintenant",
+      "close": "Fermer",
+      "successTitle": "Synchronisation Réussie !",
+      "warningTitle": "Synchronisation Terminée avec Avertissements",
+      "imported": "Importé",
+      "duplicatesSkipped": "Doublons Ignorés",
+      "totalPnL": "PnL Total",
+      "errors": "Erreurs :",
+      "andMore": "...et {{count}} de plus"
+    },
+    "accountPlaceholder": "Compte {{exchange}}"
   },
   "help": {
     "title": "Aide & Documentation",
@@ -647,5 +674,89 @@
 
     "contactNote": "Contact & Support",
     "contactNoteContent": "Besoin d'aide ou vous avez une question ?\n• Pour toute question ou signalement d'erreur\n• Contactez-moi sur Telegram : @N0mad832\n• Je suis là pour vous aider !"
+  },
+  "importResult": {
+    "successTitle": "Import Réussi !",
+    "deletedTitle": "Trades Supprimés avec Succès !",
+    "noNewTradesTitle": "Aucun Nouveau Trade à Importer",
+    "warningTitle": "Import Terminé avec Avertissements",
+    "completedTitle": "Import Terminé",
+    "deletedDescription": "Suppression réussie de {{count}} trades importés de votre journal.",
+    "allExistDescription": "Tous les trades du fichier existent déjà dans votre journal.",
+    "processedDescription": "Votre fichier CSV a été traité.",
+    "deleted": "Supprimé",
+    "imported": "Importé",
+    "duplicatesSkipped": "Doublons Ignorés",
+    "errors": "Erreurs :",
+    "andMore": "...et {{count}} de plus",
+    "close": "Fermer"
+  },
+  "positionMonitor": {
+    "title": "Moniteur de Positions",
+    "lastUpdate": "Dernière mise à jour : {{time}}",
+    "selectCredential": "Sélectionner identifiants API",
+    "autoRefresh": "Actualisation auto :",
+    "seconds": "s",
+    "off": "Désactivé",
+    "loadPositions": "Charger Positions",
+    "loading": "Chargement des positions...",
+    "noPositions": "Aucune position ouverte",
+    "noPositionsHelp": "Vos positions actives apparaîtront ici",
+    "noCredentials": "Aucun identifiant API actif trouvé",
+    "noCredentialsHelp": "Ajoutez des identifiants API dans Paramètres pour surveiller les positions",
+    "entry": "Entrée :",
+    "current": "Actuel :",
+    "quantity": "Quantité :",
+    "margin": "Marge :",
+    "liquidation": "Liquidation",
+    "percentAway": "% distance",
+    "totalPositions": "Total positions : {{count}}",
+    "totalUnrealizedPnL": "PnL Non Réalisé Total"
+  },
+  "dialogs": {
+    "confirm": {
+      "title": "Confirmer",
+      "confirm": "Confirmer",
+      "cancel": "Annuler",
+      "processing": "Traitement..."
+    },
+    "error": {
+      "title": "Erreur",
+      "close": "Fermer"
+    },
+    "deleteConfirm": {
+      "placeholder": "DELETE"
+    }
+  },
+  "validations": {
+    "priceMustBePositive": "Le prix doit être positif",
+    "percentRange": "Le pourcentage doit être entre 1% et 100%",
+    "pairFormat": "Doit être au format BTC/USDT",
+    "pairRequired": "La paire de trading est requise",
+    "exchangeRequired": "L'exchange est requis",
+    "portfolioMustBePositive": "La valeur du portfolio doit être positive",
+    "rPercentMin": "R% doit être au moins 0.1%",
+    "rPercentMax": "R% ne peut pas dépasser 100%",
+    "minRRMustBePositive": "Le RR minimum doit être positif",
+    "entryMustBePositive": "Le prix d'entrée doit être positif",
+    "leverageMin": "Le levier doit être au moins 1x",
+    "leverageMax": "Le levier ne peut pas dépasser 125x",
+    "atLeastOneTP": "Au moins un take profit est requis",
+    "maxFourTPs": "Maximum 4 take profits autorisés",
+    "slMustDifferFromEntry": "Le Stop Loss doit être différent de l'Entrée",
+    "tpMustDifferFromEntry": "Les prix de Take Profit ne doivent pas égaler le prix d'Entrée",
+    "tpMustBePositive": "Le take profit doit être positif",
+    "exitLabels": {
+      "tp1": "TP1",
+      "tp2": "TP2",
+      "tp3": "TP3",
+      "tp4": "TP4",
+      "be": "BE",
+      "sl": "SL"
+    }
+  },
+  "ui": {
+    "weightedEntry": "Prix Moyen Pondéré d'Entrée",
+    "helpBadge": "Voir l'aide"
   }
 }

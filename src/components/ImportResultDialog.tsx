@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslation } from 'react-i18next';
 import {
   Dialog,
   DialogContent,
@@ -26,6 +27,8 @@ export function ImportResultDialog({
   onOpenChange,
   result,
 }: ImportResultDialogProps) {
+  const { t } = useTranslation();
+
   if (!result) return null;
 
   const hasErrors = result.errors.length > 0;
@@ -45,53 +48,53 @@ export function ImportResultDialog({
             {isSuccess ? (
               <>
                 <CheckCircle2 className="h-5 w-5 text-green-600" />
-                Import Completed Successfully!
+                {t('importResult.successTitle')}
               </>
             ) : isDelete ? (
               <>
                 <CheckCircle2 className="h-5 w-5 text-green-600" />
-                Trades Deleted Successfully!
+                {t('importResult.deletedTitle')}
               </>
             ) : hasNoChanges ? (
               <>
                 <AlertCircle className="h-5 w-5 text-yellow-600" />
-                No New Trades to Import
+                {t('importResult.noNewTradesTitle')}
               </>
             ) : hasErrors ? (
               <>
                 <AlertCircle className="h-5 w-5 text-yellow-600" />
-                Import Completed with Warnings
+                {t('importResult.warningTitle')}
               </>
             ) : (
               <>
                 <CheckCircle2 className="h-5 w-5 text-green-600" />
-                Import Completed
+                {t('importResult.completedTitle')}
               </>
             )}
           </DialogTitle>
           <DialogDescription>
             {isDelete
-              ? `Successfully deleted ${result.duplicates} imported trades from your journal.`
+              ? t('importResult.deletedDescription', { count: result.duplicates })
               : hasNoChanges
-              ? 'All trades in the file already exist in your journal.'
-              : 'Your CSV file has been processed.'}
+              ? t('importResult.allExistDescription')
+              : t('importResult.processedDescription')}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-3 py-4">
           {isDelete ? (
             <div className="text-center">
-              <p className="text-muted-foreground">Deleted</p>
+              <p className="text-muted-foreground">{t('importResult.deleted')}</p>
               <p className="text-3xl font-bold text-green-600">{result.duplicates}</p>
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <p className="text-muted-foreground">Imported</p>
+                <p className="text-muted-foreground">{t('importResult.imported')}</p>
                 <p className="text-2xl font-bold text-green-600">{result.imported}</p>
               </div>
               <div>
-                <p className="text-muted-foreground">Duplicates Skipped</p>
+                <p className="text-muted-foreground">{t('importResult.duplicatesSkipped')}</p>
                 <p className="text-2xl font-bold text-yellow-600">{result.duplicates}</p>
               </div>
             </div>
@@ -99,7 +102,7 @@ export function ImportResultDialog({
 
           {hasErrors && (
             <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-md">
-              <p className="font-medium text-sm mb-2">Errors:</p>
+              <p className="font-medium text-sm mb-2">{t('importResult.errors')}</p>
               <ul className="text-xs space-y-1 max-h-32 overflow-y-auto">
                 {result.errors.slice(0, 10).map((error, i) => (
                   <li key={i} className="text-muted-foreground">
@@ -108,7 +111,7 @@ export function ImportResultDialog({
                 ))}
                 {result.errors.length > 10 && (
                   <li className="text-muted-foreground italic">
-                    ...and {result.errors.length - 10} more
+                    {t('importResult.andMore', { count: result.errors.length - 10 })}
                   </li>
                 )}
               </ul>
@@ -117,7 +120,7 @@ export function ImportResultDialog({
         </div>
 
         <DialogFooter>
-          <Button onClick={handleClose}>Close</Button>
+          <Button onClick={handleClose}>{t('importResult.close')}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

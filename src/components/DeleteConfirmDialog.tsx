@@ -66,7 +66,7 @@ export function DeleteConfirmDialog({
               id="confirm-input"
               value={confirmText}
               onChange={(e) => setConfirmText(e.target.value)}
-              placeholder="DELETE"
+              placeholder={t('dialogs.deleteConfirm.placeholder')}
               className="font-mono"
               autoFocus
             />

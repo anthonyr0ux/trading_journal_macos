@@ -1,5 +1,23 @@
 import { z } from 'zod';
 
+// Translation function type
+type TranslateFn = (key: string, options?: Record<string, unknown>) => string;
+
+export const createPlannedTPSchema = (t: TranslateFn) => z.object({
+  price: z.number().positive(t('validations.priceMustBePositive')),
+  percent: z.number().min(0.01).max(1, t('validations.percentRange')),
+  rr: z.number(),
+});
+
+export const createExitSchema = (t: TranslateFn) => z.object({
+  type: z.enum(['TP1', 'TP2', 'TP3', 'TP4', 'BE', 'SL']),
+  price: z.number().positive(t('validations.priceMustBePositive')),
+  percent: z.number().min(0.01).max(1, t('validations.percentRange')),
+  rr: z.number(),
+  pnl: z.number(),
+});
+
+// Keep original exports for backward compatibility (uses English by default)
 export const plannedTPSchema = z.object({
   price: z.number().positive('Price must be positive'),
   percent: z.number().min(0.01).max(1, 'Percent must be between 1% and 100%'),
@@ -13,6 +31,51 @@ export const exitSchema = z.object({
   rr: z.number(),
   pnl: z.number(),
 });
+
+export const createTradeFormSchema = (t: TranslateFn) => {
+  const plannedTPSchema = createPlannedTPSchema(t);
+  const exitSchema = createExitSchema(t);
+
+  return z.object({
+    pair: z
+      .string()
+      .min(1, t('validations.pairRequired'))
+      .regex(/^[A-Z]+\/[A-Z]+$/, t('validations.pairFormat')),
+    exchange: z.string().min(1, t('validations.exchangeRequired')),
+    analysisDate: z.date(),
+    tradeDate: z.date(),
+    portfolioValue: z.number().positive(t('validations.portfolioMustBePositive')),
+    rPercent: z
+      .number()
+      .min(0.001, t('validations.rPercentMin'))
+      .max(1, t('validations.rPercentMax')),
+    minRR: z.number().positive(t('validations.minRRMustBePositive')),
+    plannedPE: z.number().positive(t('validations.entryMustBePositive')),
+    plannedSL: z.number().positive(t('validations.priceMustBePositive')),
+    leverage: z
+      .number()
+      .int()
+      .min(1, t('validations.leverageMin'))
+      .max(125, t('validations.leverageMax')),
+    plannedTPs: z
+      .array(plannedTPSchema)
+      .min(1, t('validations.atLeastOneTP'))
+      .max(4, t('validations.maxFourTPs')),
+    notes: z.string().optional(),
+    effectivePE: z.number().positive().optional().nullable(),
+    closeDate: z.date().optional().nullable(),
+    exits: z.array(exitSchema).optional(),
+  }).refine((data) => data.plannedPE !== data.plannedSL, {
+    message: t('validations.slMustDifferFromEntry'),
+    path: ['plannedSL'],
+  }).refine((data) => {
+    // Check that all TP prices are different from PE
+    return data.plannedTPs.every(tp => tp.price !== data.plannedPE);
+  }, {
+    message: t('validations.tpMustDifferFromEntry'),
+    path: ['plannedTPs'],
+  });
+};
 
 export const tradeFormSchema = z.object({
   pair: z
@@ -44,7 +107,7 @@ export const tradeFormSchema = z.object({
   closeDate: z.date().optional().nullable(),
   exits: z.array(exitSchema).optional(),
 }).refine((data) => data.plannedPE !== data.plannedSL, {
-  message: 'Entry price must not equal Stop Loss',
+  message: 'Stop Loss must be different from Entry',
   path: ['plannedSL'],
 }).refine((data) => {
   // Check that all TP prices are different from PE
@@ -52,6 +115,38 @@ export const tradeFormSchema = z.object({
 }, {
   message: 'Take Profit prices must not equal Entry Price',
   path: ['plannedTPs'],
+});
+
+export const createCalculatorFormSchema = (t: TranslateFn) => z.object({
+  portfolio: z.number().positive(t('validations.portfolioMustBePositive')),
+  rPercent: z
+    .number()
+    .min(0.001, t('validations.rPercentMin'))
+    .max(1, t('validations.rPercentMax')),
+  minRR: z.number().positive(t('validations.minRRMustBePositive')),
+  pe: z.number().positive(t('validations.entryMustBePositive')),
+  sl: z.number().positive(t('validations.priceMustBePositive')),
+  tp: z.number().positive(t('validations.tpMustBePositive')),
+  leverage: z
+    .number()
+    .int()
+    .min(1, t('validations.leverageMin'))
+    .max(125, t('validations.leverageMax')),
+});
+
+export const createSettingsSchema = (t: TranslateFn) => z.object({
+  initialCapital: z.number().positive(t('validations.portfolioMustBePositive')),
+  currentRPercent: z
+    .number()
+    .min(0.001, t('validations.rPercentMin'))
+    .max(1, t('validations.rPercentMax')),
+  defaultMinRR: z.number().positive(t('validations.minRRMustBePositive')),
+  defaultLeverage: z
+    .number()
+    .int()
+    .min(1, t('validations.leverageMin'))
+    .max(125, t('validations.leverageMax')),
+  currency: z.string().default('USD'),
 });
 
 export const calculatorFormSchema = z.object({

@@ -72,10 +72,12 @@ export function SyncDialog({
         {!result ? (
           <>
             <DialogHeader>
-              <DialogTitle>Sync trades from {exchangeName.toUpperCase()}?</DialogTitle>
+              <DialogTitle>{t('api.syncDialog.title', { exchange: exchangeName.toUpperCase() })}</DialogTitle>
               <DialogDescription>
-                This will import new trades from the available history (up to {historyLimit} as per{' '}
-                {exchangeName.toUpperCase()} API limit).
+                {t('api.syncDialog.description', {
+                  limit: historyLimit,
+                  exchange: exchangeName.toUpperCase()
+                })}
               </DialogDescription>
             </DialogHeader>
 
@@ -87,10 +89,10 @@ export function SyncDialog({
                 {isSyncing ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Syncing...
+                    {t('api.syncDialog.syncing')}
                   </>
                 ) : (
-                  'Sync Now'
+                  t('api.syncDialog.syncNow')
                 )}
               </Button>
             </DialogFooter>
@@ -102,12 +104,12 @@ export function SyncDialog({
                 {isSuccess ? (
                   <>
                     <CheckCircle2 className="h-5 w-5 text-green-600" />
-                    Sync Completed Successfully!
+                    {t('api.syncDialog.successTitle')}
                   </>
                 ) : (
                   <>
                     <AlertCircle className="h-5 w-5 text-yellow-600" />
-                    Sync Completed with Warnings
+                    {t('api.syncDialog.warningTitle')}
                   </>
                 )}
               </DialogTitle>
@@ -116,17 +118,17 @@ export function SyncDialog({
             <div className="space-y-3 py-4">
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                  <p className="text-muted-foreground">Imported</p>
+                  <p className="text-muted-foreground">{t('api.syncDialog.imported')}</p>
                   <p className="text-2xl font-bold text-green-600">{result.imported}</p>
                 </div>
                 <div>
-                  <p className="text-muted-foreground">Duplicates Skipped</p>
+                  <p className="text-muted-foreground">{t('api.syncDialog.duplicatesSkipped')}</p>
                   <p className="text-2xl font-bold text-yellow-600">{result.duplicates}</p>
                 </div>
               </div>
 
               <div>
-                <p className="text-muted-foreground text-sm">Total PnL</p>
+                <p className="text-muted-foreground text-sm">{t('api.syncDialog.totalPnL')}</p>
                 <p
                   className={`text-2xl font-bold ${
                     (result.total_pnl || 0) >= 0 ? 'text-green-600' : 'text-red-600'
@@ -138,7 +140,7 @@ export function SyncDialog({
 
               {hasErrors && (
                 <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-md">
-                  <p className="font-medium text-sm mb-2">Errors:</p>
+                  <p className="font-medium text-sm mb-2">{t('api.syncDialog.errors')}</p>
                   <ul className="text-xs space-y-1 max-h-32 overflow-y-auto">
                     {result.errors.slice(0, 5).map((error, i) => (
                       <li key={i} className="text-muted-foreground">
@@ -147,7 +149,7 @@ export function SyncDialog({
                     ))}
                     {result.errors.length > 5 && (
                       <li className="text-muted-foreground italic">
-                        ...and {result.errors.length - 5} more
+                        {t('api.syncDialog.andMore', { count: result.errors.length - 5 })}
                       </li>
                     )}
                   </ul>
@@ -156,7 +158,7 @@ export function SyncDialog({
             </div>
 
             <DialogFooter>
-              <Button onClick={handleClose}>Close</Button>
+              <Button onClick={handleClose}>{t('api.syncDialog.close')}</Button>
             </DialogFooter>
           </>
         )}

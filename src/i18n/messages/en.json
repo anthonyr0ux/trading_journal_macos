@@ -540,7 +540,34 @@
     "incremental": "Incremental",
     "success": "Success",
     "failed": "Failed",
-    "partial": "Partial"
+    "partial": "Partial",
+    "notScheduled": "Not scheduled",
+    "syncingSoon": "Syncing soon...",
+    "autoSync": "Auto-Sync",
+    "syncInterval": "Sync Interval",
+    "nextSync": "Next sync",
+    "interval": {
+      "15min": "15 minutes",
+      "1hour": "1 hour",
+      "4hours": "4 hours",
+      "daily": "Daily",
+      "off": "Off"
+    },
+    "syncDialog": {
+      "title": "Sync trades from {{exchange}}",
+      "description": "This will import new trades from the available history (up to {{limit}} as per {{exchange}} API limit).",
+      "syncing": "Syncing...",
+      "syncNow": "Sync Now",
+      "close": "Close",
+      "successTitle": "Sync Completed Successfully!",
+      "warningTitle": "Sync Completed with Warnings",
+      "imported": "Imported",
+      "duplicatesSkipped": "Duplicates Skipped",
+      "totalPnL": "Total PnL",
+      "errors": "Errors:",
+      "andMore": "...and {{count}} more"
+    },
+    "accountPlaceholder": "{{exchange}} Account"
   },
   "help": {
     "title": "Help & Documentation",
@@ -651,5 +678,89 @@
 
     "contactNote": "Contact & Support",
     "contactNoteContent": "Need help or have a question?\n• For any questions or error reports\n• Contact us on Telegram: @N0mad832\n• We're here to help!"
+  },
+  "importResult": {
+    "successTitle": "Import Completed Successfully!",
+    "deletedTitle": "Trades Deleted Successfully!",
+    "noNewTradesTitle": "No New Trades to Import",
+    "warningTitle": "Import Completed with Warnings",
+    "completedTitle": "Import Completed",
+    "deletedDescription": "Successfully deleted {{count}} imported trades from your journal.",
+    "allExistDescription": "All trades in the file already exist in your journal.",
+    "processedDescription": "Your CSV file has been processed.",
+    "deleted": "Deleted",
+    "imported": "Imported",
+    "duplicatesSkipped": "Duplicates Skipped",
+    "errors": "Errors:",
+    "andMore": "...and {{count}} more",
+    "close": "Close"
+  },
+  "positionMonitor": {
+    "title": "Position Monitor",
+    "lastUpdate": "Last update: {{time}}",
+    "selectCredential": "Select API credential",
+    "autoRefresh": "Auto-refresh:",
+    "seconds": "s",
+    "off": "Off",
+    "loadPositions": "Load Positions",
+    "loading": "Loading positions...",
+    "noPositions": "No open positions",
+    "noPositionsHelp": "Your active positions will appear here",
+    "noCredentials": "No active API credentials found",
+    "noCredentialsHelp": "Add API credentials in Settings to monitor positions",
+    "entry": "Entry:",
+    "current": "Current:",
+    "quantity": "Quantity:",
+    "margin": "Margin:",
+    "liquidation": "Liquidation",
+    "percentAway": "% away",
+    "totalPositions": "Total positions: {{count}}",
+    "totalUnrealizedPnL": "Total Unrealized PnL"
+  },
+  "dialogs": {
+    "confirm": {
+      "title": "Confirm",
+      "confirm": "Confirm",
+      "cancel": "Cancel",
+      "processing": "Processing..."
+    },
+    "error": {
+      "title": "Error",
+      "close": "Close"
+    },
+    "deleteConfirm": {
+      "placeholder": "DELETE"
+    }
+  },
+  "validations": {
+    "priceMustBePositive": "Price must be positive",
+    "percentRange": "Percent must be between 1% and 100%",
+    "pairFormat": "Must be in format BTC/USDT",
+    "pairRequired": "Trading pair is required",
+    "exchangeRequired": "Exchange is required",
+    "portfolioMustBePositive": "Portfolio value must be positive",
+    "rPercentMin": "R% must be at least 0.1%",
+    "rPercentMax": "R% cannot exceed 100%",
+    "minRRMustBePositive": "Minimum RR must be positive",
+    "entryMustBePositive": "Entry price must be positive",
+    "leverageMin": "Leverage must be at least 1x",
+    "leverageMax": "Leverage cannot exceed 125x",
+    "atLeastOneTP": "At least one take profit is required",
+    "maxFourTPs": "Maximum 4 take profits allowed",
+    "slMustDifferFromEntry": "Stop Loss must be different from Entry",
+    "tpMustDifferFromEntry": "Take Profit prices must not equal Entry Price",
+    "tpMustBePositive": "Take profit must be positive",
+    "exitLabels": {
+      "tp1": "TP1",
+      "tp2": "TP2",
+      "tp3": "TP3",
+      "tp4": "TP4",
+      "be": "BE",
+      "sl": "SL"
+    }
+  },
+  "ui": {
+    "weightedEntry": "Weighted Average Entry",
+    "helpBadge": "View help"
   }
 }

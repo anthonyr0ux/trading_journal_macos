@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { calculateWeightedEntry } from '../lib/calculations';
 
 type Entry = {
@@ -7,11 +8,13 @@ type Entry = {
 
 export function WeightedEntryDisplay({
   entries,
-  label = 'Weighted Average Entry'
+  label
 }: {
   entries: Entry[];
   label?: string;
 }) {
+  const { t } = useTranslation();
+  const displayLabel = label || t('ui.weightedEntry');
   const validEntries = entries.filter(e => e.price > 0 && e.percent > 0);
 
   // Only show if multiple entries
@@ -29,7 +32,7 @@ export function WeightedEntryDisplay({
   return (
     <div className="p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-500/50 rounded-lg">
       <div className="text-xs text-muted-foreground mb-1">
-        {label}
+        {displayLabel}
       </div>
       <div className="text-lg font-bold font-mono text-gray-900 dark:text-gray-100">
         ${weightedEntry.toFixed(8)}
