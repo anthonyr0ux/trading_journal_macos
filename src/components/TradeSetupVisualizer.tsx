@@ -33,6 +33,15 @@ export function TradeSetupVisualizer({
 }: TradeSetupVisualizerProps) {
   const { t } = useTranslation();
 
+  // Smart price formatting based on magnitude
+  const formatPrice = (price: number): string => {
+    if (price >= 1000) return price.toFixed(2);
+    if (price >= 100) return price.toFixed(3);
+    if (price >= 10) return price.toFixed(4);
+    if (price >= 1) return price.toFixed(5);
+    return price.toFixed(8);
+  };
+
   // Calculate weighted entry price
   const validEntries = entries.filter(e => e.price > 0 && e.percent > 0);
   const totalEntryPercent = validEntries.reduce((sum, e) => sum + e.percent, 0);
@@ -108,7 +117,7 @@ export function TradeSetupVisualizer({
                 {/* Top label inside bar */}
                 <div className="font-mono font-semibold text-white text-center">
                   <div className="text-sm font-bold">{topLabel}{isLong && validTps.length > 1 ? ' (avg)' : (!isLong && validEntries.length > 1 ? ' (avg)' : '')}</div>
-                  <div className="text-xs">{topPrice.toFixed(8)}</div>
+                  <div className="text-xs">{formatPrice(topPrice)}</div>
                 </div>
               </div>
             </div>
@@ -119,7 +128,7 @@ export function TradeSetupVisualizer({
                 {/* Entry label inside line */}
                 <div className="font-mono font-semibold text-white text-center px-2">
                   <span className="text-xs font-bold">Entry{validEntries.length > 1 ? ' (avg)' : ''}: </span>
-                  <span className="text-[10px]">{weightedEntry.toFixed(8)}</span>
+                  <span className="text-[10px]">{formatPrice(weightedEntry)}</span>
                 </div>
               </div>
               <div className="absolute left-0 top-1/2 -translate-y-1/2">
@@ -142,7 +151,7 @@ export function TradeSetupVisualizer({
                 {/* Bottom label inside bar */}
                 <div className="font-mono font-semibold text-white text-center">
                   <div className="text-sm font-bold">{bottomLabel}{!isLong && validTps.length > 1 ? ' (avg)' : (isLong && validEntries.length > 1 ? ' (avg)' : '')}</div>
-                  <div className="text-xs">{bottomPrice.toFixed(8)}</div>
+                  <div className="text-xs">{formatPrice(bottomPrice)}</div>
                 </div>
               </div>
             </div>
