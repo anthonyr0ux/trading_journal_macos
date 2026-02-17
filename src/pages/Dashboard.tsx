@@ -32,25 +32,71 @@ export default function Dashboard() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const startDate = getDateRangeTimestamp(dateRange);
-      const filters = startDate ? { start_date: startDate } : undefined;
-
-      // Map dashboard date range to backend format
-      const backendDateRange = dateRange === 'all' ? undefined :
-                               dateRange === '7d' ? 'week' :
-                               dateRange === '30d' ? 'month' :
-                               dateRange === '90d' ? '3months' :
-                               dateRange === '180d' ? '6months' :
-                               dateRange === '365d' ? 'year' : undefined;
-
+      // Always load all data, then filter on frontend
       const [tradesData, statsData, equityCurveData] = await Promise.all([
-        api.getTrades(filters),
-        api.getDashboardStats(backendDateRange),
-        api.getEquityCurve(backendDateRange),
+        api.getTrades(),
+        api.getDashboardStats(),
+        api.getEquityCurve(),
       ]);
-      setTrades(tradesData);
-      setStats(statsData);
-      setEquityCurve(equityCurveData);
+
+      // Filter data by date range on the frontend
+      const startDate = getDateRangeTimestamp(dateRange);
+
+      // Filter trades by date
+      const filteredTrades = startDate
+        ? tradesData.filter(trade => trade.trade_date >= startDate)
+        : tradesData;
+
+      // Calculate stats from filtered trades
+      const closedTrades = filteredTrades.filter(t => t.status !== 'OPEN');
+      const wins = closedTrades.filter(t => t.status === 'WIN').length;
+      const losses = closedTrades.filter(t => t.status === 'LOSS').length;
+      const breakevens = closedTrades.filter(t => t.status === 'BE').length;
+      const openTrades = filteredTrades.filter(t => t.status === 'OPEN').length;
+
+      const totalPnl = closedTrades.reduce((sum, t) => sum + (t.total_pnl || 0), 0);
+      const grossProfit = closedTrades.filter(t => (t.total_pnl || 0) > 0).reduce((sum, t) => sum + (t.total_pnl || 0), 0);
+      const grossLoss = Math.abs(closedTrades.filter(t => (t.total_pnl || 0) < 0).reduce((sum, t) => sum + (t.total_pnl || 0), 0));
+      const profitFactor = grossLoss === 0 ? (grossProfit > 0 ? Infinity : 0) : grossProfit / grossLoss;
+
+      const bestTrade = closedTrades.length > 0
+        ? Math.max(...closedTrades.map(t => t.total_pnl || 0))
+        : 0;
+      const worstTrade = closedTrades.length > 0
+        ? Math.min(...closedTrades.map(t => t.total_pnl || 0))
+        : 0;
+
+      const avgEffectiveRR = closedTrades.length > 0
+        ? closedTrades.reduce((sum, t) => sum + (t.effective_weighted_rr || 0), 0) / closedTrades.length
+        : 0;
+
+      const filteredStats: DashboardStats = {
+        total_trades: filteredTrades.length,
+        wins,
+        losses,
+        breakevens,
+        open_trades: openTrades,
+        win_rate: closedTrades.length > 0 ? (wins / closedTrades.length) * 100 : 0,
+        total_pnl: totalPnl,
+        gross_profit: grossProfit,
+        gross_loss: grossLoss,
+        profit_factor: profitFactor,
+        avg_effective_rr: avgEffectiveRR,
+        best_trade: bestTrade,
+        worst_trade: worstTrade,
+      };
+
+      // Filter equity curve by date
+      const filteredEquityCurve = startDate
+        ? equityCurveData.filter(point => {
+            const pointDate = new Date(point.date).getTime() / 1000;
+            return pointDate >= startDate;
+          })
+        : equityCurveData;
+
+      setTrades(filteredTrades);
+      setStats(filteredStats);
+      setEquityCurve(filteredEquityCurve);
 
       // Load settings separately - failure shouldn't break dashboard
       try {
