@@ -220,12 +220,12 @@ export default function Calculator() {
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-3">
         {/* STEP 1: Strategy Settings */}
         <Card className="border-2 border-primary/20 bg-primary/5">
-          <CardHeader className="pb-2 pt-3 px-3">
-            <div className="flex items-center gap-1.5">
-              <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">
+          <CardHeader className="pb-1 sm:pb-2 pt-2 sm:pt-3 px-2 sm:px-3">
+            <div className="flex items-center gap-1 sm:gap-1.5">
+              <div className="flex h-4 w-4 sm:h-5 sm:w-5 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-[10px] sm:text-xs font-bold">
                 1
               </div>
-              <CardTitle className="text-sm">
+              <CardTitle className="text-xs sm:text-sm">
                 {t('calculator.strategySettings') || 'Strategy'}
               </CardTitle>
               <HelpTooltip
@@ -244,9 +244,9 @@ export default function Calculator() {
               />
             </div>
           </CardHeader>
-          <CardContent className="pt-0 px-3 pb-3 space-y-2">
-            <div className="space-y-1">
-              <Label htmlFor="portfolio" className="text-xs">
+          <CardContent className="pt-0 px-2 sm:px-3 pb-2 sm:pb-3 space-y-1.5 sm:space-y-2">
+            <div className="space-y-0.5 sm:space-y-1">
+              <Label htmlFor="portfolio" className="text-[10px] sm:text-xs">
                 {t('calculator.portfolio') || 'Portfolio ($)'}
               </Label>
               <Input
@@ -255,11 +255,11 @@ export default function Calculator() {
                 inputMode="decimal"
                 value={portfolio}
                 onChange={(e) => setPortfolio(parseFloat(e.target.value) || 0)}
-                className="h-8 text-sm font-semibold"
+                className="h-7 sm:h-8 text-xs sm:text-sm font-semibold"
               />
             </div>
-            <div className="space-y-1">
-              <Label htmlFor="rPercent" className="text-xs">
+            <div className="space-y-0.5 sm:space-y-1">
+              <Label htmlFor="rPercent" className="text-[10px] sm:text-xs">
                 {t('calculator.rPercent') || 'R %'}
               </Label>
               <Input
@@ -268,16 +268,16 @@ export default function Calculator() {
                 inputMode="decimal"
                 value={rPercent}
                 onChange={(e) => setRPercent(parseFloat(e.target.value) || 0)}
-                className="h-8 text-sm font-semibold"
+                className="h-7 sm:h-8 text-xs sm:text-sm font-semibold"
               />
               {portfolio > 0 && rPercent > 0 && (
-                <p className="text-[10px] text-muted-foreground">
+                <p className="text-[9px] sm:text-[10px] text-muted-foreground">
                   = {formatCurrency((portfolio * rPercent) / 100)}
                 </p>
               )}
             </div>
-            <div className="space-y-1">
-              <Label htmlFor="minRR" className="text-xs">
+            <div className="space-y-0.5 sm:space-y-1">
+              <Label htmlFor="minRR" className="text-[10px] sm:text-xs">
                 {t('calculator.minRR') || 'Min RR'}
               </Label>
               <Input
@@ -286,7 +286,7 @@ export default function Calculator() {
                 inputMode="decimal"
                 value={minRR}
                 onChange={(e) => setMinRR(parseFloat(e.target.value) || 0)}
-                className="h-8 text-sm font-semibold"
+                className="h-7 sm:h-8 text-xs sm:text-sm font-semibold"
               />
             </div>
             <Button
@@ -294,9 +294,9 @@ export default function Calculator() {
               variant="outline"
               onClick={handleSaveSettings}
               disabled={saving}
-              className="w-full h-7 text-xs mt-1"
+              className="w-full h-6 sm:h-7 text-[10px] sm:text-xs mt-0.5 sm:mt-1"
             >
-              <Save className="h-3 w-3 mr-1.5" />
+              <Save className="h-2.5 w-2.5 sm:h-3 sm:w-3 mr-1 sm:mr-1.5" />
               {saving ? (t('calculator.saving') || 'Saving...') : (t('calculator.saveSettings') || 'Save Settings')}
             </Button>
           </CardContent>
