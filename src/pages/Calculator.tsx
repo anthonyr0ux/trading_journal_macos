@@ -16,6 +16,7 @@ import { api } from '../lib/api';
 import { HelpBadge } from '../components/HelpBadge';
 import { useEntryManager } from '../hooks/useEntryManager';
 import { WeightedEntryDisplay } from '../components/WeightedEntryDisplay';
+import { TradeSetupVisualizer } from '../components/TradeSetupVisualizer';
 
 // Help tooltips component
 const HelpTooltip = ({ title, content }: { title: string; content: string | React.ReactNode }) => {
@@ -153,11 +154,12 @@ export default function Calculator() {
           validationWarnings.push(`Weighted RR (${weightedRR.toFixed(2)}) is below minimum (${minRR})`);
         }
         if (!leverageCheck) {
-          validationErrors.push(`Leverage (${leverage}x) exceeds max safe leverage (${metrics.maxLeverage}x)`);
+          // Leverage exceeding max is now just a warning, not blocking
+          validationWarnings.push(`Leverage (${leverage}x) exceeds max safe leverage (${metrics.maxLeverage}x)`);
         }
 
-        // Only leverage and allocation errors block sending to journal
-        isValid = leverageCheck && entryValidation.valid && tpValidation.valid;
+        // Only allocation errors block sending to journal
+        isValid = entryValidation.valid && tpValidation.valid;
       }
     } catch (error) {
       console.error('Calculation error:', error);
@@ -710,6 +712,17 @@ export default function Calculator() {
             )}
           </CardContent>
         </Card>
+      )}
+
+      {/* Visual Trade Setup */}
+      {showResults && metrics && isValid && (
+        <TradeSetupVisualizer
+          entries={validEntries}
+          stopLoss={sl}
+          takeProfits={validTps}
+          positionType={metrics.type}
+          metrics={metrics}
+        />
       )}
     </div>
   );

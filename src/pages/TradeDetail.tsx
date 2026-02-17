@@ -17,6 +17,7 @@ import { useEntryManager } from '../hooks/useEntryManager';
 import { WeightedEntryDisplay } from '../components/WeightedEntryDisplay';
 import { PositionMetricsEditor } from '../components/PositionMetricsEditor';
 import { Switch } from '../components/ui/switch';
+import { TradeSetupVisualizer } from '../components/TradeSetupVisualizer';
 
 type Exit = {
   price: number;
@@ -1434,6 +1435,25 @@ export default function TradeDetail() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Visual Trade Setup */}
+      {trade && plannedEntries.length > 0 && plannedSl > 0 && plannedTps.length > 0 && (
+        <TradeSetupVisualizer
+          entries={plannedEntries}
+          stopLoss={plannedSl}
+          takeProfits={plannedTps}
+          positionType={trade.position_type as 'LONG' | 'SHORT'}
+          metrics={{
+            weightedEntry: trade.planned_pe,
+            distances: {
+              distanceSL_PCT: Math.abs(trade.planned_pe - plannedSl) / trade.planned_pe,
+            },
+            plannedWeightedRR: trade.planned_weighted_rr,
+            margin: effectivePlannedMetrics.margin,
+            oneR: effectivePlannedMetrics.oneR,
+          }}
+        />
+      )}
     </div>
   );
 }

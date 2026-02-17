@@ -17,6 +17,7 @@ import { HelpBadge } from '../components/HelpBadge';
 import { useEntryManager } from '../hooks/useEntryManager';
 import { WeightedEntryDisplay } from '../components/WeightedEntryDisplay';
 import { Switch } from '../components/ui/switch';
+import { TradeSetupVisualizer } from '../components/TradeSetupVisualizer';
 
 type TakeProfit = {
   price: number;
@@ -1186,6 +1187,17 @@ export default function TradeNew() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Visual Trade Setup */}
+      {planMetrics && planValidation.valid && (
+        <TradeSetupVisualizer
+          entries={plannedEntries}
+          stopLoss={plannedSl}
+          takeProfits={plannedTps}
+          positionType={planMetrics.type}
+          metrics={planMetrics}
+        />
+      )}
     </form>
   );
 }
