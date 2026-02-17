@@ -99,57 +99,50 @@ export function TradeSetupVisualizer({
             {/* Top section (TP for LONG, SL for SHORT) */}
             <div className="relative flex flex-col items-center">
               <div
-                className={`border-2 rounded-t-lg transition-all ${topColor}`}
+                className={`border-2 rounded-t-lg transition-all flex items-center justify-center ${topColor}`}
                 style={{
-                  width: '200px',
-                  height: `${Math.max(topPixelHeight, 40)}px`,
+                  width: '240px',
+                  height: `${Math.max(topPixelHeight, 50)}px`,
                 }}
-              />
-              {/* Top label with price */}
-              <div className="absolute left-full ml-4 top-1/2 -translate-y-1/2 whitespace-nowrap">
-                <div className={`font-mono font-semibold ${
-                  isLong ? 'text-success' : 'text-destructive'
-                }`}>
-                  <span className="text-sm">{topLabel}{isLong && validTps.length > 1 ? ' (avg)' : (!isLong && validEntries.length > 1 ? ' (avg)' : '')}: </span>
-                  <span className="text-xs">{topPrice.toFixed(8)}</span>
+              >
+                {/* Top label inside bar */}
+                <div className="font-mono font-semibold text-white text-center">
+                  <div className="text-sm font-bold">{topLabel}{isLong && validTps.length > 1 ? ' (avg)' : (!isLong && validEntries.length > 1 ? ' (avg)' : '')}</div>
+                  <div className="text-xs">{topPrice.toFixed(8)}</div>
                 </div>
               </div>
             </div>
 
             {/* Entry line */}
             <div className="relative w-full my-1">
-              <div className="h-0.5 bg-primary" style={{ width: '200px' }} />
+              <div className="h-1 bg-primary rounded-full flex items-center justify-center" style={{ width: '240px' }}>
+                {/* Entry label inside line */}
+                <div className="font-mono font-semibold text-white text-center px-2">
+                  <span className="text-xs font-bold">Entry{validEntries.length > 1 ? ' (avg)' : ''}: </span>
+                  <span className="text-[10px]">{weightedEntry.toFixed(8)}</span>
+                </div>
+              </div>
               <div className="absolute left-0 top-1/2 -translate-y-1/2">
-                <div className="w-3 h-3 rounded-full bg-primary border-2 border-background" />
+                <div className="w-2 h-2 rounded-full bg-primary border border-background" />
               </div>
               <div className="absolute right-0 top-1/2 -translate-y-1/2">
-                <div className="w-3 h-3 rounded-full bg-primary border-2 border-background" />
-              </div>
-              {/* Entry label with price */}
-              <div className="absolute left-full ml-4 top-1/2 -translate-y-1/2 whitespace-nowrap">
-                <div className="font-mono font-semibold text-primary">
-                  <span className="text-sm">Entry{validEntries.length > 1 ? ' (avg)' : ''}: </span>
-                  <span className="text-xs">{weightedEntry.toFixed(8)}</span>
-                </div>
+                <div className="w-2 h-2 rounded-full bg-primary border border-background" />
               </div>
             </div>
 
             {/* Bottom section (SL for LONG, TP for SHORT) */}
             <div className="relative flex flex-col items-center">
               <div
-                className={`border-2 rounded-b-lg transition-all ${bottomColor}`}
+                className={`border-2 rounded-b-lg transition-all flex items-center justify-center ${bottomColor}`}
                 style={{
-                  width: '200px',
-                  height: `${Math.max(bottomPixelHeight, 40)}px`,
+                  width: '240px',
+                  height: `${Math.max(bottomPixelHeight, 50)}px`,
                 }}
-              />
-              {/* Bottom label with price */}
-              <div className="absolute left-full ml-4 top-1/2 -translate-y-1/2 whitespace-nowrap">
-                <div className={`font-mono font-semibold ${
-                  isLong ? 'text-destructive' : 'text-success'
-                }`}>
-                  <span className="text-sm">{bottomLabel}{!isLong && validTps.length > 1 ? ' (avg)' : (isLong && validEntries.length > 1 ? ' (avg)' : '')}: </span>
-                  <span className="text-xs">{bottomPrice.toFixed(8)}</span>
+              >
+                {/* Bottom label inside bar */}
+                <div className="font-mono font-semibold text-white text-center">
+                  <div className="text-sm font-bold">{bottomLabel}{!isLong && validTps.length > 1 ? ' (avg)' : (isLong && validEntries.length > 1 ? ' (avg)' : '')}</div>
+                  <div className="text-xs">{bottomPrice.toFixed(8)}</div>
                 </div>
               </div>
             </div>
