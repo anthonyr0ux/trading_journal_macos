@@ -13,7 +13,7 @@ import { ConfirmDialog } from '../components/ConfirmDialog';
 import { ErrorDialog } from '../components/ErrorDialog';
 import { ImportResultDialog } from '../components/ImportResultDialog';
 
-type Exchange = 'BitGet' | 'BloFin';
+type Exchange = 'BitGet' | 'BloFin' | 'BingX';
 
 // Tauri v2 drag-drop event types
 type DragDropEventType = 'enter' | 'over' | 'drop' | 'leave';
@@ -37,6 +37,7 @@ export default function Import() {
   const [previews, setPreviews] = useState<ImportPreview[]>([]);
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const [csvContent, setCsvContent] = useState<string>('');
+  const [xlsxPath, setXlsxPath] = useState<string>(''); // for BingX (path-based)
   const [portfolio, setPortfolio] = useState(10000);
   const [rPercent, setRPercent] = useState(2);
   const [isDragging, setIsDragging] = useState(false);
@@ -46,9 +47,11 @@ export default function Import() {
   const [confirmImportDialog, setConfirmImportDialog] = useState(false);
   const [importResultDialog, setImportResultDialog] = useState<{ open: boolean; result: { imported: number; duplicates: number; errors: string[] } | null }>({ open: false, result: null });
 
-  // Keep a ref so the drop handler always calls the current processFile
-  // (avoids stale closure since the useEffect runs only once)
+  // Refs updated every render so drop handler (registered once) always has
+  // current functions and current selectedExchange value
   const processFileRef = useRef<(content: string) => Promise<void>>(async () => {});
+  const processXlsxPathRef = useRef<(path: string) => Promise<void>>(async () => {});
+  const selectedExchangeRef = useRef<Exchange>('BitGet');
 
   // Set up Tauri v2 drag-drop listener (onDragDropEvent on WebviewWindow)
   useEffect(() => {
@@ -70,9 +73,13 @@ export default function Import() {
               const filePath = paths[0];
               if (filePath.endsWith('.csv')) {
                 try {
-                  const { readTextFile } = await import('@tauri-apps/plugin-fs');
-                  const content = await readTextFile(filePath);
-                  await processFileRef.current(content);
+                  if (selectedExchangeRef.current === 'BingX') {
+                    await processXlsxPathRef.current(filePath);
+                  } else {
+                    const { readTextFile } = await import('@tauri-apps/plugin-fs');
+                    const content = await readTextFile(filePath);
+                    await processFileRef.current(content);
+                  }
                 } catch (error) {
                   setErrorDialog({ open: true, message: 'Failed to read file: ' + error });
                 }
@@ -105,8 +112,8 @@ export default function Import() {
 
   const handleExchangeChange = (exchange: Exchange) => {
     setSelectedExchange(exchange);
-    // Clear any loaded preview when switching exchange
     setCsvContent('');
+    setXlsxPath('');
     setPreviews([]);
     setImportResult(null);
   };
@@ -119,9 +126,13 @@ export default function Import() {
       });
 
       if (selected && typeof selected === 'string') {
-        const { readTextFile } = await import('@tauri-apps/plugin-fs');
-        const content = await readTextFile(selected);
-        await processFile(content);
+        if (selectedExchange === 'BingX') {
+          await processXlsxPath(selected);
+        } else {
+          const { readTextFile } = await import('@tauri-apps/plugin-fs');
+          const content = await readTextFile(selected);
+          await processFile(content);
+        }
       }
     } catch (error) {
       setErrorDialog({ open: true, message: 'Failed to open file: ' + error });
@@ -142,9 +153,28 @@ export default function Import() {
     }
   };
 
-  // Keep the ref pointing to the latest processFile after every render
-  // so the drag-drop handler (set up once) never has a stale closure
+  // Keep refs pointing to latest functions/state after every render
   processFileRef.current = processFile;
+  selectedExchangeRef.current = selectedExchange;
+
+  // processXlsxPath: used for BingX (sends file path to Rust, not content)
+  const processXlsxPath = async (path: string) => {
+    setXlsxPath(path);
+    setImportResult(null);
+    setLoading(true);
+    try {
+      const settings = await api.getSettings();
+      setPortfolio(settings.initial_capital);
+      setRPercent(settings.current_r_percent * 100);
+      const preview = await api.previewBingxImport(path, settings.initial_capital, settings.current_r_percent);
+      setPreviews(preview);
+    } catch (error) {
+      setErrorDialog({ open: true, message: 'Failed to preview import: ' + error });
+    } finally {
+      setLoading(false);
+    }
+  };
+  processXlsxPathRef.current = processXlsxPath;
 
   // Ref for the preview section — used to auto-scroll when trades are detected
   const previewRef = useRef<HTMLDivElement>(null);
@@ -172,7 +202,7 @@ export default function Import() {
   };
 
   const handleImportClick = () => {
-    if (!csvContent) return;
+    if (selectedExchange === 'BingX' ? !xlsxPath : !csvContent) return;
     setConfirmImportDialog(true);
   };
 
@@ -180,11 +210,15 @@ export default function Import() {
     setConfirmImportDialog(false);
     setLoading(true);
     try {
-      const result = selectedExchange === 'BloFin'
-        ? await api.importBlofinCsv(csvContent, portfolio, rPercent / 100)
-        : await api.importBitgetCsv(csvContent, portfolio, rPercent / 100);
+      const result =
+        selectedExchange === 'BingX'
+          ? await api.importBingxFile(xlsxPath, portfolio, rPercent / 100)
+          : selectedExchange === 'BloFin'
+          ? await api.importBlofinCsv(csvContent, portfolio, rPercent / 100)
+          : await api.importBitgetCsv(csvContent, portfolio, rPercent / 100);
       setImportResult(result);
       setCsvContent('');
+      setXlsxPath('');
       setPreviews([]);
     } catch (error) {
       setErrorDialog({ open: true, message: 'Failed to import trades: ' + error });
@@ -193,27 +227,24 @@ export default function Import() {
     }
   };
 
-  const instructions = selectedExchange === 'BloFin'
-    ? {
-        title: t('import.blofinHowToImport'),
-        steps: [
-          t('import.blofinStep1'),
-          t('import.blofinStep2'),
-          t('import.blofinStep3'),
-          t('import.blofinStep4'),
-        ],
-        note: t('import.blofinNote'),
-      }
-    : {
-        title: t('import.howToImport'),
-        steps: [
-          t('import.instructionStep1'),
-          t('import.instructionStep2'),
-          t('import.instructionStep3'),
-          t('import.instructionStep4'),
-        ],
-        note: t('import.noteShort'),
-      };
+  const instructions =
+    selectedExchange === 'BloFin'
+      ? {
+          title: t('import.blofinHowToImport'),
+          steps: [t('import.blofinStep1'), t('import.blofinStep2'), t('import.blofinStep3'), t('import.blofinStep4')],
+          note: t('import.blofinNote'),
+        }
+      : selectedExchange === 'BingX'
+      ? {
+          title: t('import.bingxHowToImport'),
+          steps: [t('import.bingxStep1'), t('import.bingxStep2'), t('import.bingxStep3'), t('import.bingxStep4')],
+          note: t('import.bingxNote'),
+        }
+      : {
+          title: t('import.howToImport'),
+          steps: [t('import.instructionStep1'), t('import.instructionStep2'), t('import.instructionStep3'), t('import.instructionStep4')],
+          note: t('import.noteShort'),
+        };
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
@@ -252,9 +283,10 @@ export default function Import() {
             ))}
           </div>
           {selectedExchange === 'BloFin' && (
-            <p className="mt-3 text-sm text-muted-foreground">
-              {t('import.blofinExchangeNote')}
-            </p>
+            <p className="mt-3 text-sm text-muted-foreground">{t('import.blofinExchangeNote')}</p>
+          )}
+          {selectedExchange === 'BingX' && (
+            <p className="mt-3 text-sm text-muted-foreground">{t('import.bingxExchangeNote')}</p>
           )}
         </CardContent>
       </Card>
@@ -321,7 +353,7 @@ export default function Import() {
             <div className="flex items-center gap-2 p-3 rounded-lg bg-success/10 border border-success/20">
               <CheckCircle2 className="h-5 w-5 text-success" />
               <div className="text-sm font-medium text-success">
-                {selectedExchange === 'BloFin'
+                {selectedExchange === 'BloFin' || selectedExchange === 'BingX'
                   ? t('import.blofinFoundPositions', { count: previews.length })
                   : `Found ${previews.length} trades in file`}
               </div>
@@ -334,7 +366,7 @@ export default function Import() {
       {previews.length > 0 && !importResult && (
         <Card ref={previewRef}>
           <CardHeader>
-            <CardTitle>Preview ({previews.length} {selectedExchange === 'BloFin' ? 'positions' : 'trades'})</CardTitle>
+            <CardTitle>Preview ({previews.length} {selectedExchange === 'BloFin' || selectedExchange === 'BingX' ? 'positions' : 'trades'})</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="max-h-96 overflow-y-auto space-y-2">
@@ -376,7 +408,7 @@ export default function Import() {
             </div>
 
             <div className="flex gap-4 pt-4 border-t">
-              <Button variant="outline" onClick={() => { setCsvContent(''); setPreviews([]); }}>
+              <Button variant="outline" onClick={() => { setCsvContent(''); setXlsxPath(''); setPreviews([]); }}>
                 {t('import.cancel')}
               </Button>
               <Button onClick={handleImportClick} disabled={loading}>
@@ -446,7 +478,7 @@ export default function Import() {
         open={confirmImportDialog}
         onOpenChange={setConfirmImportDialog}
         title="Import Trades?"
-        description={`Import ${previews.length} ${selectedExchange === 'BloFin' ? 'positions' : 'trades'}? This will add them to your journal.`}
+        description={`Import ${previews.length} ${selectedExchange === 'BloFin' || selectedExchange === 'BingX' ? 'positions' : 'trades'}? This will add them to your journal.`}
         confirmLabel="Import"
         onConfirm={handleImportConfirm}
         loading={loading}

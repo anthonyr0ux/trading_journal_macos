@@ -275,6 +275,12 @@ export const api = {
   importBlofinCsv: (csvContent: string, portfolio: number, rPercent: number) =>
     invoke<ImportResult>('import_blofin_csv', { csvContent, portfolio, rPercent }),
   deleteBlofinTrades: () => invoke<number>('delete_blofin_trades'),
+  // BingX: sends file path (xlsx), not text content
+  previewBingxImport: (filePath: string, portfolio: number, rPercent: number) =>
+    invoke<ImportPreview[]>('preview_bingx_import', { filePath, portfolio, rPercent }),
+  importBingxFile: (filePath: string, portfolio: number, rPercent: number) =>
+    invoke<ImportResult>('import_bingx_file', { filePath, portfolio, rPercent }),
+  deleteBingxTrades: () => invoke<number>('delete_bingx_trades'),
   exportAllData: () => invoke<string>('export_all_data'),
   importAllData: (jsonData: string) => invoke<[number, number]>('import_all_data', { jsonData }),
 

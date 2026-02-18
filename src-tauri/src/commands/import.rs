@@ -4,6 +4,7 @@ use crate::models::{Trade, Settings};
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use calamine::{open_workbook, Data, Reader, Xlsx};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ImportPreview {
@@ -817,6 +818,422 @@ pub async fn delete_blofin_trades(db: State<'_, Database>) -> Result<usize, Stri
             "DELETE FROM trades WHERE import_fingerprint LIKE 'csv|blofin|%'",
             [],
         )
+        .map_err(|e| e.to_string())?;
+    Ok(count)
+}
+
+// ─── BingX xlsx Import ────────────────────────────────────────────────────────
+// BingX exports Order History as an xlsx file with a .csv extension.
+// Column layout: UID | Order No. | Time(UTC+8) | Pair | Type | Leverage |
+//                DealPrice | Quantity | Amount | Fee | Fee Coin | Realized PNL |
+//                Quote Asset | Order Type | AvgPrice
+//
+// Type values: "Open Long", "Close Long", "Open Short", "Close Short"
+// Grouping key: pair + direction (handles hedge mode)
+
+#[derive(Debug, Clone)]
+struct BingxOrder {
+    order_time: String,  // ISO-like "YYYY-MM-DD HH:MM:SS"
+    pair: String,        // "BTC/USDT"
+    direction: String,   // "LONG" | "SHORT"
+    is_entry: bool,      // true = "Open", false = "Close"
+    leverage: i64,
+    deal_price: f64,
+    quantity: f64,
+    fee: f64,
+    realized_pnl: f64,
+}
+
+struct OpenBingxPosition {
+    pair: String,
+    direction: String,
+    leverage: i64,
+    entry_qty: f64,
+    exit_qty: f64,
+    entry_price_sum: f64,
+    exit_price_sum: f64,
+    total_pnl: f64,
+    total_fees: f64,
+    opening_time: String,
+    closing_time: String,
+    entry_orders: Vec<(f64, f64)>,
+    exit_orders: Vec<(f64, f64)>,
+}
+
+struct BingxPositionData {
+    pair: String,
+    position_type: String,
+    leverage: i64,
+    entry_price: f64,
+    exit_price: f64,
+    quantity: f64,
+    realized_pnl: f64,
+    total_fees: f64,
+    opening_time: String,
+    closing_time: String,
+    entries_json: String,
+    exits_json: String,
+}
+
+/// Extract a string from a calamine Data cell
+fn data_str(d: &Data) -> String {
+    match d {
+        Data::String(s) => s.trim().to_string(),
+        Data::Float(f) => f.to_string(),
+        Data::Int(i) => i.to_string(),
+        _ => String::new(),
+    }
+}
+
+/// Extract f64 from a calamine Data cell
+fn data_f64(d: &Data) -> f64 {
+    match d {
+        Data::Float(f) => *f,
+        Data::Int(i) => *i as f64,
+        Data::String(s) => s.trim().parse::<f64>().unwrap_or(0.0),
+        _ => 0.0,
+    }
+}
+
+fn bingx_pair_to_standard(pair: &str) -> String {
+    // "BTC-USDT" → "BTC/USDT"
+    if let Some(idx) = pair.rfind("-USDT") {
+        format!("{}/USDT", &pair[..idx])
+    } else {
+        pair.replace('-', "/")
+    }
+}
+
+fn normalize_bingx_time(s: &str) -> String {
+    // Accepts "2025/11/21 02:19:06" or "2025-11-21 02:19:06" → canonical form
+    s.replace('/', "-")
+}
+
+fn parse_bingx_row(row: &[Data]) -> Result<BingxOrder, String> {
+    if row.len() < 12 {
+        return Err(format!("Expected ≥12 columns, got {}", row.len()));
+    }
+
+    let time_str = normalize_bingx_time(&data_str(&row[2]));
+    let pair_raw = data_str(&row[3]);
+    let type_str = data_str(&row[4]);
+    let leverage = data_f64(&row[5]) as i64;
+    let deal_price = data_f64(&row[6]);
+    let quantity = data_f64(&row[7]);
+    let fee = data_f64(&row[9]).abs();
+    let realized_pnl = data_f64(&row[11]);
+
+    if pair_raw.is_empty() || type_str.is_empty() || quantity <= 0.0 {
+        return Err("Empty or zero-quantity row".to_string());
+    }
+
+    let pair = bingx_pair_to_standard(&pair_raw);
+
+    let (direction, is_entry) = match type_str.as_str() {
+        "Open Long"   => ("LONG",  true),
+        "Close Long"  => ("LONG",  false),
+        "Open Short"  => ("SHORT", true),
+        "Close Short" => ("SHORT", false),
+        other => return Err(format!("Unknown order type: {}", other)),
+    };
+
+    Ok(BingxOrder {
+        order_time: time_str,
+        pair,
+        direction: direction.to_string(),
+        is_entry,
+        leverage: leverage.max(1),
+        deal_price,
+        quantity,
+        fee,
+        realized_pnl,
+    })
+}
+
+fn parse_bingx_xlsx(file_path: &str) -> Result<Vec<BingxOrder>, String> {
+    let mut workbook: Xlsx<_> = open_workbook(file_path)
+        .map_err(|e| format!("Failed to open xlsx: {}", e))?;
+
+    let sheet_name = workbook
+        .sheet_names()
+        .first()
+        .cloned()
+        .ok_or("No sheets found in workbook")?;
+
+    let sheet = workbook
+        .worksheet_range(&sheet_name)
+        .map_err(|e| format!("Failed to read sheet '{}': {}", sheet_name, e))?;
+
+    let mut orders: Vec<BingxOrder> = sheet
+        .rows()
+        .skip(1) // skip header
+        .filter_map(|row| parse_bingx_row(row).ok())
+        .collect();
+
+    // Process chronologically
+    orders.sort_by(|a, b| a.order_time.cmp(&b.order_time));
+    Ok(orders)
+}
+
+fn group_bingx_orders_into_positions(orders: Vec<BingxOrder>) -> Vec<BingxPositionData> {
+    // Key = "PAIR-DIRECTION" (e.g., "BTC/USDT-LONG") to support hedge mode
+    let mut open: HashMap<String, OpenBingxPosition> = HashMap::new();
+    let mut closed: Vec<BingxPositionData> = Vec::new();
+
+    for order in orders {
+        let key = format!("{}-{}", order.pair, order.direction);
+
+        if !order.is_entry {
+            // Exit order
+            if let Some(pos) = open.get_mut(&key) {
+                pos.exit_qty += order.quantity;
+                pos.exit_price_sum += order.deal_price * order.quantity;
+                pos.total_pnl += order.realized_pnl;
+                pos.total_fees += order.fee;
+                pos.closing_time = order.order_time.clone();
+                pos.exit_orders.push((order.deal_price, order.quantity));
+
+                if pos.entry_qty > 0.0 && pos.exit_qty >= pos.entry_qty * 0.999 {
+                    let pos = open.remove(&key).unwrap();
+                    closed.push(finalize_bingx_position(pos));
+                }
+            }
+        } else {
+            // Entry order
+            if let Some(pos) = open.get_mut(&key) {
+                pos.entry_qty += order.quantity;
+                pos.entry_price_sum += order.deal_price * order.quantity;
+                pos.total_fees += order.fee;
+                pos.entry_orders.push((order.deal_price, order.quantity));
+            } else {
+                open.insert(
+                    key,
+                    OpenBingxPosition {
+                        pair: order.pair,
+                        direction: order.direction,
+                        leverage: order.leverage,
+                        entry_qty: order.quantity,
+                        exit_qty: 0.0,
+                        entry_price_sum: order.deal_price * order.quantity,
+                        exit_price_sum: 0.0,
+                        total_pnl: 0.0,
+                        total_fees: order.fee,
+                        opening_time: order.order_time,
+                        closing_time: String::new(),
+                        entry_orders: vec![(order.deal_price, order.quantity)],
+                        exit_orders: Vec::new(),
+                    },
+                );
+            }
+        }
+    }
+
+    closed
+}
+
+fn finalize_bingx_position(pos: OpenBingxPosition) -> BingxPositionData {
+    let entry_price = if pos.entry_qty > 0.0 {
+        pos.entry_price_sum / pos.entry_qty
+    } else {
+        0.0
+    };
+    let exit_price = if pos.exit_qty > 0.0 {
+        pos.exit_price_sum / pos.exit_qty
+    } else {
+        0.0
+    };
+
+    let entries: Vec<serde_json::Value> = pos.entry_orders.iter().map(|(price, qty)| {
+        let pct = if pos.entry_qty > 0.0 { (qty / pos.entry_qty * 100.0).round() as i64 } else { 0 };
+        serde_json::json!({"price": price, "percent": pct})
+    }).collect();
+
+    let exits: Vec<serde_json::Value> = pos.exit_orders.iter().map(|(price, qty)| {
+        let pct = if pos.entry_qty > 0.0 { qty / pos.entry_qty } else { 0.0 };
+        serde_json::json!({"price": price, "percent": pct})
+    }).collect();
+
+    BingxPositionData {
+        pair: pos.pair,
+        position_type: pos.direction,
+        leverage: pos.leverage,
+        entry_price,
+        exit_price,
+        quantity: pos.entry_qty,
+        realized_pnl: pos.total_pnl,
+        total_fees: pos.total_fees,
+        opening_time: pos.opening_time,
+        closing_time: pos.closing_time,
+        entries_json: serde_json::to_string(&entries).unwrap_or_else(|_| "[]".to_string()),
+        exits_json:   serde_json::to_string(&exits).unwrap_or_else(|_| "[]".to_string()),
+    }
+}
+
+fn generate_bingx_fingerprint(pos: &BingxPositionData) -> String {
+    format!(
+        "xlsx|bingx|{}|{}|{}|{}|{:.8}|{:.8}",
+        pos.pair.to_lowercase(),
+        pos.position_type.to_lowercase(),
+        pos.opening_time,
+        pos.closing_time,
+        pos.quantity,
+        pos.realized_pnl
+    )
+}
+
+/// Parse BingX xlsx Order History and return position previews
+/// Takes the file path directly (xlsx cannot be sent as text content)
+#[tauri::command]
+pub async fn preview_bingx_import(
+    file_path: String,
+    _portfolio: f64,
+    _r_percent: f64,
+) -> Result<Vec<ImportPreview>, String> {
+    let orders = parse_bingx_xlsx(&file_path)?;
+    let positions = group_bingx_orders_into_positions(orders);
+
+    let previews = positions.iter().map(|pos| {
+        ImportPreview {
+            pair: pos.pair.clone(),
+            position_type: pos.position_type.clone(),
+            entry_price: pos.entry_price,
+            exit_price: pos.exit_price,
+            quantity: pos.quantity,
+            realized_pnl: pos.realized_pnl,
+            opening_time: pos.opening_time.clone(),
+            closing_time: pos.closing_time.clone(),
+            total_fees: pos.total_fees,
+            fingerprint: generate_bingx_fingerprint(pos),
+        }
+    }).collect();
+
+    Ok(previews)
+}
+
+/// Import BingX xlsx Order History into the database
+#[tauri::command]
+pub async fn import_bingx_file(
+    db: State<'_, Database>,
+    file_path: String,
+    portfolio: f64,
+    r_percent: f64,
+) -> Result<ImportResult, String> {
+    let orders = parse_bingx_xlsx(&file_path)?;
+    let positions = group_bingx_orders_into_positions(orders);
+
+    let mut imported = 0;
+    let mut duplicates = 0;
+    let mut errors: Vec<String> = Vec::new();
+
+    {
+        let conn = db.conn.lock().map_err(|e| e.to_string())?;
+
+        for pos in positions {
+            let fingerprint = generate_bingx_fingerprint(&pos);
+
+            let exists: bool = conn
+                .query_row(
+                    "SELECT EXISTS(SELECT 1 FROM trades WHERE import_fingerprint = ?)",
+                    [&fingerprint],
+                    |row| row.get(0),
+                )
+                .unwrap_or(false);
+
+            if exists {
+                duplicates += 1;
+                continue;
+            }
+
+            let id = format!(
+                "TRADE-{}-{}",
+                Utc::now().timestamp_millis(),
+                uuid::Uuid::new_v4()
+                    .to_string()
+                    .split('-')
+                    .next()
+                    .ok_or("Failed to generate ID")?
+            );
+            let now = Utc::now().timestamp();
+
+            let one_r = portfolio * r_percent;
+            let position_size = pos.quantity * pos.entry_price;
+            let leverage = pos.leverage.max(1);
+            let margin = position_size / leverage as f64;
+
+            let target_sl_distance = if pos.quantity > 0.0 {
+                one_r / pos.quantity
+            } else {
+                pos.entry_price * 0.01
+            };
+            let estimated_sl = if pos.position_type == "LONG" {
+                pos.entry_price - target_sl_distance
+            } else {
+                pos.entry_price + target_sl_distance
+            };
+
+            let status = if pos.realized_pnl > 0.5 {
+                "WIN"
+            } else if pos.realized_pnl < -0.5 {
+                "LOSS"
+            } else {
+                "BE"
+            };
+
+            let planned_tps = serde_json::json!([{
+                "price": pos.exit_price, "percent": 1.0, "rr": 0.0
+            }]).to_string();
+
+            let notes = format!(
+                "Imported from BingX | {}x | Fees: ${:.2} | Note: RR metrics unavailable (no SL data from BingX)",
+                leverage, pos.total_fees
+            );
+
+            let opening_ts = chrono::DateTime::parse_from_rfc3339(
+                &format!("{}Z", pos.opening_time.replace(' ', "T"))
+            ).map(|dt| dt.timestamp()).unwrap_or(now);
+
+            let closing_ts = chrono::DateTime::parse_from_rfc3339(
+                &format!("{}Z", pos.closing_time.replace(' ', "T"))
+            ).map(|dt| dt.timestamp()).unwrap_or(now);
+
+            match conn.execute(
+                "INSERT INTO trades (
+                    id, pair, exchange, analysis_date, trade_date, close_date, status,
+                    portfolio_value, r_percent, min_rr,
+                    planned_pe, planned_sl, leverage, planned_tps, planned_entries,
+                    position_type, one_r, margin, position_size, quantity,
+                    planned_weighted_rr, effective_pe, effective_entries, exits, total_pnl,
+                    notes, import_fingerprint, import_source, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                rusqlite::params![
+                    id, pos.pair, "BingX",
+                    opening_ts, opening_ts, closing_ts,
+                    status, portfolio, r_percent, 0.0,
+                    pos.entry_price, estimated_sl, leverage,
+                    planned_tps, pos.entries_json,
+                    pos.position_type,
+                    one_r, margin, position_size, pos.quantity,
+                    0.0,
+                    pos.entry_price, pos.entries_json, pos.exits_json,
+                    pos.realized_pnl, notes, fingerprint, "CSV_IMPORT",
+                    now, now,
+                ],
+            ) {
+                Ok(_) => imported += 1,
+                Err(e) => errors.push(format!("Failed to import {}: {}", pos.pair, e)),
+            }
+        }
+    }
+
+    Ok(ImportResult { imported, duplicates, errors })
+}
+
+/// Delete all BingX imported trades
+#[tauri::command]
+pub async fn delete_bingx_trades(db: State<'_, Database>) -> Result<usize, String> {
+    let conn = db.conn.lock().map_err(|e| e.to_string())?;
+    let count = conn
+        .execute("DELETE FROM trades WHERE import_fingerprint LIKE 'xlsx|bingx|%'", [])
         .map_err(|e| e.to_string())?;
     Ok(count)
 }

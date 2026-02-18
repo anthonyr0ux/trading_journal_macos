@@ -155,7 +155,14 @@
     "blofinStep3": "Sélectionnez la plage de dates couvrant vos trades",
     "blofinStep4": "Uploadez le fichier CSV ici — les ordres sont regroupés en positions automatiquement",
     "blofinNote": "BloFin exporte des données d'ordres. L'importateur regroupe les ordres liés en positions complètes (entrées + TPs partiels + SL/TP final).",
-    "blofinFoundPositions": "{{count}} positions trouvées dans le fichier"
+    "blofinFoundPositions": "{{count}} positions trouvées dans le fichier",
+    "bingxExchangeNote": "BingX exporte l'historique des ordres en format xlsx (nommé .csv). Les ordres sont regroupés automatiquement en positions.",
+    "bingxHowToImport": "Comment importer depuis BingX",
+    "bingxStep1": "Allez sur BingX → Perpétuel → Ordres → Historique des ordres",
+    "bingxStep2": "Définissez la plage de dates et cliquez sur \"Exporter\"",
+    "bingxStep3": "BingX télécharge un fichier xlsx avec l'extension .csv",
+    "bingxStep4": "Uploadez le fichier ici — les ordres sont regroupés en positions automatiquement",
+    "bingxNote": "BingX exporte des données d'ordres en format xlsx. L'importateur lit les ordres Open/Close Long/Short pour reconstruire les positions complètes."
   },
   "calculator": {
     "title": "Calculateur de Position",
