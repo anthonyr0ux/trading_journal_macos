@@ -592,13 +592,13 @@ export default function Calculator() {
         </Card>
 
         {/* STEP 4: Visual Trade Setup - only show when data is entered */}
-        {showResults && metrics && validEntries.length > 0 && sl > 0 && validTps.length > 0 && (
+        {showResults && metrics && validEntries.length > 0 && sl > 0 && validTps.length > 0 && metrics.type !== 'UNDEFINED' && (
           <div className="lg:col-span-3">
             <TradeSetupVisualizer
               entries={validEntries}
               stopLoss={sl}
               takeProfits={validTps}
-              positionType={metrics.type}
+              positionType={metrics.type as 'LONG' | 'SHORT'}
               metrics={metrics}
             />
           </div>

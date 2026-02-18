@@ -34,7 +34,7 @@ export default function Dashboard() {
     setLoading(true);
     try {
       // Always load all data, then filter on frontend
-      const [tradesData, statsData, equityCurveData] = await Promise.all([
+      const [tradesData, , equityCurveData] = await Promise.all([
         api.getTrades(),
         api.getDashboardStats(),
         api.getEquityCurve(),

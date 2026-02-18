@@ -8,7 +8,7 @@ import { Button } from '../components/ui/button';
 
 export default function Layout() {
   const location = useLocation();
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const [isCollapsed, setIsCollapsed] = useState(() => {
     const saved = localStorage.getItem('sidebar-collapsed');
     if (saved) {

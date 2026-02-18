@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
-import { formatCurrency, formatPercent } from '../lib/utils';
+import { formatCurrency } from '../lib/utils';
 import { useTranslation } from 'react-i18next';
 
 interface Entry {
@@ -75,11 +75,6 @@ export function TradeSetupVisualizer({
   const baseHeight = 280;
   const slPixelHeight = (slHeightPercent / 100) * baseHeight;
   const tpPixelHeight = (tpHeightPercent / 100) * baseHeight;
-
-  // Calculate price distance percentages (as decimals for formatPercent)
-  const slDistancePct = metrics?.distances?.distanceSL_PCT || (slDistance / weightedEntry);
-  const tpDistancePct = (tpDistance / weightedEntry);
-  const rrRatio = metrics?.plannedWeightedRR || (tpDistance / slDistance);
 
   // Determine visual layout based on position type
   const topPrice = isLong ? weightedTp : stopLoss;

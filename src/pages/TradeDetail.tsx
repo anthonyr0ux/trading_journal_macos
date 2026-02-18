@@ -11,13 +11,11 @@ import { Badge } from '../components/ui/badge';
 import { api, type Trade } from '../lib/api';
 import { calculateExecutionMetrics, calculateWeightedEntry, calculateTradeMetrics } from '../lib/calculations';
 import { formatCurrency, formatRR, formatPercent, cn } from '../lib/utils';
-import { ArrowLeft, Copy, Trash2, AlertCircle, TrendingUp, TrendingDown, Calendar, Plus, X, Calculator, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, Copy, Trash2, AlertCircle, TrendingUp, TrendingDown, Calendar, Plus, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { HelpBadge } from '../components/HelpBadge';
 import { useEntryManager } from '../hooks/useEntryManager';
 import { WeightedEntryDisplay } from '../components/WeightedEntryDisplay';
 import { PositionMetricsEditor } from '../components/PositionMetricsEditor';
-import { Switch } from '../components/ui/switch';
-import { TradeSetupVisualizer } from '../components/TradeSetupVisualizer';
 
 type Exit = {
   price: number;
