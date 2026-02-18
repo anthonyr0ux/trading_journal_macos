@@ -74,52 +74,9 @@ jobs:
           path: src-tauri/target/release/bundle/nsis/*.exe
           if-no-files-found: error
 
-  build-linux:
-    runs-on: ubuntu-latest
-    container:
-      image: archlinux:latest
-    steps:
-      - name: Install system dependencies
-        run: |
-          pacman -Syu --noconfirm
-          pacman -S --noconfirm \
-            git \
-            curl \
-            file \
-            openssl \
-            base-devel \
-            webkit2gtk-4.1 \
-            gtk3 \
-            libayatana-appindicator \
-            librsvg \
-            patchelf
-      - uses: actions/checkout@v4
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-      - name: Rust Cache
-        uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: src-tauri
-      - name: Install dependencies
-        run: npm ci
-      - name: Build Linux AppImage
-        run: npm run tauri build -- --bundles appimage
-        env:
-          APPIMAGE_EXTRACT_AND_RUN: 1
-      - name: Upload Linux AppImage
-        uses: actions/upload-artifact@v4
-        with:
-          name: linux-appimage
-          path: src-tauri/target/release/bundle/appimage/*.AppImage
-          if-no-files-found: error
-
   create-release:
-    needs: [build-macos, build-windows, build-linux]
-    if: always() && (needs.build-macos.result == 'success' || needs.build-windows.result == 'success' || needs.build-linux.result == 'success')
+    needs: [build-macos, build-windows]
+    if: always() && (needs.build-macos.result == 'success' || needs.build-windows.result == 'success')
     runs-on: ubuntu-latest
     steps:
       - name: Delete existing draft releases
@@ -147,7 +104,6 @@ jobs:
             artifacts/macos-dmg/*.dmg
             artifacts/windows-msi/*.msi
             artifacts/windows-nsis/*.exe
-            artifacts/linux-appimage/*.AppImage
           draft: true
           body: |
             ## Trading Journal v${{ github.ref_name }}
@@ -155,12 +111,11 @@ jobs:
             ### Downloads
             - **macOS**: Download the `.dmg` file (Universal - Intel + Apple Silicon)
             - **Windows**: Download either `.msi` or `.exe` installer
-            - **Linux**: Download the `.AppImage` file (Arch Linux, portable)
 
             ### What's New
             - Fixed critical import/export bugs
             - Updated to Nemesis logo
-            - macOS, Windows, and Linux (Arch) release
+            - macOS and Windows release
 
             ### Security
             All credentials stored securely in system keychain.

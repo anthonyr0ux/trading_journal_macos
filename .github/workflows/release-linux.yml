@@ -1,0 +1,62 @@
+name: Release Linux (Arch)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux:latest
+    steps:
+      - name: Install system dependencies
+        run: |
+          pacman -Syu --noconfirm
+          pacman -S --noconfirm \
+            git \
+            curl \
+            file \
+            openssl \
+            base-devel \
+            webkit2gtk-4.1 \
+            gtk3 \
+            libayatana-appindicator \
+            librsvg \
+            patchelf
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - name: Install dependencies
+        run: npm ci
+      - name: Build Linux AppImage
+        run: npm run tauri build -- --bundles appimage
+        env:
+          APPIMAGE_EXTRACT_AND_RUN: 1
+      - name: Upload AppImage to Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: src-tauri/target/release/bundle/appimage/*.AppImage
+          draft: true
+          tag_name: linux-appimage
+          name: Linux AppImage (Arch)
+          body: |
+            ## Trading Journal — Linux AppImage (Arch)
+
+            ### Installation
+            ```bash
+            chmod +x Trading-Journal_*.AppImage
+            ./Trading-Journal_*.AppImage
+            ```
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
