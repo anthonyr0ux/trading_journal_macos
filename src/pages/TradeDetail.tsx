@@ -11,7 +11,7 @@ import { Badge } from '../components/ui/badge';
 import { api, type Trade } from '../lib/api';
 import { calculateExecutionMetrics, calculateWeightedEntry, calculateTradeMetrics } from '../lib/calculations';
 import { formatCurrency, formatRR, formatPercent, cn } from '../lib/utils';
-import { ArrowLeft, Copy, Trash2, AlertCircle, TrendingUp, TrendingDown, Calendar, Plus, X, Calculator } from 'lucide-react';
+import { ArrowLeft, Copy, Trash2, AlertCircle, TrendingUp, TrendingDown, Calendar, Plus, X, Calculator, ChevronDown, ChevronUp } from 'lucide-react';
 import { HelpBadge } from '../components/HelpBadge';
 import { useEntryManager } from '../hooks/useEntryManager';
 import { WeightedEntryDisplay } from '../components/WeightedEntryDisplay';
@@ -31,6 +31,14 @@ export default function TradeDetail() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [trade, setTrade] = useState<Trade | null>(null);
+
+  // Collapsible section states (collapsed by default on mobile)
+  const [isPlanCollapsed, setIsPlanCollapsed] = useState(true);
+  const [isExecutionCollapsed, setIsExecutionCollapsed] = useState(true);
+
+  // Editable dates
+  const [analysisDate, setAnalysisDate] = useState('');
+  const [tradeDate, setTradeDate] = useState('');
 
   // Entry states (using custom hooks)
   const plannedEntriesManager = useEntryManager([]);
@@ -198,6 +206,10 @@ export default function TradeDetail() {
       // Initialize basic fields
       setPair(data.pair);
       setExchange(data.exchange);
+
+      // Initialize dates
+      setAnalysisDate(new Date(data.analysis_date * 1000).toISOString().split('T')[0]);
+      setTradeDate(new Date(data.trade_date * 1000).toISOString().split('T')[0]);
 
       // Parse planned entries
       if (data.planned_entries) {
@@ -450,10 +462,16 @@ export default function TradeDetail() {
         execution_potential_profit: undefined,
       };
 
+      // Parse dates to timestamps
+      const analysisDateTimestamp = analysisDate ? Math.floor(new Date(analysisDate).getTime() / 1000) : trade.analysis_date;
+      const tradeDateTimestamp = tradeDate ? Math.floor(new Date(tradeDate).getTime() / 1000) : trade.trade_date;
+
       await api.updateTrade(trade.id, {
         // Basic fields
         pair: pair.toUpperCase(),
         exchange: exchange,
+        analysis_date: analysisDateTimestamp,
+        trade_date: tradeDateTimestamp,
         // Plan fields
         planned_pe: weightedPlannedPE,
         planned_sl: plannedSl,
@@ -547,106 +565,166 @@ export default function TradeDetail() {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
-      {/* Header - Linear Design */}
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3 flex-1">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/journal')}>
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <HelpBadge section="journal" />
-          <Badge variant={
-            trade.position_type === 'LONG' ? 'default' : 'destructive'
-          } className="text-sm px-3 py-1">
-            {trade.position_type}
-          </Badge>
-          <Badge variant={
-            trade.status === 'WIN' ? 'default' :
-            trade.status === 'LOSS' ? 'destructive' :
-            trade.status === 'BE' ? 'secondary' :
-            'outline'
-          } className="text-sm px-3 py-1">
-            {trade.status}
-          </Badge>
-          <div className="h-6 w-px bg-border" />
-          <input
-            value={pair}
-            onChange={(e) => setPair(e.target.value)}
-            placeholder={t('tradeNew.pairPlaceholder')}
-            className="text-xl font-bold bg-transparent border-none outline-none focus:outline-none focus:ring-0 px-0 w-auto min-w-[100px] placeholder:text-muted-foreground/40"
-            style={{ width: `${Math.max(pair.length * 12 + 20, 100)}px` }}
-          />
-          <span className="text-muted-foreground text-sm">on</span>
-          <input
-            value={exchange}
-            onChange={(e) => setExchange(e.target.value)}
-            placeholder={t('tradeNew.exchangePlaceholder')}
-            className="text-lg bg-transparent border-none outline-none focus:outline-none focus:ring-0 px-0 w-auto min-w-[80px] placeholder:text-muted-foreground/40"
-            style={{ width: `${Math.max(exchange.length * 10 + 20, 80)}px` }}
-          />
+      {/* Header - Responsive Design */}
+      <div className="space-y-3">
+        {/* Mobile: Stacked layout */}
+        <div className="flex flex-col gap-3 md:hidden">
+          {/* Row 1: Back button, badges, and action buttons */}
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate('/journal')}>
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+              <HelpBadge section="journal" />
+              <Badge variant={
+                trade.position_type === 'LONG' ? 'default' : 'destructive'
+              } className="text-xs px-2 py-0.5">
+                {trade.position_type}
+              </Badge>
+              <Badge variant={
+                trade.status === 'WIN' ? 'default' :
+                trade.status === 'LOSS' ? 'destructive' :
+                trade.status === 'BE' ? 'secondary' :
+                'outline'
+              } className="text-xs px-2 py-0.5">
+                {trade.status}
+              </Badge>
+            </div>
+            <div className="flex gap-1">
+              <Button variant="outline" size="sm" onClick={handleDuplicate} className="h-8 w-8 p-0">
+                <Copy className="h-3.5 w-3.5" />
+              </Button>
+              <Button variant="destructive" size="sm" onClick={handleDelete} className="h-8 w-8 p-0">
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          </div>
+          {/* Row 2: Pair and Exchange inputs */}
+          <div className="flex items-center gap-2">
+            <input
+              value={pair}
+              onChange={(e) => setPair(e.target.value)}
+              placeholder={t('tradeNew.pairPlaceholder')}
+              className="text-lg font-bold bg-transparent border-b border-border focus:border-primary outline-none px-1 flex-1 min-w-0"
+            />
+            <span className="text-muted-foreground text-sm shrink-0">on</span>
+            <input
+              value={exchange}
+              onChange={(e) => setExchange(e.target.value)}
+              placeholder={t('tradeNew.exchangePlaceholder')}
+              className="text-sm bg-transparent border-b border-border focus:border-primary outline-none px-1 flex-1 min-w-0"
+            />
+          </div>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={handleDuplicate}>
-            <Copy className="h-4 w-4 mr-2" />
-            {t('tradeDetail.duplicate')}
-          </Button>
-          <Button variant="destructive" size="sm" onClick={handleDelete}>
-            <Trash2 className="h-4 w-4 mr-2" />
-            {t('tradeDetail.delete')}
-          </Button>
+
+        {/* Desktop: Horizontal layout */}
+        <div className="hidden md:flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3 flex-1">
+            <Button variant="ghost" size="icon" onClick={() => navigate('/journal')}>
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <HelpBadge section="journal" />
+            <Badge variant={
+              trade.position_type === 'LONG' ? 'default' : 'destructive'
+            } className="text-sm px-3 py-1">
+              {trade.position_type}
+            </Badge>
+            <Badge variant={
+              trade.status === 'WIN' ? 'default' :
+              trade.status === 'LOSS' ? 'destructive' :
+              trade.status === 'BE' ? 'secondary' :
+              'outline'
+            } className="text-sm px-3 py-1">
+              {trade.status}
+            </Badge>
+            <div className="h-6 w-px bg-border" />
+            <input
+              value={pair}
+              onChange={(e) => setPair(e.target.value)}
+              placeholder={t('tradeNew.pairPlaceholder')}
+              className="text-xl font-bold bg-transparent border-none outline-none focus:outline-none focus:ring-0 px-0 w-auto min-w-[100px] placeholder:text-muted-foreground/40"
+              style={{ width: `${Math.max(pair.length * 12 + 20, 100)}px` }}
+            />
+            <span className="text-muted-foreground text-sm">on</span>
+            <input
+              value={exchange}
+              onChange={(e) => setExchange(e.target.value)}
+              placeholder={t('tradeNew.exchangePlaceholder')}
+              className="text-lg bg-transparent border-none outline-none focus:outline-none focus:ring-0 px-0 w-auto min-w-[80px] placeholder:text-muted-foreground/40"
+              style={{ width: `${Math.max(exchange.length * 10 + 20, 80)}px` }}
+            />
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={handleDuplicate}>
+              <Copy className="h-4 w-4 mr-2" />
+              {t('tradeDetail.duplicate')}
+            </Button>
+            <Button variant="destructive" size="sm" onClick={handleDelete}>
+              <Trash2 className="h-4 w-4 mr-2" />
+              {t('tradeDetail.delete')}
+            </Button>
+          </div>
         </div>
       </div>
 
       {/* Key Metrics Summary */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-3 grid-cols-3 md:gap-4">
+        {/* Risk 1R Card */}
         <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
+          <CardContent className="pt-4 pb-4 px-3 md:pt-6 md:px-6">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
               <div>
-                <p className="text-xs text-muted-foreground">{t('tradeDetail.risk1R')}</p>
-                <p className="text-2xl font-bold">{formatCurrency(trade.one_r)}</p>
-                <p className="text-xs text-muted-foreground">{formatPercent(trade.r_percent)} {t('tradeDetail.riskPercent')}</p>
+                <p className="text-[10px] md:text-xs text-muted-foreground font-semibold">Risk 1R</p>
+                <p className="text-lg md:text-2xl font-bold">{formatCurrency(trade.one_r)}</p>
+                <p className="text-[10px] md:text-xs text-muted-foreground">{formatPercent(trade.r_percent)}</p>
               </div>
-              <AlertCircle className="h-8 w-8 text-muted-foreground" />
+              <AlertCircle className="h-5 w-5 md:h-8 md:w-8 text-muted-foreground hidden md:block" />
             </div>
           </CardContent>
         </Card>
 
+        {/* Plan Card */}
         <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
+          <CardContent className="pt-4 pb-4 px-3 md:pt-6 md:px-6">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
               <div>
-                <p className="text-xs text-muted-foreground">{t('tradeDetail.plannedRR')}</p>
-                <p className="text-2xl font-bold">{formatRR(trade.planned_weighted_rr)}</p>
-                <p className="text-xs text-muted-foreground">{t('tradeDetail.minRequired')}: {formatRR(trade.min_rr)}</p>
+                <p className="text-[10px] md:text-xs text-muted-foreground font-semibold">Plan</p>
+                <p className="text-lg md:text-2xl font-bold">{formatRR(trade.planned_weighted_rr)}</p>
+                <p className="text-[10px] md:text-xs text-green-600 font-semibold">
+                  {formatCurrency(trade.one_r * trade.planned_weighted_rr)}
+                </p>
               </div>
-              <TrendingUp className="h-8 w-8 text-green-500" />
+              <TrendingUp className="h-5 w-5 md:h-8 md:w-8 text-green-500 hidden md:block" />
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-muted-foreground">{t('tradeDetail.actualPnL')}</p>
-                <p className={`text-2xl font-bold ${
-                  trade.total_pnl
-                    ? (trade.total_pnl >= 0 ? 'text-green-500' : 'text-red-500')
-                    : ''
-                }`}>
-                  {trade.total_pnl ? formatCurrency(trade.total_pnl) : '-'}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {trade.effective_weighted_rr ? `${formatRR(trade.effective_weighted_rr)} RR` : t('tradeDetail.notClosed')}
-                </p>
+        {/* Execution Card - Only show if trade has execution data */}
+        {(trade.total_pnl !== null || trade.effective_weighted_rr !== null) && (
+          <Card>
+            <CardContent className="pt-4 pb-4 px-3 md:pt-6 md:px-6">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+                <div>
+                  <p className="text-[10px] md:text-xs text-muted-foreground font-semibold">Execution</p>
+                  <p className="text-lg md:text-2xl font-bold">
+                    {trade.effective_weighted_rr ? formatRR(trade.effective_weighted_rr) : '-'}
+                  </p>
+                  <p className={`text-[10px] md:text-xs font-semibold ${
+                    trade.total_pnl
+                      ? (trade.total_pnl >= 0 ? 'text-green-600' : 'text-red-600')
+                      : 'text-muted-foreground'
+                  }`}>
+                    {trade.total_pnl ? formatCurrency(trade.total_pnl) : '-'}
+                  </p>
+                </div>
+                {trade.total_pnl !== null && (trade.total_pnl >= 0 ?
+                  <TrendingUp className="h-5 w-5 md:h-8 md:w-8 text-green-500 hidden md:block" /> :
+                  <TrendingDown className="h-5 w-5 md:h-8 md:w-8 text-red-500 hidden md:block" />
+                )}
               </div>
-              {trade.total_pnl && (trade.total_pnl >= 0 ?
-                <TrendingUp className="h-8 w-8 text-green-500" /> :
-                <TrendingDown className="h-8 w-8 text-red-500" />
-              )}
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Two Column Layout */}
@@ -655,25 +733,43 @@ export default function TradeDetail() {
         <div className="space-y-6">
           <Card>
             <CardHeader className="bg-muted/50">
-              <CardTitle className="flex items-center gap-2">
-                <Calendar className="h-5 w-5" />
-                {t('tradeDetail.tradePlan')}
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <Calendar className="h-5 w-5" />
+                  {t('tradeDetail.tradePlan')}
+                </CardTitle>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsPlanCollapsed(!isPlanCollapsed)}
+                  className="md:hidden"
+                >
+                  {isPlanCollapsed ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
+                </Button>
+              </div>
             </CardHeader>
-            <CardContent className="space-y-4 pt-6">
-              {/* Dates */}
+            <CardContent className={cn("space-y-4 pt-6", isPlanCollapsed && "hidden md:block")}>
+              {/* Dates - Editable */}
               <div className="grid gap-3 grid-cols-2">
-                <div className="p-3 bg-muted/50 rounded-lg">
-                  <div className="text-xs text-muted-foreground mb-1">{t('tradeDetail.analysisDate')}</div>
-                  <div className="text-sm font-semibold">
-                    {new Date(trade.analysis_date * 1000).toLocaleDateString()}
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="analysisDate" className="text-xs">{t('tradeDetail.analysisDate')}</Label>
+                  <Input
+                    id="analysisDate"
+                    type="date"
+                    value={analysisDate}
+                    onChange={(e) => setAnalysisDate(e.target.value)}
+                    className="text-sm"
+                  />
                 </div>
-                <div className="p-3 bg-muted/50 rounded-lg">
-                  <div className="text-xs text-muted-foreground mb-1">{t('tradeDetail.tradeDate')}</div>
-                  <div className="text-sm font-semibold">
-                    {new Date(trade.trade_date * 1000).toLocaleDateString()}
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="tradeDate" className="text-xs">{t('tradeDetail.tradeDate')}</Label>
+                  <Input
+                    id="tradeDate"
+                    type="date"
+                    value={tradeDate}
+                    onChange={(e) => setTradeDate(e.target.value)}
+                    className="text-sm"
+                  />
                 </div>
               </div>
 
@@ -914,21 +1010,77 @@ export default function TradeDetail() {
                   <TrendingUp className="h-5 w-5" />
                   {t('tradeDetail.tradeExecution')}
                 </CardTitle>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleCopyPlanToExecution}
-                  disabled={!trade}
-                >
-                  <Copy className="h-4 w-4 mr-2" />
-                  {t('tradeDetail.copyPlan')}
-                </Button>
+                <div className="flex items-center gap-2">
+                  {/* Desktop: Full button */}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleCopyPlanToExecution}
+                    disabled={!trade}
+                    className="hidden md:flex"
+                  >
+                    <Copy className="h-4 w-4 mr-2" />
+                    {t('tradeDetail.copyPlan')}
+                  </Button>
+                  {/* Mobile: Icon button */}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleCopyPlanToExecution}
+                    disabled={!trade}
+                    className="md:hidden"
+                    title={t('tradeDetail.copyPlan')}
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                  {/* Mobile: Collapse toggle */}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsExecutionCollapsed(!isExecutionCollapsed)}
+                    className="md:hidden"
+                  >
+                    {isExecutionCollapsed ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
+                  </Button>
+                </div>
               </div>
             </CardHeader>
-            <CardContent className="space-y-4 pt-6">
+            <CardContent className={cn("space-y-4 pt-6", isExecutionCollapsed && "hidden md:block")}>
+              {/* Position Metrics Editor - Execution Section */}
+              <div className="pb-3 border-b">
+                <PositionMetricsEditor
+                  entryPrice={(() => {
+                    const validEntries = effectiveEntries.filter(e => e.price > 0 && e.percent > 0);
+                    if (validEntries.length > 1) {
+                      try {
+                        return calculateWeightedEntry(validEntries);
+                      } catch {
+                        return effectivePe || trade.planned_pe;
+                      }
+                    }
+                    return validEntries[0]?.price || effectivePe || trade.planned_pe;
+                  })()}
+                  stopLoss={plannedSl}
+                  leverage={leverage}
+                  positionType={trade.position_type as 'LONG' | 'SHORT'}
+                  initialMargin={executionMargin}
+                  initialPositionSize={executionPositionSize}
+                  initialQuantity={executionQuantity}
+                  initialOneR={executionOneR}
+                  onChange={(metrics) => {
+                    setExecutionMargin(metrics.margin);
+                    setExecutionPositionSize(metrics.positionSize);
+                    setExecutionQuantity(metrics.quantity);
+                    setExecutionOneR(metrics.oneR);
+                  }}
+                  label={t('positionMetrics.title')}
+                />
+              </div>
+
               {/* Effective Entries (Multi-PE) */}
-              <div className="space-y-3">
+              <div className="space-y-3 pt-3">
                 <div className="flex items-center justify-between">
                   <Label className="text-sm font-semibold">
                     {t('tradeDetail.effectiveEntries') || 'Actual Entries'}
@@ -1033,98 +1185,6 @@ export default function TradeDetail() {
                   entries={effectiveEntries}
                   label="Weighted Avg Effective Entry"
                 />
-              </div>
-
-              {/* Position Metrics Editor - Execution Section */}
-              <div className="pt-3 border-t">
-                <PositionMetricsEditor
-                  entryPrice={(() => {
-                    const validEntries = effectiveEntries.filter(e => e.price > 0 && e.percent > 0);
-                    if (validEntries.length > 1) {
-                      try {
-                        return calculateWeightedEntry(validEntries);
-                      } catch {
-                        return effectivePe || trade.planned_pe;
-                      }
-                    }
-                    return validEntries[0]?.price || effectivePe || trade.planned_pe;
-                  })()}
-                  stopLoss={plannedSl}
-                  leverage={leverage}
-                  positionType={trade.position_type as 'LONG' | 'SHORT'}
-                  initialMargin={executionMargin}
-                  initialPositionSize={executionPositionSize}
-                  initialQuantity={executionQuantity}
-                  initialOneR={executionOneR}
-                  onChange={(metrics) => {
-                    setExecutionMargin(metrics.margin);
-                    setExecutionPositionSize(metrics.positionSize);
-                    setExecutionQuantity(metrics.quantity);
-                    setExecutionOneR(metrics.oneR);
-                  }}
-                  label={t('positionMetrics.title')}
-                />
-              </div>
-
-              {/* Execution R Override Section */}
-              <div className="space-y-3 pt-3 border-t">
-                <div className="flex items-center justify-between">
-                  <Label className="text-sm font-semibold">
-                    Execution Calculations (Optional)
-                  </Label>
-                  <Switch
-                    checked={useExecutionR}
-                    onCheckedChange={setUseExecutionR}
-                  />
-                </div>
-
-                {useExecutionR && (
-                  <div className="space-y-3 p-3 border rounded-lg bg-blue-50 dark:bg-blue-950/20">
-                    <p className="text-xs text-muted-foreground">
-                      Override portfolio and R% to recalculate position metrics
-                    </p>
-
-                    <div className="grid gap-3 grid-cols-2">
-                      <div>
-                        <Label htmlFor="execution-portfolio" className="text-xs">
-                          Portfolio ($)
-                        </Label>
-                        <Input
-                          id="execution-portfolio"
-                          type="number"
-                          step="0.01"
-                          value={executionPortfolio || ''}
-                          onChange={(e) => {
-                            const v = parseFloat(e.target.value);
-                            if (!isNaN(v) || e.target.value === '') setExecutionPortfolio(v || 0);
-                          }}
-                          placeholder={trade?.portfolio_value.toString() || '0'}
-                          className="font-mono text-sm"
-                        />
-                      </div>
-
-                      <div>
-                        <Label htmlFor="execution-r-percent" className="text-xs">
-                          R %
-                        </Label>
-                        <Input
-                          id="execution-r-percent"
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          max="100"
-                          value={executionRPercent || ''}
-                          onChange={(e) => {
-                            const v = parseFloat(e.target.value);
-                            if (!isNaN(v) || e.target.value === '') setExecutionRPercent(v || 0);
-                          }}
-                          placeholder={trade ? (trade.r_percent * 100).toString() : '0'}
-                          className="font-mono text-sm"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
 
               {/* Exit Points */}
@@ -1247,74 +1307,6 @@ export default function TradeDetail() {
                 </div>
               )}
 
-              {/* Execution Calculations Display */}
-              {useExecutionR && executionCalculations && (
-                <Card className="border-2 border-blue-500 bg-blue-50/50 dark:bg-blue-950/20">
-                  <CardHeader className="pb-2 pt-3 px-3">
-                    <CardTitle className="text-sm flex items-center gap-2">
-                      <Calculator className="h-4 w-4" />
-                      Execution Calculations
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="pt-0 px-3 pb-3 space-y-3">
-                    {/* Position Type */}
-                    <div className="text-center">
-                      <Badge variant={executionCalculations.type === 'LONG' ? 'default' : 'destructive'}>
-                        {executionCalculations.type}
-                      </Badge>
-                    </div>
-
-                    {/* Primary Metrics Grid */}
-                    <div className="grid grid-cols-3 gap-3">
-                      <div className="space-y-0.5">
-                        <div className="text-[10px] text-muted-foreground uppercase">Margin</div>
-                        <div className="text-lg font-bold">
-                          {formatCurrency(executionCalculations.margin)}
-                        </div>
-                      </div>
-
-                      <div className="space-y-0.5">
-                        <div className="text-[10px] text-muted-foreground uppercase">Position</div>
-                        <div className="text-lg font-bold">
-                          {formatCurrency(executionCalculations.positionSize)}
-                        </div>
-                      </div>
-
-                      <div className="space-y-0.5">
-                        <div className="text-[10px] text-muted-foreground uppercase">Quantity</div>
-                        <div className="text-lg font-bold">
-                          {executionCalculations.quantity.toFixed(4)}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Secondary Metrics Grid */}
-                    <div className="grid grid-cols-3 gap-3 pt-2 border-t">
-                      <div className="space-y-0.5">
-                        <div className="text-[10px] text-muted-foreground uppercase">1R</div>
-                        <div className="text-sm font-semibold">
-                          {formatCurrency(executionCalculations.oneR)}
-                        </div>
-                      </div>
-
-                      <div className="space-y-0.5">
-                        <div className="text-[10px] text-muted-foreground uppercase">RR Ratio</div>
-                        <div className="text-sm font-semibold">
-                          {formatRR(executionCalculations.plannedWeightedRR)}
-                        </div>
-                      </div>
-
-                      <div className="space-y-0.5">
-                        <div className="text-[10px] text-muted-foreground uppercase">Pot. Profit</div>
-                        <div className="text-sm font-semibold text-success">
-                          {formatCurrency(executionCalculations.potentialProfit)}
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
               {/* Close Date */}
               <div className="space-y-3 pt-3 border-t">
                 <div className="space-y-2">
@@ -1410,50 +1402,24 @@ export default function TradeDetail() {
       </Card>
 
       {/* Save Actions */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">
-              {t('tradeDetail.saveChangesToUpdate')}
-            </p>
-            <div className="flex gap-3">
-              <Button
-                variant="outline"
-                onClick={() => navigate('/journal')}
-                disabled={saving}
-              >
-                {t('common.cancel')}
-              </Button>
-              <Button
-                onClick={handleSave}
-                disabled={saving}
-                size="lg"
-              >
-                {saving ? t('tradeDetail.saving') : t('tradeDetail.saveChanges')}
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Visual Trade Setup */}
-      {trade && plannedEntries.length > 0 && plannedSl > 0 && plannedTps.length > 0 && (
-        <TradeSetupVisualizer
-          entries={plannedEntries}
-          stopLoss={plannedSl}
-          takeProfits={plannedTps}
-          positionType={trade.position_type as 'LONG' | 'SHORT'}
-          metrics={{
-            weightedEntry: trade.planned_pe,
-            distances: {
-              distanceSL_PCT: Math.abs(trade.planned_pe - plannedSl) / trade.planned_pe,
-            },
-            plannedWeightedRR: trade.planned_weighted_rr,
-            margin: effectivePlannedMetrics.margin,
-            oneR: effectivePlannedMetrics.oneR,
-          }}
-        />
-      )}
+      <div className="flex flex-col sm:flex-row gap-3 justify-end">
+        <Button
+          variant="outline"
+          onClick={() => navigate('/journal')}
+          disabled={saving}
+          className="w-full sm:w-auto"
+        >
+          {t('common.cancel')}
+        </Button>
+        <Button
+          onClick={handleSave}
+          disabled={saving}
+          size="lg"
+          className="w-full sm:w-auto"
+        >
+          {saving ? t('tradeDetail.saving') : t('tradeDetail.saveChanges')}
+        </Button>
+      </div>
     </div>
   );
 }

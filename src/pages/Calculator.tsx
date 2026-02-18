@@ -577,20 +577,16 @@ export default function Calculator() {
           </CardContent>
         </Card>
 
-        {/* STEP 4: Visual Trade Setup */}
-        <TradeSetupVisualizer
-          entries={validEntries.length > 0 ? validEntries : [{ price: 100, percent: 100 }]}
-          stopLoss={sl || 95}
-          takeProfits={validTps.length > 0 ? validTps : [{ price: 110, percent: 100 }]}
-          positionType={metrics?.type || 'LONG'}
-          metrics={metrics || {
-            weightedEntry: 100,
-            distances: { distanceSL_PCT: 0.05 },
-            plannedWeightedRR: 2,
-            margin: 1000,
-            oneR: 100,
-          }}
-        />
+        {/* STEP 4: Visual Trade Setup - only show when data is entered */}
+        {showResults && metrics && validEntries.length > 0 && sl > 0 && validTps.length > 0 && (
+          <TradeSetupVisualizer
+            entries={validEntries}
+            stopLoss={sl}
+            takeProfits={validTps}
+            positionType={metrics.type}
+            metrics={metrics}
+          />
+        )}
       </div>
 
       {/* Validation Errors - Compact */}
