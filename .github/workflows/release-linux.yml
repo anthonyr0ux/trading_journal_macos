@@ -11,6 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: archlinux:latest
+      options: --device /dev/fuse
     steps:
       - name: Install system dependencies
         run: |
@@ -25,7 +26,8 @@ jobs:
             gtk3 \
             libayatana-appindicator \
             librsvg \
-            patchelf
+            patchelf \
+            fuse2
       - uses: actions/checkout@v4
       - name: Setup Node.js
         uses: actions/setup-node@v4
