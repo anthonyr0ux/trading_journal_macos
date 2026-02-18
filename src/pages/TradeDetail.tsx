@@ -347,7 +347,7 @@ export default function TradeDetail() {
             effectiveRR = metrics.effectiveRR;
 
             // Determine status based on P&L
-            if (Math.abs(metrics.totalPnl) < 0.5) {
+            if (Math.abs(metrics.totalPnl) <= 0.5) {
               // P&L is near zero - this is break-even
               newStatus = 'BE';
             } else if (metrics.totalPnl > 0) {
