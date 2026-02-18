@@ -1282,28 +1282,15 @@ export default function TradeDetail() {
 
               {/* Exit Status */}
               {validExits.length > 0 && (
-                <div className={`p-3 rounded-lg border-2 ${
+                <div className={cn(
+                  "p-2 rounded text-xs text-center",
                   Math.abs(totalExitPercent - 100) <= 0.1
-                    ? 'bg-green-50 dark:bg-green-950/20 border-green-500'
+                    ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
                     : totalExitPercent > 100
-                    ? 'bg-red-50 dark:bg-red-950/20 border-red-500'
-                    : 'bg-yellow-50 dark:bg-yellow-950/20 border-yellow-500'
-                }`}>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="text-sm font-semibold">{t('tradeDetail.totalPositionClosed')}</div>
-                      <div className="text-2xl font-bold">{totalExitPercent.toFixed(1)}%</div>
-                    </div>
-                    <div className="text-right">
-                      {Math.abs(totalExitPercent - 100) <= 0.1 ? (
-                        <Badge variant="default" className="bg-green-500">{t('tradeDetail.tradeComplete')}</Badge>
-                      ) : totalExitPercent > 100 ? (
-                        <Badge variant="destructive">{t('tradeDetail.exceeds100')}</Badge>
-                      ) : (
-                        <Badge variant="secondary">{t('tradeDetail.partialExit')}</Badge>
-                      )}
-                    </div>
-                  </div>
+                    ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                    : "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
+                )}>
+                  {t('tradeDetail.totalPositionClosed')}: {totalExitPercent.toFixed(1)}%
                 </div>
               )}
 
