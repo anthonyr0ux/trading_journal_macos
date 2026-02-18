@@ -715,7 +715,7 @@ export default function TradeDetail() {
                     {trade.total_pnl ? formatCurrency(trade.total_pnl) : '-'}
                   </p>
                 </div>
-                {trade.total_pnl !== null && (trade.total_pnl >= 0 ?
+                {trade.total_pnl !== null && trade.total_pnl !== undefined && (trade.total_pnl >= 0 ?
                   <TrendingUp className="h-5 w-5 md:h-8 md:w-8 text-success hidden md:block" /> :
                   <TrendingDown className="h-5 w-5 md:h-8 md:w-8 text-destructive hidden md:block" />
                 )}

@@ -100,6 +100,7 @@ export default function TradeNew() {
   const exitsManager = useEntryManager([{ price: 0, percent: 100 }]);
   const {
     entries: exits,
+    setEntries: setExits,
     add: addExit,
     remove: removeExit,
     update: updateExit
@@ -1189,12 +1190,12 @@ export default function TradeNew() {
       </Card>
 
       {/* Visual Trade Setup */}
-      {planMetrics && planValidation.valid && (
+      {planMetrics && planValidation.valid && planMetrics.type !== 'UNDEFINED' && (
         <TradeSetupVisualizer
           entries={plannedEntries}
           stopLoss={plannedSl}
           takeProfits={plannedTps}
-          positionType={planMetrics.type}
+          positionType={planMetrics.type as 'LONG' | 'SHORT'}
           metrics={planMetrics}
         />
       )}
