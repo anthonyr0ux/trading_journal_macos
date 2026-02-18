@@ -3,6 +3,7 @@ use crate::db::Database;
 use crate::models::{Trade, Settings};
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ImportPreview {
@@ -329,6 +330,495 @@ fn generate_fingerprint(trade: &BitGetTradeData) -> String {
         trade.quantity,
         trade.realized_pnl
     )
+}
+
+// ─── BloFin CSV Import ────────────────────────────────────────────────────────
+
+/// A single filled order row from BloFin order history CSV
+#[derive(Debug, Clone)]
+struct BlofinOrder {
+    asset: String,        // e.g. "BTCUSDT"
+    margin_mode: String,  // "Cross" | "Isolated"
+    leverage: i64,
+    order_time: String,   // ISO-like "YYYY-MM-DD HH:MM:SS"
+    side: String,         // "Buy", "Sell", "Buy(SL)", "Sell(TP)", etc.
+    avg_fill: f64,
+    filled_qty: f64,
+    pnl: f64,
+    fee: f64,
+    is_reduce_only: bool,
+}
+
+/// Aggregated position produced by grouping BloFin orders
+struct BlofinPositionData {
+    pair: String,
+    position_type: String, // "LONG" | "SHORT"
+    margin_mode: String,
+    leverage: i64,
+    entry_price: f64,   // weighted average
+    exit_price: f64,    // weighted average
+    quantity: f64,      // total entry quantity
+    realized_pnl: f64,
+    total_fees: f64,
+    opening_time: String,
+    closing_time: String,
+    entries_json: String,
+    exits_json: String,
+}
+
+struct OpenBlofinPosition {
+    pair: String,
+    position_type: String,
+    margin_mode: String,
+    leverage: i64,
+    entry_qty: f64,
+    exit_qty: f64,
+    entry_price_sum: f64, // Σ(price × qty) for weighted avg
+    exit_price_sum: f64,
+    total_pnl: f64,
+    total_fees: f64,
+    opening_time: String,
+    closing_time: String,
+    entry_orders: Vec<(f64, f64)>, // (avg_fill, qty)
+    exit_orders: Vec<(f64, f64)>,
+}
+
+fn parse_blofin_datetime(s: &str) -> Result<String, String> {
+    // "02/19/2026 02:22:08" → "2026-02-19 02:22:08"
+    let parts: Vec<&str> = s.split_whitespace().collect();
+    if parts.len() != 2 {
+        return Err(format!("Invalid datetime: {}", s));
+    }
+    let d: Vec<&str> = parts[0].split('/').collect();
+    if d.len() != 3 {
+        return Err(format!("Invalid date: {}", parts[0]));
+    }
+    Ok(format!("{}-{}-{} {}", d[2], d[0], d[1], parts[1]))
+}
+
+fn parse_blofin_price(s: &str) -> f64 {
+    // "66624.2 USDT" → 66624.2, "Market" | "--" → 0.0
+    let s = s.trim();
+    if s == "Market" || s == "--" || s.is_empty() {
+        return 0.0;
+    }
+    s.split_whitespace()
+        .next()
+        .and_then(|n| n.parse::<f64>().ok())
+        .unwrap_or(0.0)
+}
+
+fn parse_blofin_qty(s: &str) -> Result<f64, String> {
+    // "0.1119 BTC" → 0.1119
+    let s = s.trim();
+    let first = s.split_whitespace().next().unwrap_or(s);
+    first.parse::<f64>().map_err(|_| format!("Invalid quantity: {}", s))
+}
+
+fn parse_blofin_pnl(s: &str) -> f64 {
+    // "-53.11821 USDT" → -53.11821, "--" → 0.0
+    let s = s.trim();
+    if s == "--" {
+        return 0.0;
+    }
+    s.split_whitespace()
+        .next()
+        .and_then(|n| n.parse::<f64>().ok())
+        .unwrap_or(0.0)
+}
+
+fn asset_to_pair(asset: &str) -> String {
+    // "BTCUSDT" → "BTC/USDT"
+    if let Some(idx) = asset.rfind("USDT") {
+        format!("{}/USDT", &asset[..idx])
+    } else {
+        asset.to_string()
+    }
+}
+
+fn parse_blofin_line(line: &str) -> Result<BlofinOrder, String> {
+    let clean = line.trim_start_matches('\u{feff}');
+    let fields: Vec<&str> = clean.split(',').map(|f| f.trim()).collect();
+
+    if fields.len() < 15 {
+        return Err(format!("Expected ≥15 fields, got {}", fields.len()));
+    }
+
+    let status = fields[14];
+    let filled_qty = parse_blofin_qty(fields[7])?;
+
+    if status != "Filled" || filled_qty <= 0.0 {
+        return Err(format!("Skipped: status={} qty={}", status, filled_qty));
+    }
+
+    let leverage = fields[2]
+        .parse::<i64>()
+        .map_err(|_| format!("Invalid leverage: {}", fields[2]))?;
+
+    let order_time = parse_blofin_datetime(fields[3])?;
+    let avg_fill = parse_blofin_price(fields[5]);
+    let pnl = parse_blofin_pnl(fields[9]);
+    let fee = parse_blofin_price(fields[11]);
+    let is_reduce_only = fields[13] == "Y";
+
+    Ok(BlofinOrder {
+        asset: fields[0].to_string(),
+        margin_mode: fields[1].to_string(),
+        leverage,
+        order_time,
+        side: fields[4].to_string(),
+        avg_fill,
+        filled_qty,
+        pnl,
+        fee,
+        is_reduce_only,
+    })
+}
+
+fn parse_blofin_orders_from_csv(csv_content: &str) -> Vec<BlofinOrder> {
+    let mut orders: Vec<BlofinOrder> = csv_content
+        .lines()
+        .skip(1)
+        .filter_map(|line| {
+            let clean = line.trim_start_matches('\u{feff}');
+            if clean.trim().is_empty() {
+                return None;
+            }
+            parse_blofin_line(clean).ok()
+        })
+        .collect();
+
+    // Process chronologically so position grouping works correctly
+    orders.sort_by(|a, b| a.order_time.cmp(&b.order_time));
+    orders
+}
+
+fn group_blofin_orders_into_positions(orders: Vec<BlofinOrder>) -> Vec<BlofinPositionData> {
+    let mut open: HashMap<String, OpenBlofinPosition> = HashMap::new();
+    let mut closed: Vec<BlofinPositionData> = Vec::new();
+
+    for order in orders {
+        if order.is_reduce_only {
+            // Exit order — reduce the open position for this asset
+            if let Some(pos) = open.get_mut(&order.asset) {
+                pos.exit_qty += order.filled_qty;
+                pos.exit_price_sum += order.avg_fill * order.filled_qty;
+                pos.total_pnl += order.pnl;
+                pos.total_fees += order.fee;
+                pos.closing_time = order.order_time.clone();
+                pos.exit_orders.push((order.avg_fill, order.filled_qty));
+
+                // Fully closed when exit qty >= entry qty (with 0.1% tolerance)
+                if pos.entry_qty > 0.0 && pos.exit_qty >= pos.entry_qty * 0.999 {
+                    let pos = open.remove(&order.asset).unwrap();
+                    closed.push(finalize_blofin_position(pos));
+                }
+            }
+            // Orphaned exit (no matching open position) — silently skip
+        } else {
+            // Entry order
+            let direction = if order.side.starts_with("Buy") { "LONG" } else { "SHORT" };
+
+            if let Some(pos) = open.get_mut(&order.asset) {
+                // Add to existing open position (averaging in)
+                pos.entry_qty += order.filled_qty;
+                pos.entry_price_sum += order.avg_fill * order.filled_qty;
+                pos.total_fees += order.fee;
+                pos.entry_orders.push((order.avg_fill, order.filled_qty));
+            } else {
+                // Open a new position
+                let pair = asset_to_pair(&order.asset);
+                open.insert(
+                    order.asset.clone(),
+                    OpenBlofinPosition {
+                        pair,
+                        position_type: direction.to_string(),
+                        margin_mode: order.margin_mode,
+                        leverage: order.leverage,
+                        entry_qty: order.filled_qty,
+                        exit_qty: 0.0,
+                        entry_price_sum: order.avg_fill * order.filled_qty,
+                        exit_price_sum: 0.0,
+                        total_pnl: 0.0,
+                        total_fees: order.fee,
+                        opening_time: order.order_time.clone(),
+                        closing_time: String::new(),
+                        entry_orders: vec![(order.avg_fill, order.filled_qty)],
+                        exit_orders: Vec::new(),
+                    },
+                );
+            }
+        }
+    }
+    // Any remaining open positions are unclosed — skip them
+
+    closed
+}
+
+fn finalize_blofin_position(pos: OpenBlofinPosition) -> BlofinPositionData {
+    let entry_price = if pos.entry_qty > 0.0 {
+        pos.entry_price_sum / pos.entry_qty
+    } else {
+        0.0
+    };
+    let exit_price = if pos.exit_qty > 0.0 {
+        pos.exit_price_sum / pos.exit_qty
+    } else {
+        0.0
+    };
+
+    // entries: [{price, percent}] where percent is integer 0-100
+    let entries: Vec<serde_json::Value> = pos
+        .entry_orders
+        .iter()
+        .map(|(price, qty)| {
+            let pct = if pos.entry_qty > 0.0 {
+                (qty / pos.entry_qty * 100.0).round() as i64
+            } else {
+                0
+            };
+            serde_json::json!({"price": price, "percent": pct})
+        })
+        .collect();
+
+    // exits: [{price, percent}] where percent is fraction 0-1
+    let exits: Vec<serde_json::Value> = pos
+        .exit_orders
+        .iter()
+        .map(|(price, qty)| {
+            let pct = if pos.entry_qty > 0.0 {
+                qty / pos.entry_qty
+            } else {
+                0.0
+            };
+            serde_json::json!({"price": price, "percent": pct})
+        })
+        .collect();
+
+    BlofinPositionData {
+        pair: pos.pair,
+        position_type: pos.position_type,
+        margin_mode: pos.margin_mode,
+        leverage: pos.leverage,
+        entry_price,
+        exit_price,
+        quantity: pos.entry_qty,
+        realized_pnl: pos.total_pnl,
+        total_fees: pos.total_fees,
+        opening_time: pos.opening_time,
+        closing_time: pos.closing_time,
+        entries_json: serde_json::to_string(&entries).unwrap_or_else(|_| "[]".to_string()),
+        exits_json: serde_json::to_string(&exits).unwrap_or_else(|_| "[]".to_string()),
+    }
+}
+
+fn generate_blofin_fingerprint(pos: &BlofinPositionData) -> String {
+    format!(
+        "csv|blofin|{}|{}|{}|{}|{:.8}|{:.8}",
+        pos.pair.to_lowercase(),
+        pos.position_type.to_lowercase(),
+        pos.opening_time,
+        pos.closing_time,
+        pos.quantity,
+        pos.realized_pnl
+    )
+}
+
+/// Parse BloFin order history CSV and return preview of grouped positions
+#[tauri::command]
+pub async fn preview_blofin_import(
+    csv_content: String,
+    _portfolio: f64,
+    _r_percent: f64,
+) -> Result<Vec<ImportPreview>, String> {
+    let orders = parse_blofin_orders_from_csv(&csv_content);
+    let positions = group_blofin_orders_into_positions(orders);
+
+    let previews = positions
+        .iter()
+        .map(|pos| {
+            let fingerprint = generate_blofin_fingerprint(pos);
+            ImportPreview {
+                pair: pos.pair.clone(),
+                position_type: pos.position_type.clone(),
+                entry_price: pos.entry_price,
+                exit_price: pos.exit_price,
+                quantity: pos.quantity,
+                realized_pnl: pos.realized_pnl,
+                opening_time: pos.opening_time.clone(),
+                closing_time: pos.closing_time.clone(),
+                total_fees: pos.total_fees,
+                fingerprint,
+            }
+        })
+        .collect();
+
+    Ok(previews)
+}
+
+/// Import BloFin order history CSV — groups orders into positions then inserts
+#[tauri::command]
+pub async fn import_blofin_csv(
+    db: State<'_, Database>,
+    csv_content: String,
+    portfolio: f64,
+    r_percent: f64,
+) -> Result<ImportResult, String> {
+    let orders = parse_blofin_orders_from_csv(&csv_content);
+    let positions = group_blofin_orders_into_positions(orders);
+
+    let mut imported = 0;
+    let mut duplicates = 0;
+    let mut errors: Vec<String> = Vec::new();
+
+    {
+        let conn = db.conn.lock().map_err(|e| e.to_string())?;
+
+        for pos in positions {
+            let fingerprint = generate_blofin_fingerprint(&pos);
+
+            let exists: bool = conn
+                .query_row(
+                    "SELECT EXISTS(SELECT 1 FROM trades WHERE import_fingerprint = ?)",
+                    [&fingerprint],
+                    |row| row.get(0),
+                )
+                .unwrap_or(false);
+
+            if exists {
+                duplicates += 1;
+                continue;
+            }
+
+            let id = format!(
+                "TRADE-{}-{}",
+                Utc::now().timestamp_millis(),
+                uuid::Uuid::new_v4()
+                    .to_string()
+                    .split('-')
+                    .next()
+                    .ok_or("Failed to generate trade ID")?
+            );
+            let now = Utc::now().timestamp();
+
+            let one_r = portfolio * r_percent;
+            let position_size = pos.quantity * pos.entry_price;
+            // Use actual leverage from BloFin data
+            let leverage = pos.leverage.max(1);
+            let margin = position_size / leverage as f64;
+
+            // Estimate SL from 1R
+            let target_sl_distance = if pos.quantity > 0.0 {
+                one_r / pos.quantity
+            } else {
+                pos.entry_price * 0.01
+            };
+            let estimated_sl = if pos.position_type == "LONG" {
+                pos.entry_price - target_sl_distance
+            } else {
+                pos.entry_price + target_sl_distance
+            };
+
+            let status = if pos.realized_pnl > 0.5 {
+                "WIN"
+            } else if pos.realized_pnl < -0.5 {
+                "LOSS"
+            } else {
+                "BE"
+            };
+
+            let planned_tps = serde_json::json!([{
+                "price": pos.exit_price,
+                "percent": 1.0,
+                "rr": 0.0
+            }])
+            .to_string();
+
+            let notes = format!(
+                "Imported from BloFin | {}x {} | Fees: ${:.2} | Note: RR metrics unavailable (no SL data from BloFin)",
+                leverage, pos.margin_mode, pos.total_fees
+            );
+
+            let opening_ts = chrono::DateTime::parse_from_rfc3339(&format!(
+                "{}Z",
+                pos.opening_time.replace(' ', "T")
+            ))
+            .map(|dt| dt.timestamp())
+            .unwrap_or(now);
+
+            let closing_ts = chrono::DateTime::parse_from_rfc3339(&format!(
+                "{}Z",
+                pos.closing_time.replace(' ', "T")
+            ))
+            .map(|dt| dt.timestamp())
+            .unwrap_or(now);
+
+            match conn.execute(
+                "INSERT INTO trades (
+                    id, pair, exchange, analysis_date, trade_date, close_date, status,
+                    portfolio_value, r_percent, min_rr,
+                    planned_pe, planned_sl, leverage, planned_tps, planned_entries,
+                    position_type, one_r, margin, position_size, quantity,
+                    planned_weighted_rr, effective_pe, effective_entries, exits, total_pnl,
+                    notes, import_fingerprint, import_source, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                rusqlite::params![
+                    id,
+                    pos.pair,
+                    "BloFin",
+                    opening_ts,
+                    opening_ts,
+                    closing_ts,
+                    status,
+                    portfolio,
+                    r_percent,
+                    0.0,
+                    pos.entry_price,
+                    estimated_sl,
+                    leverage,
+                    planned_tps,
+                    pos.entries_json,
+                    pos.position_type,
+                    one_r,
+                    margin,
+                    position_size,
+                    pos.quantity,
+                    0.0,
+                    pos.entry_price,
+                    pos.entries_json,
+                    pos.exits_json,
+                    pos.realized_pnl,
+                    notes,
+                    fingerprint,
+                    "CSV_IMPORT",
+                    now,
+                    now,
+                ],
+            ) {
+                Ok(_) => imported += 1,
+                Err(e) => errors.push(format!("Failed to import {}: {}", pos.pair, e)),
+            }
+        }
+    }
+
+    Ok(ImportResult {
+        imported,
+        duplicates,
+        errors,
+    })
+}
+
+/// Delete all BloFin CSV-imported trades
+#[tauri::command]
+pub async fn delete_blofin_trades(db: State<'_, Database>) -> Result<usize, String> {
+    let conn = db.conn.lock().map_err(|e| e.to_string())?;
+    let count = conn
+        .execute(
+            "DELETE FROM trades WHERE import_fingerprint LIKE 'csv|blofin|%'",
+            [],
+        )
+        .map_err(|e| e.to_string())?;
+    Ok(count)
 }
 
 // Data Export/Import

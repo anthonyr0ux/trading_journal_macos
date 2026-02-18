@@ -270,6 +270,11 @@ export const api = {
   importBitgetCsv: (csvContent: string, portfolio: number, rPercent: number) =>
     invoke<ImportResult>('import_bitget_csv', { csvContent, portfolio, rPercent }),
   deleteBitgetTrades: () => invoke<number>('delete_bitget_trades'),
+  previewBlofinImport: (csvContent: string, portfolio: number, rPercent: number) =>
+    invoke<ImportPreview[]>('preview_blofin_import', { csvContent, portfolio, rPercent }),
+  importBlofinCsv: (csvContent: string, portfolio: number, rPercent: number) =>
+    invoke<ImportResult>('import_blofin_csv', { csvContent, portfolio, rPercent }),
+  deleteBlofinTrades: () => invoke<number>('delete_blofin_trades'),
   exportAllData: () => invoke<string>('export_all_data'),
   importAllData: (jsonData: string) => invoke<[number, number]>('import_all_data', { jsonData }),
 

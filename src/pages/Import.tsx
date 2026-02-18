@@ -13,6 +13,8 @@ import { ConfirmDialog } from '../components/ConfirmDialog';
 import { ErrorDialog } from '../components/ErrorDialog';
 import { ImportResultDialog } from '../components/ImportResultDialog';
 
+type Exchange = 'BitGet' | 'BloFin';
+
 // Type definitions for Tauri file drop events
 interface FileDropPayload {
   type: 'hover' | 'drop' | 'cancel';
@@ -29,6 +31,7 @@ export default function Import() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [selectedExchange, setSelectedExchange] = useState<Exchange>('BitGet');
   const [previews, setPreviews] = useState<ImportPreview[]>([]);
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const [csvContent, setCsvContent] = useState<string>('');
@@ -49,7 +52,6 @@ export default function Import() {
 
     const setupFileDrop = async () => {
       try {
-        // Tauri's onFileDropEvent is not fully typed in @tauri-apps/api v2, so we use a type assertion
         const unlisten = await (appWindow as typeof appWindow & {
           onFileDropEvent: (handler: (event: FileDropEvent) => void | Promise<void>) => Promise<UnlistenFn>
         }).onFileDropEvent(async (event: FileDropEvent) => {
@@ -66,7 +68,6 @@ export default function Import() {
                   const content = await readTextFile(filePath);
                   await processFile(content);
                 } catch (error) {
-                  console.error('Failed to read dropped file:', error);
                   setErrorDialog({ open: true, message: 'Failed to read file: ' + error });
                 }
               } else {
@@ -78,11 +79,9 @@ export default function Import() {
           }
         });
 
-        // Only store the unlisten function if component is still mounted
         if (isMounted) {
           unlistenFn = unlisten;
         } else {
-          // Component already unmounted, clean up immediately
           unlisten();
         }
       } catch (error) {
@@ -100,24 +99,27 @@ export default function Import() {
     };
   }, []);
 
+  const handleExchangeChange = (exchange: Exchange) => {
+    setSelectedExchange(exchange);
+    // Clear any loaded preview when switching exchange
+    setCsvContent('');
+    setPreviews([]);
+    setImportResult(null);
+  };
+
   const handleFileSelect = async () => {
     try {
       const selected = await open({
         multiple: false,
-        filters: [{
-          name: 'CSV',
-          extensions: ['csv']
-        }]
+        filters: [{ name: 'CSV', extensions: ['csv'] }]
       });
 
       if (selected && typeof selected === 'string') {
-        // Read file using Tauri
         const { readTextFile } = await import('@tauri-apps/plugin-fs');
         const content = await readTextFile(selected);
         await processFile(content);
       }
     } catch (error) {
-      console.error('Failed to select file:', error);
       setErrorDialog({ open: true, message: 'Failed to open file: ' + error });
     }
   };
@@ -125,30 +127,26 @@ export default function Import() {
   const processFile = async (content: string) => {
     setCsvContent(content);
 
-    // Load settings for portfolio values
     try {
       const settings = await api.getSettings();
       setPortfolio(settings.initial_capital);
-      setRPercent(settings.current_r_percent * 100); // Convert from decimal to percentage
-
-      // Preview trades with loaded settings
+      setRPercent(settings.current_r_percent * 100);
       await previewImport(content, settings.initial_capital, settings.current_r_percent);
     } catch (error) {
       console.error('Failed to load settings:', error);
-      // Use default values if settings fail to load
       await previewImport(content, portfolio, rPercent / 100);
     }
   };
-
 
   const previewImport = async (content: string, port: number, rPct: number) => {
     setLoading(true);
     setImportResult(null);
     try {
-      const preview = await api.previewBitgetImport(content, port, rPct);
+      const preview = selectedExchange === 'BloFin'
+        ? await api.previewBlofinImport(content, port, rPct)
+        : await api.previewBitgetImport(content, port, rPct);
       setPreviews(preview);
     } catch (error) {
-      console.error('Failed to preview import:', error);
       setErrorDialog({ open: true, message: 'Failed to preview import: ' + error });
     } finally {
       setLoading(false);
@@ -164,17 +162,40 @@ export default function Import() {
     setConfirmImportDialog(false);
     setLoading(true);
     try {
-      const result = await api.importBitgetCsv(csvContent, portfolio, rPercent / 100);
+      const result = selectedExchange === 'BloFin'
+        ? await api.importBlofinCsv(csvContent, portfolio, rPercent / 100)
+        : await api.importBitgetCsv(csvContent, portfolio, rPercent / 100);
       setImportResult(result);
       setCsvContent('');
       setPreviews([]);
     } catch (error) {
-      console.error('Failed to import trades:', error);
       setErrorDialog({ open: true, message: 'Failed to import trades: ' + error });
     } finally {
       setLoading(false);
     }
   };
+
+  const instructions = selectedExchange === 'BloFin'
+    ? {
+        title: t('import.blofinHowToImport'),
+        steps: [
+          t('import.blofinStep1'),
+          t('import.blofinStep2'),
+          t('import.blofinStep3'),
+          t('import.blofinStep4'),
+        ],
+        note: t('import.blofinNote'),
+      }
+    : {
+        title: t('import.howToImport'),
+        steps: [
+          t('import.instructionStep1'),
+          t('import.instructionStep2'),
+          t('import.instructionStep3'),
+          t('import.instructionStep4'),
+        ],
+        note: t('import.noteShort'),
+      };
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
@@ -191,22 +212,50 @@ export default function Import() {
         </div>
       </div>
 
+      {/* Exchange Selector */}
+      <Card>
+        <CardHeader>
+          <CardTitle>{t('import.selectExchange')}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex gap-3">
+            {(['BitGet', 'BloFin'] as Exchange[]).map((exchange) => (
+              <button
+                key={exchange}
+                onClick={() => handleExchangeChange(exchange)}
+                className={`px-5 py-2.5 rounded-lg border-2 font-medium text-sm transition-all ${
+                  selectedExchange === exchange
+                    ? 'border-primary bg-primary text-primary-foreground shadow-sm'
+                    : 'border-muted-foreground/25 hover:border-muted-foreground/50 hover:bg-accent/50 text-foreground'
+                }`}
+              >
+                {exchange}
+              </button>
+            ))}
+          </div>
+          {selectedExchange === 'BloFin' && (
+            <p className="mt-3 text-sm text-muted-foreground">
+              {t('import.blofinExchangeNote')}
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Import Instructions */}
       <Card>
         <CardHeader>
-          <CardTitle>{t('import.howToImport')}</CardTitle>
+          <CardTitle>{instructions.title}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
           <ol className="list-decimal list-inside space-y-2 text-sm">
-            <li>{t('import.instructionStep1')}</li>
-            <li>{t('import.instructionStep2')}</li>
-            <li>{t('import.instructionStep3')}</li>
-            <li>{t('import.instructionStep4')}</li>
+            {instructions.steps.map((step, i) => (
+              <li key={i}>{step}</li>
+            ))}
           </ol>
           <div className="flex items-start gap-2 p-3 rounded-lg bg-warning/10 border border-warning/20 mt-4">
             <AlertCircle className="h-5 w-5 text-warning shrink-0" />
             <div className="text-sm text-warning-foreground">
-              {t('import.noteShort')}
+              {instructions.note}
             </div>
           </div>
         </CardContent>
@@ -226,18 +275,12 @@ export default function Import() {
             }`}
           >
             <div className="flex flex-col items-center justify-center gap-4 text-center">
-              <div className={`rounded-full p-4 ${
-                isDragging ? 'bg-primary/10' : 'bg-muted'
-              }`}>
-                <Upload className={`h-8 w-8 ${
-                  isDragging ? 'text-primary' : 'text-muted-foreground'
-                }`} />
+              <div className={`rounded-full p-4 ${isDragging ? 'bg-primary/10' : 'bg-muted'}`}>
+                <Upload className={`h-8 w-8 ${isDragging ? 'text-primary' : 'text-muted-foreground'}`} />
               </div>
 
               <div className="space-y-2">
-                <p className={`text-lg font-medium ${
-                  isDragging ? 'text-primary' : ''
-                }`}>
+                <p className={`text-lg font-medium ${isDragging ? 'text-primary' : ''}`}>
                   {isDragging ? t('import.dragDropActive') : t('import.dragDropMessage')}
                 </p>
                 <p className="text-sm text-muted-foreground">
@@ -260,7 +303,9 @@ export default function Import() {
             <div className="flex items-center gap-2 p-3 rounded-lg bg-success/10 border border-success/20">
               <CheckCircle2 className="h-5 w-5 text-success" />
               <div className="text-sm font-medium text-success">
-                Found {previews.length} trades in file
+                {selectedExchange === 'BloFin'
+                  ? t('import.blofinFoundPositions', { count: previews.length })
+                  : `Found ${previews.length} trades in file`}
               </div>
             </div>
           )}
@@ -271,7 +316,7 @@ export default function Import() {
       {previews.length > 0 && !importResult && (
         <Card>
           <CardHeader>
-            <CardTitle>Preview ({previews.length} trades)</CardTitle>
+            <CardTitle>Preview ({previews.length} {selectedExchange === 'BloFin' ? 'positions' : 'trades'})</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="max-h-96 overflow-y-auto space-y-2">
@@ -284,13 +329,15 @@ export default function Import() {
                     <div className="flex items-center gap-3">
                       <div className="font-medium">{preview.pair}</div>
                       <div className={`text-xs px-2 py-1 rounded-full ${
-                        preview.position_type === 'LONG' ? 'bg-success/20 text-success' : 'bg-destructive/20 text-destructive'
+                        preview.position_type === 'LONG'
+                          ? 'bg-success/20 text-success'
+                          : 'bg-destructive/20 text-destructive'
                       }`}>
                         {preview.position_type}
                       </div>
                     </div>
                     <div className="text-sm text-muted-foreground">
-                      Entry: ${preview.entry_price.toFixed(4)} → Exit: ${preview.exit_price.toFixed(4)} | Qty: {preview.quantity.toFixed(4)}
+                      {t('import.entry')}: ${preview.entry_price.toFixed(4)} → {t('import.exit')}: ${preview.exit_price.toFixed(4)} | {t('import.qty')}: {preview.quantity.toFixed(4)}
                     </div>
                     <div className="text-xs text-muted-foreground">
                       {new Date(preview.opening_time).toLocaleDateString()} - {new Date(preview.closing_time).toLocaleDateString()}
@@ -303,7 +350,7 @@ export default function Import() {
                       {formatCurrency(preview.realized_pnl)}
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      Fees: {formatCurrency(preview.total_fees)}
+                      {t('import.fees')}: {formatCurrency(preview.total_fees)}
                     </div>
                   </div>
                 </div>
@@ -311,14 +358,11 @@ export default function Import() {
             </div>
 
             <div className="flex gap-4 pt-4 border-t">
-              <Button variant="outline" onClick={() => {
-                setCsvContent('');
-                setPreviews([]);
-              }}>
-                Cancel
+              <Button variant="outline" onClick={() => { setCsvContent(''); setPreviews([]); }}>
+                {t('import.cancel')}
               </Button>
               <Button onClick={handleImportClick} disabled={loading}>
-                {loading ? 'Importing...' : `Import ${previews.length} Trades`}
+                {loading ? t('import.importing') : t('import.importButton', { count: previews.length })}
               </Button>
             </div>
           </CardContent>
@@ -331,33 +375,31 @@ export default function Import() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <CheckCircle2 className="h-5 w-5 text-success" />
-              Import Complete
+              {t('import.importComplete')}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-4 md:grid-cols-3">
               <div>
-                <div className="text-xs text-muted-foreground">Imported</div>
+                <div className="text-xs text-muted-foreground">{t('import.importedCount')}</div>
                 <div className="text-2xl font-bold text-success">{importResult.imported}</div>
               </div>
               <div>
-                <div className="text-xs text-muted-foreground">Duplicates Skipped</div>
+                <div className="text-xs text-muted-foreground">{t('import.duplicatesCount')}</div>
                 <div className="text-2xl font-bold text-warning">{importResult.duplicates}</div>
               </div>
               <div>
-                <div className="text-xs text-muted-foreground">Errors</div>
+                <div className="text-xs text-muted-foreground">{t('import.errorsCount')}</div>
                 <div className="text-2xl font-bold text-destructive">{importResult.errors.length}</div>
               </div>
             </div>
 
             {importResult.errors.length > 0 && (
               <div className="space-y-2">
-                <div className="text-sm font-medium text-destructive">Errors:</div>
+                <div className="text-sm font-medium text-destructive">{t('import.errorsList')}</div>
                 <div className="max-h-40 overflow-y-auto space-y-1">
                   {importResult.errors.map((error, index) => (
-                    <div key={index} className="text-sm text-destructive">
-                      {error}
-                    </div>
+                    <div key={index} className="text-sm text-destructive">{error}</div>
                   ))}
                 </div>
               </div>
@@ -365,10 +407,10 @@ export default function Import() {
 
             <div className="flex gap-4 pt-4 border-t">
               <Button onClick={() => navigate('/journal')}>
-                View Journal
+                {t('import.viewJournal')}
               </Button>
               <Button variant="outline" onClick={() => setImportResult(null)}>
-                Import More
+                {t('import.importMore')}
               </Button>
             </div>
           </CardContent>
@@ -386,7 +428,7 @@ export default function Import() {
         open={confirmImportDialog}
         onOpenChange={setConfirmImportDialog}
         title="Import Trades?"
-        description={`Import ${previews.length} trades? This will add them to your journal.`}
+        description={`Import ${previews.length} ${selectedExchange === 'BloFin' ? 'positions' : 'trades'}? This will add them to your journal.`}
         confirmLabel="Import"
         onConfirm={handleImportConfirm}
         loading={loading}

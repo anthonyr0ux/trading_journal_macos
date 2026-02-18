@@ -146,7 +146,16 @@
     "qty": "Qté",
     "quantity": "Quantité",
     "fees": "Frais",
-    "notTaken": "Non pris"
+    "notTaken": "Non pris",
+    "selectExchange": "Sélectionner l'exchange",
+    "blofinExchangeNote": "Le CSV BloFin utilise l'historique des ordres. Les ordres seront regroupés automatiquement en positions.",
+    "blofinHowToImport": "Comment importer depuis BloFin",
+    "blofinStep1": "Allez sur BloFin → Futures → Ordres → Historique des ordres",
+    "blofinStep2": "Cliquez sur \"Exporter\" pour télécharger l'historique en CSV",
+    "blofinStep3": "Sélectionnez la plage de dates couvrant vos trades",
+    "blofinStep4": "Uploadez le fichier CSV ici — les ordres sont regroupés en positions automatiquement",
+    "blofinNote": "BloFin exporte des données d'ordres. L'importateur regroupe les ordres liés en positions complètes (entrées + TPs partiels + SL/TP final).",
+    "blofinFoundPositions": "{{count}} positions trouvées dans le fichier"
   },
   "calculator": {
     "title": "Calculateur de Position",
