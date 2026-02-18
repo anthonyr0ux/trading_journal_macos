@@ -187,14 +187,24 @@ export type SettingsFormValues = z.infer<typeof settingsSchema>;
 
 /**
  * Validate entry or TP allocations sum to 100%
+ *
+ * @param entries - Array of entries with price and percent fields
+ * @param tolerancePercentagePoints - Tolerance in percentage points (default 0.1, meaning ±0.1%)
+ *                                    Note: Percentages are stored as 0-100, so 0.1 = 0.1 percentage points = 0.1%
+ * @returns Validation result with valid flag, total percentage, and error messages
+ *
+ * @example
+ * // Entries sum to 99.95% - within 0.1% tolerance
+ * validateAllocation([{price: 100, percent: 33.33}, {price: 101, percent: 33.33}, {price: 102, percent: 33.29}])
+ * // Returns: { valid: true, total: 99.95, errors: [] }
  */
 export function validateAllocation(
   entries: Array<{ price: number; percent: number }>,
-  tolerance = 0.1
+  tolerancePercentagePoints = 0.1
 ): { valid: boolean; total: number; errors: string[] } {
   const validEntries = entries.filter(e => e.price > 0);
   const total = validEntries.reduce((sum, e) => sum + e.percent, 0);
-  const valid = Math.abs(total - 100) <= tolerance;
+  const valid = Math.abs(total - 100) <= tolerancePercentagePoints;
 
   const errors: string[] = [];
   if (!valid && validEntries.length > 0) {

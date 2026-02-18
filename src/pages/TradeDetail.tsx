@@ -362,10 +362,10 @@ export default function TradeDetail() {
             return;
           }
         } else if (totalExitPercent > 0) {
-          // Partial exit
+          // Partial exit - normalize by actual total (consistent with full close)
           const normalizedExits = validExits.map(e => ({
             price: e.price,
-            percent: e.percent / 100,
+            percent: e.percent / totalExitPercent,
           }));
 
           // Use effective entries if available, otherwise fall back to single PE

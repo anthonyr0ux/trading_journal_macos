@@ -127,16 +127,16 @@ pub async fn import_bitget_csv(
                         trade_data.entry_price + target_sl_distance
                     };
 
-                    // Calculate leverage
+                    // Calculate leverage (capped at 125x, standard exchange maximum)
                     let sl_distance_pct = (trade_data.entry_price - estimated_sl).abs() / trade_data.entry_price;
-                    let max_leverage = (1.0 / sl_distance_pct).floor().max(1.0).min(20.0) as i64;
-                    let leverage = max_leverage.min(20);
+                    let max_leverage = (1.0 / sl_distance_pct).floor().max(1.0).min(125.0) as i64;
+                    let leverage = max_leverage.min(125);
                     let margin = position_size / leverage as f64;
 
-                    // Determine status
-                    let status = if trade_data.realized_pnl > 1.0 {
+                    // Determine status (using $0.50 threshold to match UI logic)
+                    let status = if trade_data.realized_pnl > 0.5 {
                         "WIN"
-                    } else if trade_data.realized_pnl < -1.0 {
+                    } else if trade_data.realized_pnl < -0.5 {
                         "LOSS"
                     } else {
                         "BE"

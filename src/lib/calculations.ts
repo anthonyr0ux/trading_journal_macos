@@ -197,9 +197,10 @@ export function calculateEffectiveRR(
  */
 export function determineResult(totalExitPercent: number, totalPnL: number): 'OPEN' | 'WIN' | 'LOSS' | 'BE' {
   if (totalExitPercent === 0) return 'OPEN';
+  // Use $0.50 threshold for break-even classification (matches TradeDetail logic)
+  if (Math.abs(totalPnL) < 0.5) return 'BE';
   if (totalPnL > 0) return 'WIN';
-  if (totalPnL < 0) return 'LOSS';
-  return 'BE';
+  return 'LOSS';
 }
 
 /**
