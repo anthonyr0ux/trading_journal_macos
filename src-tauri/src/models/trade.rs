@@ -1,5 +1,10 @@
 use serde::{Deserialize, Serialize};
 
+// Default value for backward compatibility with exports before import_source was added
+fn default_import_source() -> String {
+    "USER_CREATED".to_string()
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Trade {
     pub id: String,
@@ -46,6 +51,7 @@ pub struct Trade {
     pub execution_potential_profit: Option<f64>,
 
     pub import_fingerprint: Option<String>,
+    #[serde(default = "default_import_source")]
     pub import_source: String, // USER_CREATED | API_IMPORT | CSV_IMPORT
 
     pub created_at: i64,

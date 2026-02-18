@@ -506,3 +506,83 @@ pub async fn import_all_data(
 
     Ok((1, imported_trades)) // (settings_updated, trades_imported)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_backward_compatibility_import_source() {
+        // Test that old exports without import_source field can be deserialized
+        // This simulates an export from before import_source was added (pre-Feb 2026)
+        let old_export_json = r#"{
+            "id": "TRADE-123",
+            "pair": "BTC/USDT",
+            "exchange": "BitGet",
+            "analysis_date": 1704067200,
+            "trade_date": 1704067200,
+            "status": "WIN",
+            "portfolio_value": 10000.0,
+            "r_percent": 0.02,
+            "min_rr": 2.0,
+            "planned_pe": 42000.0,
+            "planned_sl": 41500.0,
+            "leverage": 10,
+            "planned_tps": "[{\"price\": 43000.0, \"percent\": 1.0}]",
+            "position_type": "LONG",
+            "one_r": 200.0,
+            "margin": 1000.0,
+            "position_size": 10000.0,
+            "quantity": 0.238,
+            "planned_weighted_rr": 2.0,
+            "notes": "",
+            "created_at": 1704067200,
+            "updated_at": 1704067200
+        }"#;
+
+        let result: Result<Trade, _> = serde_json::from_str(old_export_json);
+        assert!(result.is_ok(), "Failed to deserialize old export: {:?}", result.err());
+
+        let trade = result.unwrap();
+        assert_eq!(trade.import_source, "USER_CREATED", "Default import_source should be USER_CREATED");
+        assert_eq!(trade.pair, "BTC/USDT");
+        assert_eq!(trade.status, "WIN");
+    }
+
+    #[test]
+    fn test_new_export_with_import_source() {
+        // Test that new exports with import_source field still work
+        let new_export_json = r#"{
+            "id": "TRADE-456",
+            "pair": "ETH/USDT",
+            "exchange": "BitGet",
+            "analysis_date": 1704067200,
+            "trade_date": 1704067200,
+            "status": "LOSS",
+            "portfolio_value": 10000.0,
+            "r_percent": 0.02,
+            "min_rr": 2.0,
+            "planned_pe": 2500.0,
+            "planned_sl": 2450.0,
+            "leverage": 10,
+            "planned_tps": "[{\"price\": 2600.0, \"percent\": 1.0}]",
+            "position_type": "LONG",
+            "one_r": 200.0,
+            "margin": 1000.0,
+            "position_size": 10000.0,
+            "quantity": 4.0,
+            "planned_weighted_rr": 2.0,
+            "notes": "",
+            "import_source": "CSV_IMPORT",
+            "created_at": 1704067200,
+            "updated_at": 1704067200
+        }"#;
+
+        let result: Result<Trade, _> = serde_json::from_str(new_export_json);
+        assert!(result.is_ok(), "Failed to deserialize new export: {:?}", result.err());
+
+        let trade = result.unwrap();
+        assert_eq!(trade.import_source, "CSV_IMPORT", "Import source should be preserved from JSON");
+        assert_eq!(trade.pair, "ETH/USDT");
+    }
+}
