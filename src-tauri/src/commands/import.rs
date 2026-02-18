@@ -462,7 +462,7 @@ pub async fn import_all_data(
     // Import trades (use REPLACE to overwrite existing trades)
     for trade in backup.trades {
         conn.execute(
-            "REPLACE INTO trades (id, pair, exchange, analysis_date, trade_date, close_date, status, portfolio_value, r_percent, min_rr, planned_pe, planned_sl, leverage, planned_tps, planned_entries, position_type, one_r, margin, position_size, quantity, planned_weighted_rr, effective_pe, effective_entries, exits, effective_weighted_rr, total_pnl, pnl_in_r, notes, import_fingerprint, import_source, created_at, updated_at, deleted_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "REPLACE INTO trades (id, pair, exchange, analysis_date, trade_date, close_date, status, portfolio_value, r_percent, min_rr, planned_pe, planned_sl, leverage, planned_tps, planned_entries, position_type, one_r, margin, position_size, quantity, planned_weighted_rr, effective_pe, effective_entries, exits, effective_weighted_rr, total_pnl, pnl_in_r, notes, import_fingerprint, import_source, execution_portfolio, execution_r_percent, execution_margin, execution_position_size, execution_quantity, execution_one_r, execution_potential_profit, created_at, updated_at, deleted_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             rusqlite::params![
                 trade.id,
                 trade.pair,
@@ -494,6 +494,13 @@ pub async fn import_all_data(
                 trade.notes,
                 trade.import_fingerprint,
                 trade.import_source,
+                trade.execution_portfolio,
+                trade.execution_r_percent,
+                trade.execution_margin,
+                trade.execution_position_size,
+                trade.execution_quantity,
+                trade.execution_one_r,
+                trade.execution_potential_profit,
                 trade.created_at,
                 trade.updated_at,
                 None::<i64>, // deleted_at is NULL for imported trades

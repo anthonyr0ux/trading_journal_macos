@@ -22,6 +22,7 @@ export default function Journal() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [trades, setTrades] = useState<Trade[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [dateRange, setDateRange] = useState<DateRange>('all');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -44,6 +45,7 @@ export default function Journal() {
 
   const loadTrades = async () => {
     setLoading(true);
+    setLoadError(null);
     try {
       const startDate = getDateRangeTimestamp(dateRange);
       const filters: any = {};
@@ -57,6 +59,7 @@ export default function Journal() {
       setTrades(data);
     } catch (error) {
       console.error('Failed to load trades:', error);
+      setLoadError(String(error));
     } finally {
       setLoading(false);
     }
@@ -93,6 +96,15 @@ export default function Journal() {
 
   if (loading) {
     return <div className="text-muted-foreground">Loading...</div>;
+  }
+
+  if (loadError) {
+    return (
+      <div className="p-4 rounded-lg bg-destructive/10 border border-destructive text-destructive text-sm">
+        <p className="font-medium">Failed to load trades</p>
+        <p className="mt-1 font-mono text-xs">{loadError}</p>
+      </div>
+    );
   }
 
   const dateRangeOptions = [
