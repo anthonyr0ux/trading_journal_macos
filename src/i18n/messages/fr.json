@@ -247,6 +247,9 @@
     "saving": "Sauvegarde...",
     "settingsSaved": "Paramètres sauvegardés avec succès !",
     "saveFailed": "Échec de la sauvegarde",
+    "autoSyncUpdated": "Paramètres de synchronisation automatique mis à jour",
+    "deletingImported": "Suppression des trades importés...",
+    "deletingAllTrades": "Suppression de tous les trades...",
     "dataBackupRestore": "Sauvegarde & Restauration",
     "backupRestore": "Sauvegarde & Restauration",
     "dataBackupDesc": "Exportez vos données pour une sauvegarde ou importez depuis une sauvegarde précédente",
@@ -359,9 +362,11 @@
     "failedToUpdate": "Échec de la mise à jour du trade",
     "cloneConfirm": "Cloner cette configuration de trade ? (Les données d'exécution seront réinitialisées)",
     "tradeDuplicated": "Trade dupliqué avec succès",
+    "duplicating": "Duplication du trade...",
     "failedToDuplicate": "Échec de la duplication du trade",
     "deleteConfirm": "Êtes-vous sûr de vouloir supprimer ce trade ? Cette action ne peut pas être annulée.",
     "tradeDeleted": "Trade supprimé avec succès",
+    "deleting": "Suppression du trade...",
     "failedToDelete": "Échec de la suppression du trade",
     "notTaken": "Non pris",
     "markAsBreakEven": "Marquer comme Break-Even (BE)",
@@ -451,6 +456,9 @@
     }
   },
   "common": {
+    "appName": "Nemesis",
+    "appSubtitle": "Journal de Trading",
+    "logoAlt": "Logo Nemesis",
     "back": "Retour",
     "cancel": "Annuler",
     "confirm": "Confirmer",
@@ -592,7 +600,7 @@
     "dashboardTitle": "Comprendre Votre Tableau de Bord",
     "dashboardContent": "Le Tableau de Bord fournit un aperçu complet de vos performances de trading. Il affiche les métriques clés incluant le total des trades, le taux de réussite, les profits & pertes, et le facteur de profit. Utilisez les filtres de plage de dates pour analyser vos performances sur différentes périodes.",
     "dashboardMetrics": "Métriques Clés Expliquées",
-    "dashboardMetricsContent": "• Total Trades : Nombre de trades exécutés\n• Taux de Réussite : Pourcentage de trades gagnants\n• Facteur de Profit : Ratio du profit brut sur la perte brute\n• Courbe d'Équité : Représentation visuelle du P&L cumulé dans le temps\n• P&L Quotidien : Graphique à barres montrant le profit/perte par jour",
+    "dashboardMetricsContent": "• Total Trades : Nombre de trades exécutés\n• Taux de Réussite : Pourcentage de trades gagnants\n• Facteur de Profit : Ratio du profit brut sur la perte brute\n• Courbe d'Équité : Représentation visuelle du P&L cumulé dans le temps\n• P&L Quotidien : Graphique à barres montrant le profit/perte par jour\n• Calendrier d'Activité : Carte thermique montrant les patterns d'activité\n• Trades Récents : Accès rapide à vos derniers trades",
 
     "calculatorHelp": "Calculateur de Position",
     "calculatorTitle": "Utiliser le Calculateur de Position",
@@ -612,9 +620,9 @@
     "creatingTrade": "Créer un Trade",
     "creatingTradeContent": "1. Cliquez sur 'Nouveau Trade' ou envoyez depuis le Calculateur\n2. Remplissez la section Plan de Trade (requis) :\n   • Paire et Exchange\n   • Prix d'entrée et Stop Loss\n   • Objectifs de Take Profit avec pourcentages d'allocation\n   • Levier\n3. Optionnellement remplir l'Exécution du Trade lors de l'exécution\n4. Ajoutez des Notes de Trade pour documenter votre analyse",
     "tradePlanSection": "Section Plan de Trade",
-    "tradePlanContent": "• Informations de Base : Paire, exchange, dates\n• Paramètres Portfolio : Capital, risque %, RR min\n• Configuration Prévue : Entrée, stop loss, levier\n• Take Profits Prévus : Jusqu'à 4 niveaux TP avec % d'allocation\n• Tous les TPs doivent totaliser 100%\n• L'app valide que votre plan respecte les exigences RR minimales",
+    "tradePlanContent": "• Informations de Base : Paire, exchange, dates\n• Paramètres Portfolio : Capital, risque %, RR min\n• Entrées Planifiées : Entrée unique ou multiples avec % d'allocation\n  - Les entrées multiples affichent le prix d'entrée moyen pondéré\n  - Les allocations d'entrée doivent totaliser 100%\n• Paramètres Stop Loss et Leverage\n• Take Profits Planifiés : Jusqu'à 4 niveaux de TP avec % d'allocation\n  - Tous les TPs doivent totaliser 100%\n• Métriques de Position : Auto-calculées ou ajustables manuellement\n• Visualisation du Trade montre votre plan graphiquement\n• L'app valide que votre plan respecte les exigences RR minimum",
     "tradeExecutionSection": "Section Exécution du Trade",
-    "tradeExecutionContent": "• Remplissez ceci lorsque vous exécutez le trade\n• Prix d'Entrée Réel : Votre prix de remplissage réel\n• Date de Clôture : Quand le trade a été fermé\n• Sorties Réelles : Prix de sortie réels et % fermé\n• Bouton Copier le Plan : Copiez rapidement les TPs prévus vers les sorties\n• L'app calcule le P&L en direct et le RR effectif",
+    "tradeExecutionContent": "• Remplissez ceci lorsque vous exécutez le trade\n• Entrées Effectives : Enregistrez les fills réels (unique ou multiples)\n  - Suivez les fills partiels à différents prix\n  - Affiche le prix d'entrée moyen pondéré\n• Redéfinition du R d'Exécution : Redéfinissez R optionnellement\n  - Utile si le portfolio a changé entre plan et exécution\n• Métriques de Position : Peuvent être ajustées manuellement si besoin\n• Sorties Réelles : Prix de sortie réels et % fermés\n• Bouton Copier le Plan : Copiez rapidement les TPs prévus vers les sorties\n• Carte Résultats du Trade montre le P&L en temps réel et le RR effectif\n• Statut mis à jour auto : OPEN → WIN/LOSS/BE selon les sorties",
     "viewingTrades": "Voir les Détails du Trade",
     "viewingTradesContent": "Cliquez sur n'importe quel trade pour voir :\n• Plan et exécution complets du trade\n• Métriques clés : Valeur du portfolio, risque 1R, RR Prévu/Réel\n• Résultats en Direct : P&L en temps réel si partiellement fermé\n• Notes du Trade : Votre analyse et observations\n• Actions : Dupliquer ou supprimer des trades",
     "filteringTrades": "Filtrage & Recherche",
@@ -678,7 +686,7 @@
     "faqA8": "Facteur de Profit = Profit Brut / Perte Brute. Si vous n'avez pas encore de trades perdants, Perte Brute = 0, résultant en une division par zéro (∞). C'est normal pour les nouveaux comptes avec seulement des trades gagnants.",
 
     "privacyNote": "Confidentialité & Sécurité",
-    "privacyNoteContent": "Vos données sont 100% privées et sécurisées.\n• Toutes les données stockées localement sur votre appareil\n• Pas de sync cloud ou serveurs externes\n• Identifiants API stockés dans le trousseau système (Keychain sur macOS, Credential Manager sur Windows)\n• Utilisez des clés API en lecture seule pour les exchanges\n• Sauvegardes régulières recommandées",
+    "privacyNoteContent": "Vos données sont 100% privées et sécurisées.\n• Toutes les données stockées localement sur votre appareil\n• Pas de sync cloud ou serveurs externes\n• Sauvegardes régulières recommandées",
 
     "contactNote": "Contact & Support",
     "contactNoteContent": "Besoin d'aide ou vous avez une question ?\n• Pour toute question ou signalement d'erreur\n• Contactez-moi sur Telegram : @N0mad832\n• Je suis là pour vous aider !"

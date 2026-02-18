@@ -731,7 +731,7 @@ export default function TradeDetail() {
       {executionValid && executionMetrics && (
         <Card className="border-2 border-primary">
           <CardHeader className="bg-primary/10 pb-2 md:pb-3">
-            <CardTitle className="text-sm md:text-base">{t('tradeDetail.tradeResults') || 'Résultats du trade'}</CardTitle>
+            <CardTitle className="text-sm md:text-base">{t('tradeDetail.tradeResults') || 'Trade Results'}</CardTitle>
           </CardHeader>
           <CardContent className="pt-3 md:pt-4 space-y-3">
             {/* Row 1: P&L and RR */}
@@ -1276,7 +1276,7 @@ export default function TradeDetail() {
                     onClick={() => setExits([...exits, { price: 0, percent: 0 }])}
                   >
                     <Plus className="h-4 w-4 mr-1" />
-                    {t('tradeNew.addExit') || 'Ajouter Sortie'}
+                    {t('tradeNew.addExit') || 'Add Exit'}
                   </Button>
                 </div>
                 <p className="text-xs text-muted-foreground mb-3">

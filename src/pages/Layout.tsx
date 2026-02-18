@@ -44,12 +44,12 @@ export default function Layout() {
           <div className="flex items-center gap-2">
             <img
               src={nemesisLogo}
-              alt="Nemesis Logo"
+              alt={t('common.logoAlt')}
               className="w-8 h-8 object-contain rounded-lg"
             />
             <div className="flex flex-col">
               <h1 className="text-sm font-bold text-foreground leading-tight">
-                Nemesis
+                {t('common.appName')}
               </h1>
             </div>
           </div>
@@ -88,15 +88,15 @@ export default function Layout() {
             <div className="flex items-center gap-3">
               <img
                 src={nemesisLogo}
-                alt="Nemesis Logo"
+                alt={t('common.logoAlt')}
                 className="w-12 h-12 object-contain rounded-lg flex-shrink-0"
               />
               <div className="flex flex-col">
                 <h1 className="text-2xl font-bold text-foreground leading-tight">
-                  Nemesis
+                  {t('common.appName')}
                 </h1>
                 <p className="text-sm text-muted-foreground">
-                  {i18n.language === 'fr' ? 'Journal de Trading' : 'Trading Journal'}
+                  {t('common.appSubtitle')}
                 </p>
               </div>
             </div>
@@ -104,7 +104,7 @@ export default function Layout() {
             <div className="flex justify-center">
               <img
                 src={nemesisLogo}
-                alt="Nemesis Logo"
+                alt={t('common.logoAlt')}
                 className="w-10 h-10 object-contain rounded-lg"
               />
             </div>
