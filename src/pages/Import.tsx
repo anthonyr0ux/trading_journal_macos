@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button';
 import { api, type ImportPreview, type ImportResult } from '../lib/api';
 import { formatCurrency } from '../lib/utils';
-import { ArrowLeft, Upload, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Upload, AlertCircle, CheckCircle2, ChevronDown } from 'lucide-react';
 import { HelpBadge } from '../components/HelpBadge';
 import { open } from '@tauri-apps/plugin-dialog';
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
@@ -41,6 +41,7 @@ export default function Import() {
   const [portfolio, setPortfolio] = useState(10000);
   const [rPercent, setRPercent] = useState(2);
   const [isDragging, setIsDragging] = useState(false);
+  const [showInstructions, setShowInstructions] = useState(false);
 
   // Dialog states
   const [errorDialog, setErrorDialog] = useState<{ open: boolean; message: string | null }>({ open: false, message: null });
@@ -291,24 +292,36 @@ export default function Import() {
         </CardContent>
       </Card>
 
-      {/* Import Instructions */}
+      {/* Import Instructions — collapsible */}
       <Card>
-        <CardHeader>
-          <CardTitle>{instructions.title}</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <ol className="list-decimal list-inside space-y-2 text-sm">
-            {instructions.steps.map((step, i) => (
-              <li key={i}>{step}</li>
-            ))}
-          </ol>
-          <div className="flex items-start gap-2 p-3 rounded-lg bg-warning/10 border border-warning/20 mt-4">
-            <AlertCircle className="h-5 w-5 text-warning shrink-0" />
-            <div className="text-sm text-warning-foreground">
-              {instructions.note}
-            </div>
+        <CardHeader
+          className="cursor-pointer select-none"
+          onClick={() => setShowInstructions(v => !v)}
+        >
+          <div className="flex items-center justify-between">
+            <CardTitle>{instructions.title}</CardTitle>
+            <ChevronDown
+              className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${
+                showInstructions ? 'rotate-180' : ''
+              }`}
+            />
           </div>
-        </CardContent>
+        </CardHeader>
+        {showInstructions && (
+          <CardContent className="space-y-2">
+            <ol className="list-decimal list-inside space-y-2 text-sm">
+              {instructions.steps.map((step, i) => (
+                <li key={i}>{step}</li>
+              ))}
+            </ol>
+            <div className="flex items-start gap-2 p-3 rounded-lg bg-warning/10 border border-warning/20 mt-4">
+              <AlertCircle className="h-5 w-5 text-warning shrink-0" />
+              <div className="text-sm text-warning-foreground">
+                {instructions.note}
+              </div>
+            </div>
+          </CardContent>
+        )}
       </Card>
 
       {/* File Upload with Drag & Drop */}
