@@ -43,6 +43,7 @@ jobs:
         with:
           files: src-tauri/target/release/bundle/appimage/*.AppImage
           draft: true
+          overwrite: true
           tag_name: linux-appimage
           name: Linux AppImage
           body: |
