@@ -39,20 +39,20 @@ jobs:
         env:
           NO_STRIP: "true"
       - name: Upload AppImage
-        uses: softprops/action-gh-release@v1
-        with:
-          files: src-tauri/target/release/bundle/appimage/*.AppImage
-          draft: true
-          overwrite: true
-          tag_name: linux-appimage
-          name: Linux AppImage
-          body: |
-            ## Trading Journal — Linux AppImage
+        run: |
+          gh release create linux-appimage \
+            --draft \
+            --title "Linux AppImage" \
+            --notes "## Trading Journal — Linux AppImage
 
             ### Installation
-            ```bash
+            \`\`\`bash
             chmod +x Trading-Journal_*.AppImage
             ./Trading-Journal_*.AppImage
-            ```
+            \`\`\`" \
+            2>/dev/null || true
+          gh release upload linux-appimage \
+            src-tauri/target/release/bundle/appimage/*.AppImage \
+            --clobber
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
