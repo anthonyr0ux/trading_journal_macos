@@ -268,7 +268,7 @@ export default function Import() {
         </CardHeader>
         <CardContent>
           <div className="flex gap-3">
-            {(['BitGet', 'BloFin'] as Exchange[]).map((exchange) => (
+            {(['BitGet', 'BloFin', 'BingX'] as Exchange[]).map((exchange) => (
               <button
                 key={exchange}
                 onClick={() => handleExchangeChange(exchange)}
