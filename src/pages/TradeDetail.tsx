@@ -66,11 +66,11 @@ export default function TradeDetail() {
   const [leverage, setLeverage] = useState(10);
   const [plannedTps, setPlannedTps] = useState<Array<{price: number, percent: number}>>([]);
 
-  // Planned position metrics (optional overrides - stored in local state only)
-  const [plannedMarginOverride, setPlannedMarginOverride] = useState<number | null>(null);
-  const [plannedPositionSizeOverride, setPlannedPositionSizeOverride] = useState<number | null>(null);
-  const [plannedQuantityOverride, setPlannedQuantityOverride] = useState<number | null>(null);
-  const [plannedOneROverride, setPlannedOneROverride] = useState<number | null>(null);
+  // Planned position metrics (editable, saved to DB)
+  const [plannedMargin, setPlannedMargin] = useState(0);
+  const [plannedPositionSize, setPlannedPositionSize] = useState(0);
+  const [plannedQuantity, setPlannedQuantity] = useState(0);
+  const [plannedOneR, setPlannedOneR] = useState(0);
 
   // Editable execution fields
   const [effectivePe, setEffectivePe] = useState(0);
@@ -120,10 +120,10 @@ export default function TradeDetail() {
         executionMetrics = calculateExecutionMetrics({
           entries: entriesForCalc,
           pe: entriesForCalc ? undefined : effectivePe,
-          sl: trade.planned_sl,
+          sl: plannedSl,
           exits: normalizedExits,
-          oneR: trade.one_r,
-          positionSize: trade.position_size,
+          oneR: executionOneR,
+          positionSize: executionPositionSize,
           type: trade.position_type,
         });
 
@@ -135,7 +135,7 @@ export default function TradeDetail() {
     }
 
     return { executionMetrics, executionValid, validExits, totalExitPercent };
-  }, [trade, exits, effectiveEntries, effectivePe]);
+  }, [trade, exits, effectiveEntries, effectivePe, plannedSl, executionOneR, executionPositionSize]);
 
   // Calculate execution R calculations
   const executionCalculations = useMemo(() => {
@@ -171,24 +171,6 @@ export default function TradeDetail() {
       return null;
     }
   }, [useExecutionR, executionPortfolio, executionRPercent, effectiveEntries, exits, plannedTps, plannedSl, leverage, trade]);
-
-  // Calculate effective planned metrics (use overrides if set, otherwise use calculated values)
-  const effectivePlannedMetrics = useMemo(() => {
-    if (!trade) {
-      return {
-        margin: 0,
-        positionSize: 0,
-        quantity: 0,
-        oneR: 0,
-      };
-    }
-    return {
-      margin: plannedMarginOverride ?? trade.margin,
-      positionSize: plannedPositionSizeOverride ?? trade.position_size,
-      quantity: plannedQuantityOverride ?? trade.quantity,
-      oneR: plannedOneROverride ?? trade.one_r,
-    };
-  }, [plannedMarginOverride, plannedPositionSizeOverride, plannedQuantityOverride, plannedOneROverride, trade]);
 
   useEffect(() => {
     if (id) {
@@ -284,6 +266,12 @@ export default function TradeDetail() {
       setExecutionPortfolio(data.execution_portfolio || data.portfolio_value);
       setExecutionRPercent(data.execution_r_percent ? data.execution_r_percent * 100 : data.r_percent * 100);
 
+      // Initialize planned position metrics
+      setPlannedMargin(data.margin);
+      setPlannedPositionSize(data.position_size);
+      setPlannedQuantity(data.quantity);
+      setPlannedOneR(data.one_r);
+
       // Initialize execution position metrics
       setExecutionMargin(data.execution_margin || data.margin);
       setExecutionPositionSize(data.execution_position_size || data.position_size);
@@ -334,10 +322,10 @@ export default function TradeDetail() {
             metrics = calculateExecutionMetrics({
               entries: entriesForCalc,
               pe: entriesForCalc ? undefined : effectivePe,
-              sl: trade.planned_sl,
+              sl: plannedSl,
               exits: normalizedExits,
-              oneR: trade.one_r,
-              positionSize: trade.position_size,
+              oneR: executionOneR,
+              positionSize: executionPositionSize,
               type: trade.position_type,
             });
 
@@ -374,10 +362,10 @@ export default function TradeDetail() {
             const metrics = calculateExecutionMetrics({
               entries: entriesForCalc,
               pe: entriesForCalc ? undefined : effectivePe,
-              sl: trade.planned_sl,
+              sl: plannedSl,
               exits: normalizedExits,
-              oneR: trade.one_r,
-              positionSize: trade.position_size,
+              oneR: executionOneR,
+              positionSize: executionPositionSize,
               type: trade.position_type,
             });
 
@@ -437,8 +425,8 @@ export default function TradeDetail() {
       }
 
       // Calculate P&L in R multiples
-      const pnlInR = totalPnl !== null && trade.one_r > 0
-        ? totalPnl / trade.one_r
+      const pnlInR = totalPnl !== null && executionOneR > 0
+        ? totalPnl / executionOneR
         : null;
 
       // Prepare execution calculation fields
@@ -453,10 +441,10 @@ export default function TradeDetail() {
       } : {
         execution_portfolio: undefined,
         execution_r_percent: undefined,
-        execution_margin: executionMargin !== trade.margin ? executionMargin : undefined,
-        execution_position_size: executionPositionSize !== trade.position_size ? executionPositionSize : undefined,
-        execution_quantity: executionQuantity !== trade.quantity ? executionQuantity : undefined,
-        execution_one_r: executionOneR !== trade.one_r ? executionOneR : undefined,
+        execution_margin: executionMargin !== plannedMargin ? executionMargin : undefined,
+        execution_position_size: executionPositionSize !== plannedPositionSize ? executionPositionSize : undefined,
+        execution_quantity: executionQuantity !== plannedQuantity ? executionQuantity : undefined,
+        execution_one_r: executionOneR !== plannedOneR ? executionOneR : undefined,
         execution_potential_profit: undefined,
       };
 
@@ -476,6 +464,11 @@ export default function TradeDetail() {
         leverage: leverage,
         planned_tps: plannedTpsJson,
         planned_entries: plannedEntriesJson,
+        // Planned position metrics
+        one_r: plannedOneR,
+        margin: plannedMargin,
+        position_size: plannedPositionSize,
+        quantity: plannedQuantity,
         // Execution fields
         effective_pe: weightedEffectivePE,
         effective_entries: effectiveEntriesJson,
@@ -673,7 +666,7 @@ export default function TradeDetail() {
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
               <div>
                 <p className="text-[10px] md:text-xs text-muted-foreground font-semibold">Risk 1R</p>
-                <p className="text-lg md:text-2xl font-bold">{formatCurrency(trade.one_r)}</p>
+                <p className="text-lg md:text-2xl font-bold">{formatCurrency(executionOneR)}</p>
                 <p className="text-[10px] md:text-xs text-muted-foreground">{formatPercent(trade.r_percent)}</p>
               </div>
               <AlertCircle className="h-5 w-5 md:h-8 md:w-8 text-muted-foreground hidden md:block" />
@@ -689,7 +682,7 @@ export default function TradeDetail() {
                 <p className="text-[10px] md:text-xs text-muted-foreground font-semibold">Plan</p>
                 <p className="text-lg md:text-2xl font-bold">{formatRR(trade.planned_weighted_rr)}</p>
                 <p className="text-[10px] md:text-xs text-success font-semibold">
-                  {formatCurrency(trade.one_r * trade.planned_weighted_rr)}
+                  {formatCurrency(executionOneR * trade.planned_weighted_rr)}
                 </p>
               </div>
               <TrendingUp className="h-5 w-5 md:h-8 md:w-8 text-success hidden md:block" />
@@ -697,27 +690,28 @@ export default function TradeDetail() {
           </CardContent>
         </Card>
 
-        {/* Execution Card - Only show if trade has execution data */}
-        {(trade.total_pnl !== null || trade.effective_weighted_rr !== null) && (
+        {/* Execution Card - Show if trade has execution data or live computed metrics */}
+        {(executionValid || trade.total_pnl !== null || trade.effective_weighted_rr !== null) && (
           <Card>
             <CardContent className="pt-4 pb-4 px-3 md:pt-6 md:px-6">
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
                 <div>
                   <p className="text-[10px] md:text-xs text-muted-foreground font-semibold">Execution</p>
                   <p className="text-lg md:text-2xl font-bold">
-                    {trade.effective_weighted_rr ? formatRR(trade.effective_weighted_rr) : '-'}
+                    {executionMetrics?.effectiveRR != null ? formatRR(executionMetrics.effectiveRR) : trade.effective_weighted_rr ? formatRR(trade.effective_weighted_rr) : '-'}
                   </p>
                   <p className={`text-[10px] md:text-xs font-semibold ${
-                    trade.total_pnl
-                      ? (trade.total_pnl >= 0 ? 'text-success' : 'text-destructive')
+                    (executionMetrics?.totalPnl ?? trade.total_pnl)
+                      ? ((executionMetrics?.totalPnl ?? trade.total_pnl)! >= 0 ? 'text-success' : 'text-destructive')
                       : 'text-muted-foreground'
                   }`}>
-                    {trade.total_pnl ? formatCurrency(trade.total_pnl) : '-'}
+                    {executionMetrics != null ? formatCurrency(executionMetrics.totalPnl) : trade.total_pnl ? formatCurrency(trade.total_pnl) : '-'}
                   </p>
                 </div>
-                {trade.total_pnl !== null && trade.total_pnl !== undefined && (trade.total_pnl >= 0 ?
-                  <TrendingUp className="h-5 w-5 md:h-8 md:w-8 text-success hidden md:block" /> :
-                  <TrendingDown className="h-5 w-5 md:h-8 md:w-8 text-destructive hidden md:block" />
+                {(executionMetrics?.totalPnl ?? trade.total_pnl) != null && (
+                  (executionMetrics?.totalPnl ?? trade.total_pnl)! >= 0 ?
+                    <TrendingUp className="h-5 w-5 md:h-8 md:w-8 text-success hidden md:block" /> :
+                    <TrendingDown className="h-5 w-5 md:h-8 md:w-8 text-destructive hidden md:block" />
                 )}
               </div>
             </CardContent>
@@ -851,15 +845,20 @@ export default function TradeDetail() {
                   stopLoss={plannedSl}
                   leverage={leverage}
                   positionType={trade.position_type as 'LONG' | 'SHORT'}
-                  initialMargin={effectivePlannedMetrics.margin}
-                  initialPositionSize={effectivePlannedMetrics.positionSize}
-                  initialQuantity={effectivePlannedMetrics.quantity}
-                  initialOneR={effectivePlannedMetrics.oneR}
+                  initialMargin={plannedMargin}
+                  initialPositionSize={plannedPositionSize}
+                  initialQuantity={plannedQuantity}
+                  initialOneR={plannedOneR}
                   onChange={(metrics) => {
-                    setPlannedMarginOverride(metrics.margin);
-                    setPlannedPositionSizeOverride(metrics.positionSize);
-                    setPlannedQuantityOverride(metrics.quantity);
-                    setPlannedOneROverride(metrics.oneR);
+                    setPlannedMargin(metrics.margin);
+                    setPlannedPositionSize(metrics.positionSize);
+                    setPlannedQuantity(metrics.quantity);
+                    setPlannedOneR(metrics.oneR);
+                    // Keep execution metrics in sync so live calculations update
+                    setExecutionMargin(metrics.margin);
+                    setExecutionPositionSize(metrics.positionSize);
+                    setExecutionQuantity(metrics.quantity);
+                    setExecutionOneR(metrics.oneR);
                   }}
                   label={t('positionMetrics.title')}
                 />
@@ -1045,19 +1044,19 @@ export default function TradeDetail() {
                 <div className="grid grid-cols-2 gap-3">
                   <div className="p-2 bg-muted/50 rounded">
                     <div className="text-xs text-muted-foreground">{t('tradeDetail.positionSize')}</div>
-                    <div className="text-sm font-semibold">{formatCurrency(trade.position_size)}</div>
+                    <div className="text-sm font-semibold">{formatCurrency(plannedPositionSize)}</div>
                   </div>
                   <div className="p-2 bg-muted/50 rounded">
                     <div className="text-xs text-muted-foreground">{t('tradeDetail.quantity')}</div>
-                    <div className="text-sm font-semibold">{trade.quantity.toFixed(4)}</div>
+                    <div className="text-sm font-semibold">{plannedQuantity.toFixed(4)}</div>
                   </div>
                   <div className="p-2 bg-muted/50 rounded">
                     <div className="text-xs text-muted-foreground">{t('tradeDetail.margin')}</div>
-                    <div className="text-sm font-semibold">{formatCurrency(trade.margin)}</div>
+                    <div className="text-sm font-semibold">{formatCurrency(plannedMargin)}</div>
                   </div>
                   <div className="p-2 bg-muted/50 rounded">
                     <div className="text-xs text-muted-foreground">{t('tradeDetail.leverage')}</div>
-                    <div className="text-sm font-semibold">{trade.leverage}x</div>
+                    <div className="text-sm font-semibold">{leverage}x</div>
                   </div>
                 </div>
               </div>

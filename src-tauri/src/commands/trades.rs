@@ -252,6 +252,40 @@ pub async fn update_trade(
             updates.push("notes = ?");
             values.push(Box::new(notes.to_string()));
         }
+        // Basic fields (editable after trade creation)
+        if let Some(pair) = trade_update.get("pair").and_then(|v| v.as_str()) {
+            updates.push("pair = ?");
+            values.push(Box::new(pair.to_string()));
+        }
+        if let Some(exchange) = trade_update.get("exchange").and_then(|v| v.as_str()) {
+            updates.push("exchange = ?");
+            values.push(Box::new(exchange.to_string()));
+        }
+        if let Some(analysis_date) = trade_update.get("analysis_date").and_then(|v| v.as_i64()) {
+            updates.push("analysis_date = ?");
+            values.push(Box::new(analysis_date));
+        }
+        if let Some(trade_date) = trade_update.get("trade_date").and_then(|v| v.as_i64()) {
+            updates.push("trade_date = ?");
+            values.push(Box::new(trade_date));
+        }
+        // Base position metrics (editable)
+        if let Some(one_r) = trade_update.get("one_r").and_then(|v| v.as_f64()) {
+            updates.push("one_r = ?");
+            values.push(Box::new(one_r));
+        }
+        if let Some(margin) = trade_update.get("margin").and_then(|v| v.as_f64()) {
+            updates.push("margin = ?");
+            values.push(Box::new(margin));
+        }
+        if let Some(position_size) = trade_update.get("position_size").and_then(|v| v.as_f64()) {
+            updates.push("position_size = ?");
+            values.push(Box::new(position_size));
+        }
+        if let Some(quantity) = trade_update.get("quantity").and_then(|v| v.as_f64()) {
+            updates.push("quantity = ?");
+            values.push(Box::new(quantity));
+        }
         // Plan fields (editable after trade creation)
         if let Some(planned_pe) = trade_update.get("planned_pe").and_then(|v| v.as_f64()) {
             updates.push("planned_pe = ?");
