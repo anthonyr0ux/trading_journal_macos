@@ -407,9 +407,10 @@ export default function TradeDetail() {
 
       // Prepare effective entries
       const validEffectiveEntries = effectiveEntries.filter(e => e.price > 0);
-      const effectiveEntriesJson = validEffectiveEntries.length > 0
+      // Use null (not undefined) so Rust explicitly clears the DB field when entries are removed
+      const effectiveEntriesJson: string | null = validEffectiveEntries.length > 0
         ? JSON.stringify(validEffectiveEntries)
-        : undefined;
+        : null;
 
       // Calculate weighted effective PE
       let weightedEffectivePE = effectivePe;
@@ -469,9 +470,11 @@ export default function TradeDetail() {
         margin: plannedMargin,
         position_size: plannedPositionSize,
         quantity: plannedQuantity,
-        // Execution fields
-        effective_pe: weightedEffectivePE,
-        effective_entries: effectiveEntriesJson,
+        // Execution fields — send null explicitly when cleared so Rust sets DB to NULL
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        effective_pe: (validEffectiveEntries.length > 0 ? weightedEffectivePE : null) as any,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        effective_entries: effectiveEntriesJson as any,
         exits: exitsJson,
         close_date: closeDateTimestamp ?? undefined,
         total_pnl: totalPnl ?? undefined,
@@ -633,7 +636,7 @@ export default function TradeDetail() {
               value={pair}
               onChange={(e) => setPair(e.target.value)}
               placeholder={t('tradeNew.pairPlaceholder')}
-              className="text-xl font-bold bg-transparent border-none outline-none focus:outline-none focus:ring-0 px-0 w-auto min-w-[100px] placeholder:text-muted-foreground/40"
+              className="text-xl font-bold bg-transparent border-b border-transparent hover:border-border focus:border-primary outline-none px-0 w-auto min-w-[100px] placeholder:text-muted-foreground/40 transition-colors"
               style={{ width: `${Math.max(pair.length * 12 + 20, 100)}px` }}
             />
             <span className="text-muted-foreground text-sm">on</span>
@@ -641,7 +644,7 @@ export default function TradeDetail() {
               value={exchange}
               onChange={(e) => setExchange(e.target.value)}
               placeholder={t('tradeNew.exchangePlaceholder')}
-              className="text-lg bg-transparent border-none outline-none focus:outline-none focus:ring-0 px-0 w-auto min-w-[80px] placeholder:text-muted-foreground/40"
+              className="text-lg bg-transparent border-b border-transparent hover:border-border focus:border-primary outline-none px-0 w-auto min-w-[80px] placeholder:text-muted-foreground/40 transition-colors"
               style={{ width: `${Math.max(exchange.length * 10 + 20, 80)}px` }}
             />
           </div>

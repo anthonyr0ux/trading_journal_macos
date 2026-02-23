@@ -85,7 +85,7 @@ pub async fn get_trades(
         query.push_str(&format!(" AND {}", conditions.join(" AND ")));
     }
 
-    query.push_str(" ORDER BY trade_date DESC");
+    query.push_str(" ORDER BY trade_date DESC, created_at DESC");
 
     if let Some(f) = &filters {
         if let (Some(page), Some(limit)) = (f.page, f.limit) {
@@ -220,17 +220,25 @@ pub async fn update_trade(
             updates.push("status = ?");
             values.push(Box::new(status.to_string()));
         }
-        if let Some(effective_pe) = trade_update.get("effective_pe").and_then(|v| v.as_f64()) {
-            updates.push("effective_pe = ?");
-            values.push(Box::new(effective_pe));
+        if let Some(v) = trade_update.get("effective_pe") {
+            if v.is_null() {
+                updates.push("effective_pe = NULL");
+            } else if let Some(val) = v.as_f64() {
+                updates.push("effective_pe = ?");
+                values.push(Box::new(val));
+            }
         }
         if let Some(close_date) = trade_update.get("close_date").and_then(|v| v.as_i64()) {
             updates.push("close_date = ?");
             values.push(Box::new(close_date));
         }
-        if let Some(effective_entries) = trade_update.get("effective_entries").and_then(|v| v.as_str()) {
-            updates.push("effective_entries = ?");
-            values.push(Box::new(effective_entries.to_string()));
+        if let Some(v) = trade_update.get("effective_entries") {
+            if v.is_null() {
+                updates.push("effective_entries = NULL");
+            } else if let Some(s) = v.as_str() {
+                updates.push("effective_entries = ?");
+                values.push(Box::new(s.to_string()));
+            }
         }
         if let Some(exits) = trade_update.get("exits").and_then(|v| v.as_str()) {
             updates.push("exits = ?");

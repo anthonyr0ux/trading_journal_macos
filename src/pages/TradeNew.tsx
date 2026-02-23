@@ -305,7 +305,13 @@ export default function TradeNew() {
         pair: pair.toUpperCase(),
         exchange,
         analysis_date: Math.floor(new Date(analysisDate).getTime() / 1000),
-        trade_date: Math.floor(new Date(tradeDate).getTime() / 1000),
+        // Use current timestamp when trade date is today so new trades sort above existing same-day trades
+        trade_date: (() => {
+          const today = new Date().toISOString().split('T')[0];
+          return tradeDate === today
+            ? Math.floor(Date.now() / 1000)
+            : Math.floor(new Date(tradeDate).getTime() / 1000);
+        })(),
         status: 'OPEN',
         portfolio_value: portfolio,
         r_percent: rPercent / 100,
