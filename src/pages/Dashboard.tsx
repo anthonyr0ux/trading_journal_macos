@@ -282,11 +282,11 @@ export default function Dashboard() {
                   <XAxis
                     dataKey="date"
                     className="text-xs"
-                    tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                    tick={{ fill: '#ffffff' }}
                   />
                   <YAxis
                     className="text-xs"
-                    tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                    tick={{ fill: '#ffffff' }}
                     tickFormatter={createCurrencyFormatter(isAnonymous)}
                   />
                   <Tooltip
@@ -295,7 +295,8 @@ export default function Dashboard() {
                       border: '1px solid hsl(var(--border))',
                       borderRadius: '0.5rem',
                     }}
-                    labelStyle={{ color: 'hsl(var(--foreground))' }}
+                    labelStyle={{ color: '#ffffff' }}
+                    itemStyle={{ color: '#ffffff' }}
                     formatter={(value: number) => [createTooltipFormatter(isAnonymous)(value), t('journal.pnl')]}
                   />
                   <Line
@@ -322,11 +323,11 @@ export default function Dashboard() {
                   <XAxis
                     dataKey="date"
                     className="text-xs"
-                    tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                    tick={{ fill: '#ffffff' }}
                   />
                   <YAxis
                     className="text-xs"
-                    tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                    tick={{ fill: '#ffffff' }}
                     tickFormatter={createCurrencyFormatter(isAnonymous)}
                   />
                   <Tooltip
@@ -335,7 +336,8 @@ export default function Dashboard() {
                       border: '1px solid hsl(var(--border))',
                       borderRadius: '0.5rem',
                     }}
-                    labelStyle={{ color: 'hsl(var(--foreground))' }}
+                    labelStyle={{ color: '#ffffff' }}
+                    itemStyle={{ color: '#ffffff' }}
                     formatter={(value: number, name: string) => [
                       createTooltipFormatter(isAnonymous)(value),
                       name === 'daily_pnl' ? t('dashboard.dailyPnL') : name

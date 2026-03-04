@@ -26,22 +26,22 @@ export function DailyPnLChart({ data }: DailyPnLChartProps) {
         <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
         <XAxis
           dataKey="date"
-          stroke="hsl(var(--muted-foreground))"
+          stroke="#ffffff"
           fontSize={12}
           tickLine={false}
           axisLine={false}
-          tick={{ fill: 'hsl(var(--muted-foreground))' }}
+          tick={{ fill: '#ffffff' }}
           tickFormatter={(value) => {
             const date = new Date(value);
             return `${date.getMonth() + 1}/${date.getDate()}`;
           }}
         />
         <YAxis
-          stroke="hsl(var(--muted-foreground))"
+          stroke="#ffffff"
           fontSize={12}
           tickLine={false}
           axisLine={false}
-          tick={{ fill: 'hsl(var(--muted-foreground))' }}
+          tick={{ fill: '#ffffff' }}
           tickFormatter={(value) => formatCurrency(value)}
         />
         <Tooltip
