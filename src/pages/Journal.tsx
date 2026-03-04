@@ -16,6 +16,19 @@ import { AnonymousToggle } from '../components/AnonymousToggle';
 
 type StatusFilter = 'all' | 'OPEN' | 'WIN' | 'LOSS' | 'BE';
 
+function hasEffectiveEntry(trade: Trade): boolean {
+  if (trade.effective_pe && trade.effective_pe > 0) return true;
+  if (trade.effective_entries) {
+    try {
+      const entries = typeof trade.effective_entries === 'string'
+        ? JSON.parse(trade.effective_entries)
+        : trade.effective_entries;
+      return entries.some((e: { price: number }) => e.price > 0);
+    } catch { return false; }
+  }
+  return false;
+}
+
 export default function Journal() {
   const navigate = useNavigate();
   const { t } = useTranslation();
@@ -281,14 +294,16 @@ export default function Journal() {
                             <Badge variant={trade.position_type === 'LONG' ? 'default' : 'secondary'} className="text-[10px] h-4 px-1">
                               {trade.position_type}
                             </Badge>
-                            <Badge variant={
-                              trade.status === 'WIN' ? 'default' :
-                              trade.status === 'LOSS' ? 'destructive' :
-                              trade.status === 'BE' ? 'secondary' :
-                              'outline'
-                            } className="text-[10px] h-4 px-1">
-                              {trade.status}
-                            </Badge>
+                            {(trade.status !== 'OPEN' || hasEffectiveEntry(trade)) && (
+                              <Badge variant={
+                                trade.status === 'WIN' ? 'default' :
+                                trade.status === 'LOSS' ? 'destructive' :
+                                trade.status === 'BE' ? 'secondary' :
+                                'outline'
+                              } className="text-[10px] h-4 px-1">
+                                {trade.status}
+                              </Badge>
+                            )}
                           </div>
                           <div className="text-xs text-muted-foreground">
                             {trade.exchange} • {new Date(trade.trade_date * 1000).toLocaleDateString()}
@@ -361,14 +376,16 @@ export default function Journal() {
 
                     {/* Status */}
                     <div className="min-w-[80px]">
-                      <Badge variant={
-                        trade.status === 'WIN' ? 'default' :
-                        trade.status === 'LOSS' ? 'destructive' :
-                        trade.status === 'BE' ? 'secondary' :
-                        'outline'
-                      } className="text-xs">
-                        {trade.status}
-                      </Badge>
+                      {(trade.status !== 'OPEN' || hasEffectiveEntry(trade)) && (
+                        <Badge variant={
+                          trade.status === 'WIN' ? 'default' :
+                          trade.status === 'LOSS' ? 'destructive' :
+                          trade.status === 'BE' ? 'secondary' :
+                          'outline'
+                        } className="text-xs">
+                          {trade.status}
+                        </Badge>
+                      )}
                     </div>
 
                     {/* Effective R:R (calculated live) */}

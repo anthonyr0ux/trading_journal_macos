@@ -33,6 +33,7 @@ export default function TradeDetail() {
   // Collapsible section states (collapsed by default on mobile)
   const [isPlanCollapsed, setIsPlanCollapsed] = useState(true);
   const [isExecutionCollapsed, setIsExecutionCollapsed] = useState(true);
+  const [showCopyMenu, setShowCopyMenu] = useState(false);
 
   // Editable dates
   const [analysisDate, setAnalysisDate] = useState('');
@@ -530,6 +531,7 @@ export default function TradeDetail() {
 
   const handleCopyPlanToExecution = () => {
     if (!trade) return;
+    setShowCopyMenu(false);
 
     // Copy planned entry to actual entry
     setEffectivePe(trade.planned_pe);
@@ -547,6 +549,22 @@ export default function TradeDetail() {
       percent: tp.percent
     }));
     setExits(copiedExits);
+  };
+
+  const handleCopyEntriesAndSl = () => {
+    if (!trade) return;
+    setShowCopyMenu(false);
+
+    // Copy planned entry to actual entry
+    setEffectivePe(trade.planned_pe);
+
+    // Copy planned entries to effective entries
+    const copiedEntries = plannedEntries.map(e => ({
+      price: e.price,
+      percent: e.percent
+    }));
+    setEffectiveEntries(copiedEntries);
+    // TPs/exits are NOT copied
   };
 
   if (loading) {
@@ -722,6 +740,46 @@ export default function TradeDetail() {
         )}
       </div>
 
+      {/* Setup Quick View */}
+      <Card>
+        <CardContent className="pt-4 pb-3 px-4">
+          <div className="text-xs font-semibold text-muted-foreground mb-3">{t('tradeDetail.setupOverview')}</div>
+          <div className="grid grid-cols-3 gap-2 text-xs">
+            {/* PEs */}
+            <div className="flex flex-col items-center p-2 bg-muted/30 rounded">
+              <div className="text-[10px] text-muted-foreground mb-1 font-semibold">PE(s)</div>
+              <div className="font-mono text-[10px] md:text-xs text-center">
+                {plannedEntries.filter(e => e.price > 0).length > 0
+                  ? plannedEntries.filter(e => e.price > 0).map((e, i) => (
+                      <div key={i}>{parseFloat(e.price.toFixed(8))}{plannedEntries.filter(x => x.price > 0).length > 1 && <span className="text-muted-foreground ml-1">({e.percent}%)</span>}</div>
+                    ))
+                  : <span className="text-muted-foreground">—</span>
+                }
+              </div>
+            </div>
+            {/* SL */}
+            <div className="flex flex-col items-center p-2 bg-destructive/10 rounded">
+              <div className="text-[10px] text-muted-foreground mb-1 font-semibold">SL</div>
+              <div className="font-mono text-[10px] md:text-xs text-destructive font-semibold text-center">
+                {plannedSl > 0 ? parseFloat(plannedSl.toFixed(8)) : <span className="text-muted-foreground">—</span>}
+              </div>
+            </div>
+            {/* TPs */}
+            <div className="flex flex-col items-center p-2 bg-success/10 rounded">
+              <div className="text-[10px] text-muted-foreground mb-1 font-semibold">TP(s)</div>
+              <div className="font-mono text-[10px] md:text-xs text-success text-center">
+                {plannedTps.filter(tp => tp.price > 0).length > 0
+                  ? plannedTps.filter(tp => tp.price > 0).map((tp, i) => (
+                      <div key={i}>{parseFloat(tp.price.toFixed(8))}{plannedTps.filter(x => x.price > 0).length > 1 && <span className="text-muted-foreground ml-1">({tp.percent}%)</span>}</div>
+                    ))
+                  : <span className="text-muted-foreground">—</span>
+                }
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Trade Results */}
       {executionValid && executionMetrics && (
         <Card className="border-2 border-primary">
@@ -748,13 +806,13 @@ export default function TradeDetail() {
               </div>
             </div>
 
-            {/* Row 2: PE(s), SL, TP(s) - Condensed View */}
+            {/* Row 2: Effective Entry(ies), SL, Exit(s) - Condensed View */}
             <div className="grid grid-cols-3 gap-2 md:gap-3 text-xs">
-              {/* PE(s) */}
+              {/* Effective Entry(ies) */}
               <div className="flex flex-col items-center justify-center p-2 bg-muted/30 rounded">
-                <div className="text-[10px] text-muted-foreground mb-1">PE(s)</div>
+                <div className="text-[10px] text-muted-foreground mb-1">Entry(ies)</div>
                 <div className="font-mono text-[10px] md:text-xs">
-                  {plannedEntries.filter(e => e.price > 0).map((e, i) => (
+                  {effectiveEntries.filter(e => e.price > 0).map((e, i) => (
                     <div key={i}>{parseFloat(e.price.toFixed(8))}</div>
                   ))}
                 </div>
@@ -768,12 +826,12 @@ export default function TradeDetail() {
                 </div>
               </div>
 
-              {/* TP(s) */}
+              {/* Exit(s) */}
               <div className="flex flex-col items-center justify-center p-2 bg-success/10 rounded">
-                <div className="text-[10px] text-muted-foreground mb-1">TP(s)</div>
+                <div className="text-[10px] text-muted-foreground mb-1">Exit(s)</div>
                 <div className="font-mono text-[10px] md:text-xs text-success">
-                  {plannedTps.filter(tp => tp.price > 0).map((tp, i) => (
-                    <div key={i}>{parseFloat(tp.price.toFixed(8))}</div>
+                  {exits.filter(e => e.price > 0).map((e, i) => (
+                    <div key={i}>{parseFloat(e.price.toFixed(8))}</div>
                   ))}
                 </div>
               </div>
@@ -949,12 +1007,11 @@ export default function TradeDetail() {
                 />
               </div>
 
-              {/* Stop Loss & Leverage - Editable */}
+              {/* Stop Loss - Editable */}
               <div className="border-2 border-destructive rounded-lg p-4">
-                <div className="text-sm font-semibold text-destructive mb-3">{t('tradeDetail.stopLossAndLeverage')}</div>
-                <div className="grid gap-3 grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="plannedSl" className="text-xs">{t('tradeNew.stopLossRequired')}</Label>
+                <div className="text-sm font-semibold text-destructive mb-3">{t('tradeDetail.stopLoss')}</div>
+                <div className="space-y-2">
+                  <Label htmlFor="plannedSl" className="text-xs">{t('tradeNew.stopLossRequired')}</Label>
                   <Input
                     id="plannedSl"
                     type="number"
@@ -969,6 +1026,11 @@ export default function TradeDetail() {
                     required
                   />
                 </div>
+              </div>
+
+              {/* Leverage - Editable */}
+              <div className="border-2 border-white rounded-lg p-4">
+                <div className="text-sm font-semibold mb-3">{t('tradeDetail.leverage')}</div>
                 <div className="space-y-2">
                   <Label htmlFor="leverage" className="text-xs">{t('tradeNew.leverage')}</Label>
                   <Input
@@ -982,60 +1044,85 @@ export default function TradeDetail() {
                     className="text-sm"
                   />
                 </div>
-                </div>
               </div>
 
               {/* Take Profits - Editable */}
               <div className="border-2 border-success rounded-lg p-4 space-y-3">
-                <div className="text-sm font-semibold text-success">{t('tradeDetail.plannedTakeProfits')}</div>
+                <div className="flex items-center justify-between">
+                  <div className="text-sm font-semibold text-success">{t('tradeDetail.plannedTakeProfits')}</div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPlannedTps([...plannedTps, { price: 0, percent: 0 }])}
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    {t('tradeNew.addEntry') || 'Add TP'}
+                  </Button>
+                </div>
                 {plannedTps.map((tp, index) => (
-                  <div key={index} className="grid gap-3 grid-cols-2">
-                    <div className="space-y-1">
-                      <Label htmlFor={`tp${index}-price`} className="text-xs">
-                        TP{index + 1} {t('calculator.entryShort')} {index === 0 && '*'}
-                      </Label>
-                      <Input
-                        id={`tp${index}-price`}
-                        type="number"
-                        step="0.00000001"
-                        value={tp.price || ''}
-                        onChange={(e) => {
-                          const v = parseFloat(e.target.value);
-                          if (!isNaN(v) || e.target.value === '') {
-                            const newTps = [...plannedTps];
-                            if (index >= 0 && index < newTps.length) {
-                              newTps[index].price = v || 0;
-                              setPlannedTps(newTps);
-                            }
-                          }
-                        }}
-                        placeholder="0.00"
-                        className="font-mono text-sm"
-                        required={index === 0}
-                      />
+                  <div key={index} className="p-3 border rounded-lg bg-muted/30 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Badge variant="outline">TP{index + 1}</Badge>
+                      {plannedTps.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setPlannedTps(plannedTps.filter((_, i) => i !== index))}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
-                    <div className="space-y-1">
-                      <Label htmlFor={`tp${index}-percent`} className="text-xs">{t('tradeNew.allocationPercent')}</Label>
-                      <Input
-                        id={`tp${index}-percent`}
-                        type="number"
-                        min="0"
-                        max="100"
-                        value={tp.percent || ''}
-                        onChange={(e) => {
-                          const v = parseFloat(e.target.value);
-                          if (!isNaN(v) || e.target.value === '') {
-                            const newTps = [...plannedTps];
-                            if (index >= 0 && index < newTps.length) {
-                              newTps[index].percent = v || 0;
-                              setPlannedTps(newTps);
+                    <div className="grid gap-3 grid-cols-2">
+                      <div className="space-y-1">
+                        <Label htmlFor={`tp${index}-price`} className="text-xs">
+                          {t('calculator.entryShort')} {index === 0 && '*'}
+                        </Label>
+                        <Input
+                          id={`tp${index}-price`}
+                          type="number"
+                          step="0.00000001"
+                          value={tp.price || ''}
+                          onChange={(e) => {
+                            const v = parseFloat(e.target.value);
+                            if (!isNaN(v) || e.target.value === '') {
+                              const newTps = [...plannedTps];
+                              if (index >= 0 && index < newTps.length) {
+                                newTps[index] = { ...newTps[index], price: v || 0 };
+                                setPlannedTps(newTps);
+                              }
                             }
-                          }
-                        }}
-                        disabled={!tp.price}
-                        placeholder="0"
-                        className="text-sm"
-                      />
+                          }}
+                          placeholder="0.00"
+                          className="font-mono text-sm"
+                          required={index === 0}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label htmlFor={`tp${index}-percent`} className="text-xs">{t('tradeNew.allocationPercent')}</Label>
+                        <Input
+                          id={`tp${index}-percent`}
+                          type="number"
+                          min="0"
+                          max="100"
+                          value={tp.percent || ''}
+                          onChange={(e) => {
+                            const v = parseFloat(e.target.value);
+                            if (!isNaN(v) || e.target.value === '') {
+                              const newTps = [...plannedTps];
+                              if (index >= 0 && index < newTps.length) {
+                                newTps[index] = { ...newTps[index], percent: v || 0 };
+                                setPlannedTps(newTps);
+                              }
+                            }
+                          }}
+                          disabled={!tp.price}
+                          placeholder="0"
+                          className="text-sm"
+                        />
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -1077,30 +1164,42 @@ export default function TradeDetail() {
                   {t('tradeDetail.tradeExecution')}
                 </CardTitle>
                 <div className="flex items-center gap-2">
-                  {/* Desktop: Full button */}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={handleCopyPlanToExecution}
-                    disabled={!trade}
-                    className="hidden md:flex"
-                  >
-                    <Copy className="h-4 w-4 mr-2" />
-                    {t('tradeDetail.copyPlan')}
-                  </Button>
-                  {/* Mobile: Icon button */}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={handleCopyPlanToExecution}
-                    disabled={!trade}
-                    className="md:hidden"
-                    title={t('tradeDetail.copyPlan')}
-                  >
-                    <Copy className="h-4 w-4" />
-                  </Button>
+                  {/* Copy button with dropdown */}
+                  <div className="relative">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowCopyMenu(!showCopyMenu)}
+                      disabled={!trade}
+                      className="flex items-center gap-1"
+                    >
+                      <Copy className="h-4 w-4" />
+                      <span className="hidden md:inline ml-1">{t('tradeDetail.copyPlan')}</span>
+                      <ChevronDown className="h-3 w-3 ml-0.5" />
+                    </Button>
+                    {showCopyMenu && (
+                      <>
+                        <div className="fixed inset-0 z-10" onClick={() => setShowCopyMenu(false)} />
+                        <div className="absolute right-0 mt-1 w-48 bg-popover border border-border rounded-md shadow-lg z-20 py-1">
+                          <button
+                            type="button"
+                            className="w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors"
+                            onClick={handleCopyPlanToExecution}
+                          >
+                            {t('tradeDetail.copyEntireSetup')}
+                          </button>
+                          <button
+                            type="button"
+                            className="w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors"
+                            onClick={handleCopyEntriesAndSl}
+                          >
+                            {t('tradeDetail.copyEntriesAndSl')}
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
                   {/* Mobile: Collapse toggle */}
                   <Button
                     variant="ghost"

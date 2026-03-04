@@ -319,6 +319,9 @@
     "tradeExecution": "Trade Execution",
     "tradeNotes": "Trade Notes",
     "copyPlan": "Copy Plan",
+    "copyEntireSetup": "Copy Entire Setup",
+    "copyEntriesAndSl": "Copy Entries + SL",
+    "setupOverview": "Setup Overview",
     "portfolioValue": "Portfolio Value",
     "risk1R": "Risk (1R)",
     "riskPercent": "risk",
@@ -796,7 +799,7 @@
     "helpBadge": "View help"
   },
   "positionMetrics": {
-    "title": "Position Metrics",
+    "title": "Adjust Position Metrics",
     "cost": "Cost",
     "costTooltip": "Total position value (margin × leverage)",
     "margin": "Margin",

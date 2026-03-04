@@ -319,6 +319,9 @@
     "tradeExecution": "Exécution du Trade",
     "tradeNotes": "Notes du Trade",
     "copyPlan": "Copier le Plan",
+    "copyEntireSetup": "Copier le Setup Entier",
+    "copyEntriesAndSl": "Copier Entrées + SL",
+    "setupOverview": "Aperçu du Setup Initial",
     "executionResults": "Résultats d'Exécution",
     "dates": "Dates",
     "analysisDate": "Date d'Analyse",
@@ -792,7 +795,7 @@
     "helpBadge": "Voir l'aide"
   },
   "positionMetrics": {
-    "title": "Métriques de Position",
+    "title": "Ajuster les Métriques de Position",
     "cost": "Coût",
     "costTooltip": "Valeur totale de la position (marge × levier)",
     "margin": "Marge",
